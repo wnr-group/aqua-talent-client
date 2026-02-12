@@ -1,0 +1,907 @@
+openapi: 3.0.3
+info:
+  title: Aqua Talent Job Marketplace API
+  description: |
+    REST API specification for the Job Marketplace Platform.
+    This document defines the contract between frontend and backend.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://api.aquatalent.com
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints (all user types)
+  - name: Companies
+    description: Company registration and management
+  - name: Students
+    description: Student registration and profile
+  - name: Jobs
+    description: Job posting operations
+  - name: Applications
+    description: Job application operations
+  - name: Admin
+    description: Admin moderation endpoints
+
+paths:
+  # ============ AUTH ============
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user (any type)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Not authenticated
+
+  /auth/password-reset:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (if account exists)
+
+  # ============ COMPANIES ============
+  /companies/register:
+    post:
+      tags: [Companies]
+      summary: Register new company (pending approval)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyRegisterRequest'
+      responses:
+        '201':
+          description: Company registered (pending approval)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies/me:
+    get:
+      tags: [Companies]
+      summary: Get current company profile
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Company profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+
+  /companies/me/jobs:
+    get:
+      tags: [Companies]
+      summary: List company's job postings
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/JobStatus'
+      responses:
+        '200':
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobPosting'
+
+  # ============ STUDENTS ============
+  /students/register:
+    post:
+      tags: [Students]
+      summary: Register new student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRegisterRequest'
+      responses:
+        '201':
+          description: Student registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+
+  /students/me:
+    get:
+      tags: [Students]
+      summary: Get current student profile
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Student profile with application stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentWithStats'
+    patch:
+      tags: [Students]
+      summary: Update student profile
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentUpdateRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+
+  # ============ JOBS ============
+  /jobs:
+    get:
+      tags: [Jobs]
+      summary: Search active job postings (public)
+      parameters:
+        - name: q
+          in: query
+          description: Search keywords
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: industry
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of active jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobListResponse'
+    post:
+      tags: [Jobs]
+      summary: Create new job posting (approved companies only)
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCreateRequest'
+      responses:
+        '201':
+          description: Job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPosting'
+        '403':
+          description: Company not approved
+
+  /jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      summary: Get job details
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPostingWithCompany'
+        '404':
+          description: Job not found
+    patch:
+      tags: [Jobs]
+      summary: Update job posting (owner only)
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobUpdateRequest'
+      responses:
+        '200':
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPosting'
+
+  /jobs/{jobId}/applicants:
+    get:
+      tags: [Jobs]
+      summary: Get approved applicants for job (company only)
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of approved applicants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationWithStudent'
+
+  # ============ APPLICATIONS ============
+  /applications:
+    post:
+      tags: [Applications]
+      summary: Apply to job (one-click)
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobId]
+              properties:
+                jobId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Already applied or limit reached
+        '404':
+          description: Job not found or expired
+
+  /applications/mine:
+    get:
+      tags: [Applications]
+      summary: Get student's applications
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of applications with job info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationWithJob'
+
+  /applications/{applicationId}/withdraw:
+    post:
+      tags: [Applications]
+      summary: Withdraw pending application
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn, count restored
+        '400':
+          description: Cannot withdraw (not pending)
+
+  # ============ ADMIN ============
+  /admin/companies/pending:
+    get:
+      tags: [Admin]
+      summary: Get pending company registrations
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of pending companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+
+  /admin/companies/{companyId}/approve:
+    post:
+      tags: [Admin]
+      summary: Approve company registration
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Company approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+
+  /admin/companies/{companyId}/reject:
+    post:
+      tags: [Admin]
+      summary: Reject company registration
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+      responses:
+        '200':
+          description: Company rejected
+
+  /admin/applications/pending:
+    get:
+      tags: [Admin]
+      summary: Get pending applications for review
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of pending applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationForReview'
+
+  /admin/applications/{applicationId}/approve:
+    post:
+      tags: [Admin]
+      summary: Approve application
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application approved
+
+  /admin/applications/{applicationId}/reject:
+    post:
+      tags: [Admin]
+      summary: Reject application
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+      responses:
+        '200':
+          description: Application rejected
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Get dashboard statistics
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Admin dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+
+  schemas:
+    # ===== Request Schemas =====
+    LoginRequest:
+      type: object
+      required: [username, password, userType]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 8
+        userType:
+          type: string
+          enum: [company, student, admin]
+
+    CompanyRegisterRequest:
+      type: object
+      required: [username, password, name, industry, email]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        industry:
+          type: string
+        email:
+          type: string
+          format: email
+
+    StudentRegisterRequest:
+      type: object
+      required: [username, password, name, email]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        education:
+          type: string
+          maxLength: 500
+        skills:
+          type: string
+          maxLength: 500
+
+    StudentUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        education:
+          type: string
+        skills:
+          type: string
+
+    JobCreateRequest:
+      type: object
+      required: [title, description, requirements, location, deadline]
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 50
+          maxLength: 5000
+        requirements:
+          type: string
+          minLength: 20
+          maxLength: 2000
+        location:
+          type: string
+        salaryMin:
+          type: integer
+          minimum: 0
+        salaryMax:
+          type: integer
+        deadline:
+          type: string
+          format: date-time
+
+    JobUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: string
+        location:
+          type: string
+        salaryMin:
+          type: integer
+        salaryMax:
+          type: integer
+        deadline:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/JobStatus'
+
+    # ===== Response Schemas =====
+    AuthResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        userType:
+          type: string
+          enum: [company, student, admin]
+        status:
+          type: string
+          description: Company status (only for company users)
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        name:
+          type: string
+        industry:
+          type: string
+        email:
+          type: string
+        status:
+          $ref: '#/components/schemas/CompanyStatus'
+        createdAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        education:
+          type: string
+          nullable: true
+        skills:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    StudentWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Student'
+        - type: object
+          properties:
+            applicationsThisMonth:
+              type: integer
+            remainingApplications:
+              type: integer
+
+    JobPosting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: string
+        location:
+          type: string
+        salaryMin:
+          type: integer
+          nullable: true
+        salaryMax:
+          type: integer
+          nullable: true
+        deadline:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    JobPostingWithCompany:
+      allOf:
+        - $ref: '#/components/schemas/JobPosting'
+        - type: object
+          properties:
+            company:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                industry:
+                  type: string
+
+    JobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobPostingWithCompany'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        hasMore:
+          type: boolean
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        jobId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectReason:
+          type: string
+          nullable: true
+
+    ApplicationWithJob:
+      allOf:
+        - $ref: '#/components/schemas/Application'
+        - type: object
+          properties:
+            job:
+              $ref: '#/components/schemas/JobPostingWithCompany'
+
+    ApplicationWithStudent:
+      allOf:
+        - $ref: '#/components/schemas/Application'
+        - type: object
+          properties:
+            student:
+              $ref: '#/components/schemas/Student'
+
+    ApplicationForReview:
+      allOf:
+        - $ref: '#/components/schemas/Application'
+        - type: object
+          properties:
+            student:
+              $ref: '#/components/schemas/Student'
+            job:
+              $ref: '#/components/schemas/JobPostingWithCompany'
+
+    AdminStats:
+      type: object
+      properties:
+        pendingCompanies:
+          type: integer
+        approvedCompanies:
+          type: integer
+        rejectedCompanies:
+          type: integer
+        pendingApplications:
+          type: integer
+        approvedApplications:
+          type: integer
+        rejectedApplications:
+          type: integer
+        activeJobs:
+          type: integer
+        totalStudents:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+
+    # ===== Enums =====
+    CompanyStatus:
+      type: string
+      enum: [pending, approved, rejected, inactive]
+
+    JobStatus:
+      type: string
+      enum: [active, expired, filled, inactive]
+
+    ApplicationStatus:
+      type: string
+      enum: [pending, approved, rejected, withdrawn]

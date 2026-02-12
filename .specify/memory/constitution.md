@@ -1,50 +1,105 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+==================
+Version change: 0.0.0 → 1.0.0 (MAJOR - initial ratification)
+Modified principles: N/A (initial creation)
+Added sections:
+  - Core Principles (3 principles)
+  - Technology Standards
+  - Development Workflow
+  - Governance
+Removed sections: N/A
+Templates requiring updates:
+  - .specify/templates/plan-template.md ✅ (no changes needed - generic)
+  - .specify/templates/spec-template.md ✅ (no changes needed - generic)
+  - .specify/templates/tasks-template.md ✅ (no changes needed - generic)
+Follow-up TODOs: None
+-->
+
+# Aqua Talent Client Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Component-First Architecture
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All UI features MUST be built as self-contained React components with clear boundaries.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- Components MUST be reusable and composable where practical
+- Each component MUST have a single, well-defined responsibility
+- Shared state MUST use React Context or a designated state management solution
+- Components MUST NOT directly access browser APIs without abstraction layers
+- File structure MUST organize components by feature domain, not by type
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: Component isolation enables independent development, easier debugging,
+and predictable behavior across the application.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Type Safety
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+TypeScript MUST be used for all source files with strict configuration enabled.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- All function parameters and return types MUST be explicitly typed
+- `any` type MUST NOT be used except in exceptional cases with inline justification
+- Shared interfaces and types MUST be defined in dedicated type files
+- API responses MUST have corresponding TypeScript interfaces
+- Props MUST be typed using interface definitions, not inline types
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: Type safety catches errors at compile time, improves IDE support,
+and serves as living documentation for the codebase.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Simplicity
+
+The simplest solution that meets requirements MUST be chosen.
+
+- YAGNI: Features MUST NOT be built until actually needed
+- Dependencies MUST be justified; prefer native browser/React APIs when sufficient
+- Abstractions MUST only be created after patterns repeat three or more times
+- Configuration MUST use sensible defaults; avoid premature optimization
+- Code MUST be readable without extensive comments; self-documenting preferred
+
+**Rationale**: Simplicity reduces maintenance burden, speeds onboarding, and
+minimizes surface area for bugs.
+
+## Technology Standards
+
+**Framework**: React with Vite build tooling
+**Language**: TypeScript (strict mode)
+**Styling**: CSS Modules or Tailwind CSS (project to decide)
+**State Management**: React Context for simple state; Zustand/Jotai for complex state
+**HTTP Client**: Fetch API or Axios (project to decide)
+**Routing**: React Router v6+
+
+All technology choices not specified above MUST be documented before adoption.
+New dependencies MUST be evaluated for bundle size impact, maintenance status,
+and alignment with existing stack.
+
+## Development Workflow
+
+**Branch Strategy**: Feature branches off `main`, merged via pull request
+**Code Review**: All changes MUST be reviewed before merge to `main`
+**Commit Messages**: Use conventional commits format (feat:, fix:, chore:, etc.)
+**Formatting**: Prettier for code formatting, ESLint for linting (configured in repo)
+
+Pull requests SHOULD include:
+- Clear description of changes and motivation
+- Screenshots for UI changes
+- Notes on any breaking changes or migration steps
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other project practices where conflicts arise.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Process**:
+1. Propose amendment with rationale in writing
+2. Review period of at least 24 hours for team feedback
+3. Document change in constitution with version bump
+4. Communicate changes to all contributors
+
+**Versioning Policy**:
+- MAJOR: Principle removal or fundamental redefinition
+- MINOR: New principle or section added, material guidance expansion
+- PATCH: Clarifications, typo fixes, non-semantic refinements
+
+**Compliance**: All pull requests MUST be checked against constitution principles.
+Violations MUST be justified in the PR description or resolved before merge.
+
+**Version**: 1.0.0 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
