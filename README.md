@@ -91,16 +91,62 @@ npm run preview
 npm run lint
 ```
 
-## Mock Server (MSW)
+## Backend Configuration
 
-This project uses **Mock Service Worker (MSW)** to simulate a backend API during development. No actual backend server is required.
+The app supports two modes: **Mock Server** (default) and **Real Backend**.
 
-### How It Works
+### Mode Selection
 
+| Environment Variable | Backend Mode |
+|---------------------|--------------|
+| `VITE_API_URL` not set | Mock Server (MSW) - simulates API in browser |
+| `VITE_API_URL` set | Real Backend - connects to actual server |
+
+### Using Mock Server (Default)
+
+By default, the app uses **Mock Service Worker (MSW)** to simulate a backend API. No actual backend server is required.
+
+**How It Works:**
 1. MSW intercepts all API requests made to `http://localhost:3001/api/*`
 2. Mock handlers in `src/mocks/handlers.ts` process these requests
 3. Mock data in `src/mocks/data.ts` provides the initial dataset
 4. Data persists in memory during the session (resets on page refresh)
+
+### Using Real Backend
+
+To connect to a real backend server:
+
+**1. Set the API URL environment variable:**
+
+For local development, edit `.env.development`:
+```bash
+VITE_API_URL=http://localhost:3001/api
+```
+
+For production, edit `.env.production`:
+```bash
+VITE_API_URL=https://api.yourdomain.com/api
+```
+
+**2. Restart the development server:**
+```bash
+npm run dev
+```
+
+You'll see in the console:
+```
+[API] Using real backend: http://localhost:3001/api
+```
+
+**3. Implement the API endpoints** (see API Endpoints section below)
+
+### Switching Back to Mock Server
+
+To switch back to mock mode, simply remove or comment out `VITE_API_URL` from your `.env` file:
+
+```bash
+# VITE_API_URL=http://localhost:3001/api  # Commented out = use mock server
+```
 
 ### Test Credentials
 
