@@ -42,6 +42,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initAuth = async () => {
       setIsLoading(true)
+
+      // Check for token in URL (from cross-portal redirect)
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlToken = urlParams.get('token')
+
+      if (urlToken) {
+        // Store the token from URL
+        tokenManager.setToken(urlToken)
+        // Clean up URL (remove token param)
+        urlParams.delete('token')
+        const newUrl = urlParams.toString()
+          ? `${window.location.pathname}?${urlParams.toString()}`
+          : window.location.pathname
+        window.history.replaceState({}, '', newUrl)
+      }
+
       await refreshUser()
       setIsLoading(false)
     }

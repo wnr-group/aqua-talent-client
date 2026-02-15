@@ -85,18 +85,18 @@ export default function LoginPage() {
     setIsLoading(true)
     setLoginError(null)
     try {
-      // For company/admin login on main domain, validate credentials but don't store token
-      // Just redirect them to their portal to log in there
+      // For company/admin login on main domain, get token and redirect with it
       if (currentPortal === 'public' && (userType === UserType.COMPANY || userType === UserType.ADMIN)) {
-        // Validate credentials by calling API directly
-        await api.post<LoginResponse>('/auth/login', {
+        // Get token from login
+        const response = await api.post<LoginResponse>('/auth/login', {
           username: data.username,
           password: data.password,
           userType,
         })
-        // Credentials are valid, redirect to their portal (they'll need to log in again there)
+        // Redirect to their portal with token for seamless login
         const portalType = userType === UserType.COMPANY ? 'company' : 'admin'
-        window.location.href = `${getPortalBaseUrl(portalType)}/login`
+        const token = encodeURIComponent(response.token)
+        window.location.href = `${getPortalBaseUrl(portalType)}?token=${token}`
         return
       }
 
