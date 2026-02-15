@@ -11,7 +11,6 @@ import {
   Mail,
   Lock,
   CheckCircle,
-  ArrowLeft,
   Info,
 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
@@ -79,14 +78,6 @@ export default function CompanyRegisterPage() {
 
   return (
     <div className="min-h-screen ocean-bg flex items-center justify-center p-4 particles-bg">
-      <Link
-        to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
-      </Link>
-
       <div className="max-w-md w-full">
         <div className="text-center mb-8 animate-fade-in-up">
           <Link to="/" className="inline-flex items-center gap-3 mb-6">

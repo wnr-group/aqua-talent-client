@@ -132,14 +132,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen ocean-bg flex items-center justify-center p-4 particles-bg">
-      {/* Back to home */}
-      <Link
-        to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
-      </Link>
+      {/* Back to home - only show on student portal */}
+      {!isDedicatedPortal && (
+        <Link
+          to="/"
+          className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+      )}
 
       <div className="max-w-md w-full">
         {/* Logo */}
