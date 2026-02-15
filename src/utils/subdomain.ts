@@ -44,6 +44,19 @@ export function getPortalType(): PortalType {
 }
 
 export function getPortalBaseUrl(portal: PortalType | 'student'): string {
+  // Check for environment variable URLs first (for Vercel multi-project setup)
+  const envUrls: Record<string, string | undefined> = {
+    company: import.meta.env.VITE_COMPANY_URL as string | undefined,
+    admin: import.meta.env.VITE_ADMIN_URL as string | undefined,
+    public: import.meta.env.VITE_PUBLIC_URL as string | undefined,
+    student: import.meta.env.VITE_PUBLIC_URL as string | undefined,
+  }
+
+  if (envUrls[portal]) {
+    return envUrls[portal] as string
+  }
+
+  // Fall back to subdomain-based URLs
   const hostname = window.location.hostname
   const protocol = window.location.protocol
   const port = window.location.port
