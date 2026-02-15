@@ -333,6 +333,77 @@ src/
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+## Vercel Deployment
+
+### Quick Deploy
+
+1. Push your code to GitHub
+2. Import the repository in [Vercel](https://vercel.com)
+3. Vercel auto-detects Vite and deploys
+
+### Environment Variables
+
+Set in Vercel Dashboard → Project → Settings → Environment Variables:
+
+```
+VITE_API_URL=https://your-backend-api.com/api
+```
+
+### Subdomain Setup
+
+This app uses subdomains for different portals:
+
+| Portal | Domain |
+|--------|--------|
+| Student/Public | `aquatalentz.com` |
+| Company | `company.aquatalentz.com` |
+| Admin | `admin.aquatalentz.com` |
+
+**Steps to configure subdomains in Vercel:**
+
+1. **Add your custom domain:**
+   - Go to Project → Settings → Domains
+   - Add your root domain: `aquatalentz.com`
+
+2. **Add subdomains (same project):**
+   - In the same Domains settings, add:
+     - `company.aquatalentz.com`
+     - `admin.aquatalentz.com`
+   - All subdomains point to the same deployment
+   - The app detects the subdomain and shows the appropriate portal
+
+3. **DNS Configuration:**
+   In your DNS provider, add these records:
+   ```
+   Type  Name      Value
+   A     @         76.76.21.21
+   A     company   76.76.21.21
+   A     admin     76.76.21.21
+   ```
+   Or use CNAME:
+   ```
+   Type   Name      Value
+   CNAME  @         cname.vercel-dns.com
+   CNAME  company   cname.vercel-dns.com
+   CNAME  admin     cname.vercel-dns.com
+   ```
+
+4. **Verify domains:**
+   - Vercel will automatically provision SSL certificates
+   - Wait for DNS propagation (can take up to 48 hours)
+
+### How Subdomain Detection Works
+
+The app uses `src/utils/subdomain.ts` to detect which portal to show:
+
+```typescript
+// company.aquatalentz.com → Company Portal
+// admin.aquatalentz.com   → Admin Portal
+// aquatalentz.com         → Student/Public Portal
+```
+
+The same React app serves all three portals - routing is handled client-side based on the subdomain.
+
 ## Documentation
 
 - **[AGENTS.md](./AGENTS.md)** - Design system, component patterns, and examples for AI agents
