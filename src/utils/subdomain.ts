@@ -1,5 +1,6 @@
 // Subdomain detection and routing utility
 // Students use main domain, Company and Admin use subdomains
+// For Vercel free tier (no custom domain), use VITE_PORTAL_TYPE env var
 
 export type PortalType = 'public' | 'company' | 'admin'
 
@@ -23,6 +24,13 @@ export function getSubdomain(): string | null {
 }
 
 export function getPortalType(): PortalType {
+  // Check for environment variable first (for Vercel deployments without custom domain)
+  const envPortal = import.meta.env.VITE_PORTAL_TYPE as string | undefined
+  if (envPortal && ['public', 'company', 'admin'].includes(envPortal)) {
+    return envPortal as PortalType
+  }
+
+  // Fall back to subdomain detection
   const subdomain = getSubdomain()
 
   switch (subdomain) {
