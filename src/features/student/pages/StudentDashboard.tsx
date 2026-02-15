@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { PageContainer } from '@/components/layout'
-import Card, { CardContent } from '@/components/common/Card'
-import Alert from '@/components/common/Alert'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuthContext } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { api } from '@/services/api/client'
-import { FileText, Clock, Trophy, Search, User, ArrowRight } from 'lucide-react'
+import {
+  FileText,
+  Clock,
+  Trophy,
+  Search,
+  User,
+  ArrowRight,
+  LogOut,
+  Briefcase
+} from 'lucide-react'
+import Logo from '@/components/common/Logo'
 
 const MAX_APPLICATIONS = 2
 
@@ -16,6 +24,8 @@ interface DashboardStats {
 }
 
 export default function StudentDashboard() {
+  const { user, logout } = useAuthContext()
+  const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -33,149 +43,213 @@ export default function StudentDashboard() {
     fetchStats()
   }, [])
 
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
+  }
+
   const applicationsRemaining = MAX_APPLICATIONS - (stats?.applicationsUsed ?? 0)
 
   return (
-    <PageContainer title="Dashboard" description="Welcome back! Here's your job search overview.">
-      {stats?.isHired && (
-        <Alert variant="success" className="mb-6" title="Congratulations!">
-          You have been hired. Your job search journey is complete.
-        </Alert>
-      )}
+    <div className="min-h-screen ocean-bg">
+      {/* Navigation */}
+      <nav className="glass sticky top-0 z-40 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/" className="flex items-center gap-3">
+              <Logo size="md" />
+            </Link>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <LoadingSpinner size="lg" />
+            <div className="flex items-center gap-6">
+              <Link
+                to="/jobs"
+                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <Briefcase className="w-4 h-4" />
+                Browse Jobs
+              </Link>
+              <Link
+                to="/my-applications"
+                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                My Applications
+              </Link>
+              <Link
+                to="/profile"
+                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card hover>
-              <CardContent>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+            Welcome back, {user?.student?.fullName || user?.username}!
+          </h1>
+          <p className="text-muted-foreground">Here's your job search overview</p>
+        </div>
+
+        {/* Hired Status Banner */}
+        {stats?.isHired && (
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-glow-teal/20 to-glow-cyan/20 border border-glow-teal/30">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-glow-teal to-glow-cyan flex items-center justify-center">
+                <Trophy className="w-8 h-8 text-ocean-deep" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold text-glow-teal">Congratulations!</h2>
+                <p className="text-muted-foreground">You have been hired. Your job search journey is complete.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Applications Card */}
+              <div className="glass rounded-2xl p-6 hover:border-glow-cyan/30 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-blue-600" />
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-glow-cyan/20 to-glow-teal/20 flex items-center justify-center border border-glow-cyan/30">
+                    <FileText className="w-7 h-7 text-glow-cyan" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Applications</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-muted-foreground">Applications</p>
+                    <p className="text-3xl font-display font-bold text-foreground">
                       {stats?.applicationsUsed ?? 0}
-                      <span className="text-base font-normal text-gray-400"> / {MAX_APPLICATIONS}</span>
+                      <span className="text-lg font-normal text-muted-foreground"> / {MAX_APPLICATIONS}</span>
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-500">
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
                     {applicationsRemaining > 0
                       ? `${applicationsRemaining} application${applicationsRemaining > 1 ? 's' : ''} remaining`
                       : 'Application limit reached'}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card hover>
-              <CardContent>
+              {/* Pending Review Card */}
+              <div className="glass rounded-2xl p-6 hover:border-sand/30 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-600" />
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-sand/20 to-coral/20 flex items-center justify-center border border-sand/30">
+                    <Clock className="w-7 h-7 text-sand" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Pending Review</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
+                    <p className="text-3xl font-display font-bold text-foreground">
                       {stats?.pendingApplications ?? 0}
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-500">Awaiting employer response</p>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground">Awaiting employer response</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card hover>
-              <CardContent>
+              {/* Status Card */}
+              <div className="glass rounded-2xl p-6 hover:border-glow-teal/30 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    stats?.isHired ? 'bg-green-100' : 'bg-gray-100'
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center border ${
+                    stats?.isHired
+                      ? 'bg-gradient-to-br from-glow-teal/20 to-glow-cyan/20 border-glow-teal/30'
+                      : 'bg-gradient-to-br from-glow-purple/20 to-glow-blue/20 border-glow-purple/30'
                   }`}>
-                    <Trophy className={`w-6 h-6 ${stats?.isHired ? 'text-green-600' : 'text-gray-400'}`} />
+                    <Trophy className={`w-7 h-7 ${stats?.isHired ? 'text-glow-teal' : 'text-glow-purple'}`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Status</p>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                         stats?.isHired
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-glow-teal/20 text-glow-teal border border-glow-teal/30'
+                          : 'bg-glow-purple/20 text-glow-purple border border-glow-purple/30'
                       }`}
                     >
                       {stats?.isHired ? 'Hired' : 'Searching'}
                     </span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-500">
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
                     {stats?.isHired ? 'Journey complete' : 'Keep applying to find your match'}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {!stats?.isHired && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link to="/student/jobs" className="group">
-                <Card hover className="h-full">
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Search className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-900">Browse Jobs</span>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to="/student/applications" className="group">
-                <Card hover className="h-full">
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-900">View Applications</span>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to="/student/profile" className="group">
-                <Card hover className="h-full">
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-900">Update Profile</span>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              </div>
             </div>
-          )}
 
-          {applicationsRemaining === 0 && !stats?.isHired && (
-            <Alert variant="warning" className="mt-6">
-              You have reached your application limit. Withdraw an existing application to apply to new jobs.
-            </Alert>
-          )}
-        </>
-      )}
-    </PageContainer>
+            {/* Quick Actions */}
+            {!stats?.isHired && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link to="/jobs" className="group">
+                  <div className="glass rounded-xl p-5 hover:border-glow-cyan/30 transition-all hover:glow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Search className="w-5 h-5 text-glow-cyan" />
+                        <span className="font-medium text-foreground">Browse Jobs</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-glow-cyan transition-colors" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link to="/my-applications" className="group">
+                  <div className="glass rounded-xl p-5 hover:border-glow-teal/30 transition-all hover:glow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-glow-teal" />
+                        <span className="font-medium text-foreground">View Applications</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-glow-teal transition-colors" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link to="/profile" className="group">
+                  <div className="glass rounded-xl p-5 hover:border-glow-purple/30 transition-all hover:glow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <User className="w-5 h-5 text-glow-purple" />
+                        <span className="font-medium text-foreground">Update Profile</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-glow-purple transition-colors" />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            )}
+
+            {/* Warning for application limit */}
+            {applicationsRemaining === 0 && !stats?.isHired && (
+              <div className="mt-6 p-4 rounded-xl bg-sand/10 border border-sand/30">
+                <p className="text-sand text-sm">
+                  You have reached your application limit. Withdraw an existing application to apply to new jobs.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   )
 }

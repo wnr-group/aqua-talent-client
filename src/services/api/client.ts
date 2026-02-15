@@ -1,6 +1,5 @@
-import { ApiError } from '@/types'
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const TOKEN_KEY = 'aqua_talent_token'
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | undefined>
@@ -16,6 +15,19 @@ export class ApiClientError extends Error {
     this.status = status
     this.code = code
   }
+}
+
+// Token management
+export const tokenManager = {
+  getToken: (): string | null => {
+    return localStorage.getItem(TOKEN_KEY)
+  },
+  setToken: (token: string): void => {
+    localStorage.setItem(TOKEN_KEY, token)
+  },
+  clearToken: (): void => {
+    localStorage.removeItem(TOKEN_KEY)
+  },
 }
 
 function buildUrl(endpoint: string, params?: Record<string, string | number | undefined>): string {
@@ -39,25 +51,47 @@ export async function fetchApi<T>(
   const { params, ...fetchOptions } = options
   const url = buildUrl(endpoint, params)
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchOptions.headers,
-    },
-  })
+  const token = tokenManager.getToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(fetchOptions.headers as Record<string, string>),
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  let response: Response
+
+  try {
+    response = await fetch(url, {
+      ...fetchOptions,
+      credentials: 'include',
+      headers,
+    })
+  } catch (networkError) {
+    // Handle network errors (backend not running, CORS, etc.)
+    throw new ApiClientError(
+      'Unable to connect to server. Please check if the backend is running.',
+      0,
+      'NETWORK_ERROR'
+    )
+  }
 
   if (!response.ok) {
-    let errorData: ApiError = { message: 'An error occurred' }
+    let errorMessage = 'An error occurred'
+    let errorCode: string | undefined
 
     try {
-      errorData = await response.json()
+      const errorData = await response.json()
+      // Handle both backend formats: { error: "..." } and { message: "..." }
+      errorMessage = errorData.error || errorData.message || errorMessage
+      errorCode = errorData.code
     } catch {
-      errorData = { message: response.statusText }
+      errorMessage = response.statusText
     }
 
-    throw new ApiClientError(errorData.message, response.status, errorData.code)
+    throw new ApiClientError(errorMessage, response.status, errorCode)
   }
 
   if (response.status === 204) {

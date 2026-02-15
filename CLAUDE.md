@@ -17,8 +17,11 @@ Before making changes, read these files:
 ## Commands
 
 ```bash
-# Development
+# Development (local)
 npm run dev          # Start dev server with MSW mocking
+
+# Development (Docker - recommended)
+docker-compose up    # Start with subdomain support
 
 # Build
 npm run build        # TypeScript check + Vite build
@@ -26,6 +29,29 @@ npm run build        # TypeScript check + Vite build
 # Lint
 npm run lint         # ESLint check
 ```
+
+## Docker Development
+
+The project uses Docker for development with pre-configured subdomain support.
+
+### Quick Start
+```bash
+# Setup hosts (one-time)
+sudo ./setup-hosts.sh
+
+# Start dev server
+docker-compose up
+```
+
+### Portal URLs
+- Student: http://aquatalent.local
+- Company: http://company.aquatalent.local
+- Admin: http://admin.aquatalent.local
+
+### Docker Files
+- `Dockerfile` - Vite dev server container
+- `docker-compose.yml` - Development orchestration with hot reload
+- `setup-hosts.sh` - Hosts file configuration script
 
 ## Code Style
 

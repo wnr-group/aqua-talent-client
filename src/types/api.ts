@@ -15,6 +15,11 @@ export interface AuthResponse {
   student?: Student | null
 }
 
+export interface LoginResponse {
+  token: string
+  user: AuthResponse
+}
+
 export interface AdminStats {
   pendingCompanies: number
   totalCompanies: number

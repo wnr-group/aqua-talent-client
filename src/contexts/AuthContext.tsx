@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { AuthResponse, UserType } from '@/types'
-import { api } from '@/services/api/client'
+import { AuthResponse, LoginResponse, UserType } from '@/types'
+import { api, tokenManager } from '@/services/api/client'
 
 interface AuthContextType {
   user: AuthResponse | null
@@ -22,10 +22,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshUser = useCallback(async () => {
+    // Only try to refresh if we have a token
+    const token = tokenManager.getToken()
+    if (!token) {
+      setUser(null)
+      return
+    }
+
     try {
       const userData = await api.get<AuthResponse>('/auth/me')
       setUser(userData)
     } catch {
+      // Token is invalid or expired, clear it
+      tokenManager.clearToken()
       setUser(null)
     }
   }, [])
@@ -41,17 +50,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshUser])
 
   const login = async (username: string, password: string, userType: UserType) => {
-    const userData = await api.post<AuthResponse>('/auth/login', {
+    const response = await api.post<LoginResponse>('/auth/login', {
       username,
       password,
       userType,
     })
-    setUser(userData)
+    // Store the token and set user
+    tokenManager.setToken(response.token)
+    setUser(response.user)
   }
 
   const logout = async () => {
-    await api.post('/auth/logout')
-    setUser(null)
+    try {
+      await api.post('/auth/logout')
+    } finally {
+      // Always clear local state and token, even if API call fails
+      tokenManager.clearToken()
+      setUser(null)
+    }
   }
 
   const value: AuthContextType = {

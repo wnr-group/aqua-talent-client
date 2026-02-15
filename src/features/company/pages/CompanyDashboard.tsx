@@ -14,7 +14,7 @@ interface DashboardStats {
   activeJobs: number
   pendingJobs: number
   totalApplications: number
-  pendingApplications: number
+  reviewedApplications: number
 }
 
 export default function CompanyDashboard() {
@@ -89,9 +89,9 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-1.5 text-sm text-yellow-600">
+                  <div className="flex items-center gap-1.5 text-sm text-blue-600">
                     <Clock className="w-4 h-4" />
-                    <span>{stats?.pendingApplications ?? 0} pending review</span>
+                    <span>{stats?.reviewedApplications ?? 0} awaiting your decision</span>
                   </div>
                 </div>
               </CardContent>
@@ -132,7 +132,7 @@ export default function CompanyDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link to="/company/jobs/new" className="group">
+            <Link to="/jobs/new" className="group">
               <Card hover className="h-full">
                 <CardContent>
                   <div className="flex items-center justify-between">
@@ -151,7 +151,7 @@ export default function CompanyDashboard() {
               </Card>
             </Link>
 
-            <Link to="/company/applications" className="group">
+            <Link to="/applications" className="group">
               <Card hover className="h-full">
                 <CardContent>
                   <div className="flex items-center justify-between">

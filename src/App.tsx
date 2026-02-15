@@ -4,8 +4,14 @@ import { NotificationProvider } from '@/contexts/NotificationContext'
 import NotificationToast from '@/components/common/NotificationToast'
 import ProtectedRoute from '@/components/common/ProtectedRoute'
 import { UserType } from '@/types'
+import { getPortalType } from '@/utils/subdomain'
 
-// Auth pages (lazy loaded later, using placeholders for now)
+// Public pages
+import LandingPage from '@/features/public/pages/LandingPage'
+import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
+import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
+
+// Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'
 import CompanyRegisterPage from '@/features/auth/pages/CompanyRegisterPage'
 import StudentRegisterPage from '@/features/auth/pages/StudentRegisterPage'
@@ -19,8 +25,6 @@ import CompanyApplications from '@/features/company/pages/CompanyApplications'
 
 // Student portal pages
 import StudentDashboard from '@/features/student/pages/StudentDashboard'
-import StudentJobSearch from '@/features/student/pages/StudentJobSearch'
-import StudentJobDetail from '@/features/student/pages/StudentJobDetail'
 import StudentApplications from '@/features/student/pages/StudentApplications'
 import StudentProfile from '@/features/student/pages/StudentProfile'
 
@@ -30,140 +34,165 @@ import AdminCompanies from '@/features/admin/pages/AdminCompanies'
 import AdminJobs from '@/features/admin/pages/AdminJobs'
 import AdminApplications from '@/features/admin/pages/AdminApplications'
 
+// Get portal type based on subdomain
+const portalType = getPortalType()
+
+function PublicRoutes() {
+  return (
+    <Routes>
+      {/* Public pages */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/jobs" element={<PublicJobsPage />} />
+      <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+
+      {/* Auth routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register/company" element={<CompanyRegisterPage />} />
+      <Route path="/register/student" element={<StudentRegisterPage />} />
+
+      {/* Student portal routes (on main domain) */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-applications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <StudentApplications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <StudentProfile />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function CompanyPortalRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<CompanyRegisterPage />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyJobList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/new"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyJobCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:jobId"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyJobDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyApplications />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function AdminPortalRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/companies"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminCompanies />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminApplications />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function AppRoutes() {
+  // Subdomain-based routing (company and admin only)
+  switch (portalType) {
+    case 'company':
+      return <CompanyPortalRoutes />
+    case 'admin':
+      return <AdminPortalRoutes />
+    default:
+      // Main domain serves public pages + student portal
+      return <PublicRoutes />
+  }
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <div className="min-h-screen bg-gray-100">
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register/company" element={<CompanyRegisterPage />} />
-              <Route path="/register/student" element={<StudentRegisterPage />} />
-
-              {/* Company portal routes */}
-              <Route
-                path="/company"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
-                    <CompanyDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/jobs"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
-                    <CompanyJobList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/jobs/new"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
-                    <CompanyJobCreate />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/jobs/:jobId"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
-                    <CompanyJobDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/applications"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
-                    <CompanyApplications />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Student portal routes */}
-              <Route
-                path="/student"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/jobs"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-                    <StudentJobSearch />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/jobs/:jobId"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-                    <StudentJobDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/applications"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-                    <StudentApplications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/profile"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-                    <StudentProfile />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Admin portal routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/companies"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-                    <AdminCompanies />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/jobs"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-                    <AdminJobs />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/applications"
-                element={
-                  <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-                    <AdminApplications />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
+          <div className="min-h-screen bg-background">
+            <AppRoutes />
             <NotificationToast />
           </div>
         </NotificationProvider>

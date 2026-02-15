@@ -1,5 +1,13 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 
+// Generate unique ID with fallback for browsers without crypto.randomUUID
+const generateId = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+}
+
 type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
 interface Notification {
@@ -34,7 +42,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const addNotification = useCallback(
     (type: NotificationType, message: string, duration = 5000) => {
-      const id = crypto.randomUUID()
+      const id = generateId()
       const notification: Notification = { id, type, message, duration }
 
       setNotifications((prev) => [...prev, notification])

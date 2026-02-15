@@ -1,22 +1,80 @@
 @import "tailwindcss";
 
-/* Design System Variables */
+/* Import distinctive fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* Design System Variables - Deep Ocean Bioluminescent Theme */
 :root {
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
   --font-size: 16px;
+
+  /* Deep Ocean Colors */
+  --ocean-deep: #050a12;
+  --ocean-dark: #0a1628;
+  --ocean-mid: #0f2035;
+  --ocean-surface: #1a3a5c;
+
+  /* Bioluminescent Accents */
+  --glow-cyan: #00f0ff;
+  --glow-teal: #00d4aa;
+  --glow-blue: #4d9fff;
+  --glow-purple: #a855f7;
+
+  /* Warm Accents */
+  --coral: #ff6b6b;
+  --coral-soft: #ff8f8f;
+  --sand: #ffd699;
+
+  /* Semantic Colors */
+  --background: var(--ocean-deep);
+  --foreground: #e8f4fc;
+  --card: rgba(15, 32, 53, 0.8);
+  --card-foreground: #e8f4fc;
+  --popover: var(--ocean-dark);
+  --popover-foreground: #e8f4fc;
+  --primary: var(--glow-teal);
+  --primary-foreground: var(--ocean-deep);
+  --secondary: var(--ocean-surface);
+  --secondary-foreground: #e8f4fc;
+  --muted: var(--ocean-mid);
+  --muted-foreground: #7eb8d8;
+  --accent: var(--glow-cyan);
+  --accent-foreground: var(--ocean-deep);
+  --destructive: var(--coral);
+  --destructive-foreground: #ffffff;
+  --success: var(--glow-teal);
+  --success-foreground: var(--ocean-deep);
+  --warning: var(--sand);
+  --warning-foreground: var(--ocean-deep);
+  --border: rgba(0, 240, 255, 0.15);
+  --input: rgba(0, 240, 255, 0.1);
+  --input-background: rgba(10, 22, 40, 0.6);
+  --ring: var(--glow-cyan);
+  --radius: 0.75rem;
+
+  /* Glow Effects */
+  --glow-sm: 0 0 10px rgba(0, 240, 255, 0.3);
+  --glow-md: 0 0 20px rgba(0, 240, 255, 0.4);
+  --glow-lg: 0 0 40px rgba(0, 240, 255, 0.5);
+}
+
+/* Light theme for authenticated portals */
+[data-theme="light"] {
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #0d9488;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent: #0d9488;
+  --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --success: #16a34a;
@@ -25,13 +83,14 @@
   --warning-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --input-background: #f8fafc;
-  --ring: #2563eb;
-  --radius: 0.5rem;
+  --input-background: #ffffff;
+  --ring: #0d9488;
 }
 
-/* Theme Colors */
+/* Theme Colors for Tailwind */
 @theme inline {
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -60,6 +119,19 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Custom colors */
+  --color-ocean-deep: var(--ocean-deep);
+  --color-ocean-dark: var(--ocean-dark);
+  --color-ocean-mid: var(--ocean-mid);
+  --color-ocean-surface: var(--ocean-surface);
+  --color-glow-cyan: var(--glow-cyan);
+  --color-glow-teal: var(--glow-teal);
+  --color-glow-blue: var(--glow-blue);
+  --color-glow-purple: var(--glow-purple);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-sand: var(--sand);
 }
 
 /* Base Styles */
@@ -74,37 +146,244 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
   }
 
   h1 {
-    @apply text-2xl font-semibold leading-tight tracking-tight;
+    @apply text-3xl font-bold leading-tight tracking-tight;
   }
 
   h2 {
-    @apply text-xl font-semibold leading-tight;
+    @apply text-2xl font-semibold leading-tight;
   }
 
   h3 {
-    @apply text-lg font-semibold;
+    @apply text-xl font-semibold;
   }
 
   h4 {
-    @apply text-base font-semibold;
+    @apply text-lg font-semibold;
   }
 }
 
 /* Utility Classes */
 @layer utilities {
-  .gradient-bg {
-    @apply bg-gradient-to-br from-blue-50 to-indigo-100;
+  .font-display {
+    font-family: var(--font-display);
   }
 
-  .card-shadow {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  .font-body {
+    font-family: var(--font-body);
   }
 
-  .card-shadow-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Glow effects */
+  .glow-sm {
+    box-shadow: var(--glow-sm);
   }
+
+  .glow-md {
+    box-shadow: var(--glow-md);
+  }
+
+  .glow-lg {
+    box-shadow: var(--glow-lg);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  .text-glow-sm {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  /* Glass morphism */
+  .glass {
+    background: rgba(15, 32, 53, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--glow-cyan), var(--glow-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-warm {
+    background: linear-gradient(135deg, var(--coral), var(--sand));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Ocean background */
+  .ocean-bg {
+    background:
+      radial-gradient(ellipse at 20% 80%, rgba(0, 212, 170, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(77, 159, 255, 0.05) 0%, transparent 70%),
+      var(--ocean-deep);
+  }
+
+  /* Animated gradient border */
+  .gradient-border {
+    position: relative;
+    background: var(--card);
+    border-radius: var(--radius);
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--glow-cyan), var(--glow-teal), var(--glow-purple));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* Card styles */
+  .card-elevated {
+    background: rgba(15, 32, 53, 0.8);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(0, 240, 255, 0.05);
+  }
+
+  .card-elevated:hover {
+    border-color: rgba(0, 240, 255, 0.3);
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.4),
+      0 0 30px -5px rgba(0, 240, 255, 0.2);
+  }
+
+  /* Floating animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Pulse glow */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  /* Wave animation for decorative elements */
+  @keyframes wave {
+    0% { transform: translateX(0) translateY(0); }
+    25% { transform: translateX(5px) translateY(-5px); }
+    50% { transform: translateX(0) translateY(0); }
+    75% { transform: translateX(-5px) translateY(5px); }
+    100% { transform: translateX(0) translateY(0); }
+  }
+
+  .animate-wave {
+    animation: wave 8s ease-in-out infinite;
+  }
+
+  /* Staggered animations */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+
+  /* Fade in up animation */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+    opacity: 0;
+  }
+
+  /* Particles background */
+  .particles-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .particles-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20px 30px, rgba(0, 240, 255, 0.4), transparent),
+      radial-gradient(2px 2px at 40px 70px, rgba(0, 212, 170, 0.3), transparent),
+      radial-gradient(1px 1px at 90px 40px, rgba(77, 159, 255, 0.5), transparent),
+      radial-gradient(2px 2px at 130px 80px, rgba(0, 240, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 160px 120px, rgba(168, 85, 247, 0.4), transparent);
+    background-size: 200px 150px;
+    animation: particles-drift 20s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes particles-drift {
+    from { transform: translateY(0); }
+    to { transform: translateY(-150px); }
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ocean-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ocean-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--glow-teal);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(0, 212, 170, 0.3);
+  color: var(--foreground);
 }

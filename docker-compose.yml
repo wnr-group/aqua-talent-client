@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  aqua-talent-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aqua-talent-client
+    ports:
+      - "80:80"
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      # Prevent overwriting node_modules
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001/api}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stdin_open: true
+    tty: true
+
+# To run:
+# 1. Add to /etc/hosts:
+#    127.0.0.1 aquatalent.local
+#    127.0.0.1 company.aquatalent.local
+#    127.0.0.1 admin.aquatalent.local
+#
+# 2. Start dev server:
+#    docker-compose up
+#
+# 3. Access the portals:
+#    - Student Portal: http://aquatalent.local
+#    - Company Portal: http://company.aquatalent.local
+#    - Admin Portal:   http://admin.aquatalent.local

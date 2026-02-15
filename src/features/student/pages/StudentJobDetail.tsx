@@ -36,15 +36,22 @@ export default function StudentJobDetail() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const [jobData, statsData] = await Promise.all([
-          api.get<JobDetailResponse>(`/student/jobs/${jobId}`),
+          api.get<any>(`/student/jobs/${jobId}`),
           api.get<StudentStats>('/student/dashboard'),
         ])
-        setJob(jobData)
+        // Normalize response - applicationStatus may be in different locations
+        const normalizedJob: JobDetailResponse = {
+          ...jobData,
+          id: jobData.id || jobData._id || jobId,
+          applicationStatus: jobData.applicationStatus || jobData.application?.status,
+        }
+        setJob(normalizedJob)
         setStats(statsData)
       } catch {
         showError('Failed to load job details')
-        navigate('/student/jobs')
+        navigate('/jobs')
       } finally {
         setIsLoading(false)
       }
@@ -55,7 +62,7 @@ export default function StudentJobDetail() {
   const handleApply = async () => {
     if (!job || !user?.student?.profileLink) {
       showError('Please update your profile with a link before applying')
-      navigate('/student/profile')
+      navigate('/profile')
       return
     }
 
@@ -74,8 +81,12 @@ export default function StudentJobDetail() {
     }
   }
 
+  // Allow applying if: never applied, OR previously withdrew
+  // Cast to string to handle API response correctly
+  const isWithdrawnStatus = (job?.applicationStatus as string) === 'withdrawn'
+  const hasWithdrawn = job?.hasApplied && isWithdrawnStatus
   const canApply =
-    !job?.hasApplied &&
+    (!job?.hasApplied || hasWithdrawn) &&
     !stats?.isHired &&
     (stats?.applicationsUsed ?? 0) < MAX_APPLICATIONS
 
@@ -142,7 +153,7 @@ export default function StudentJobDetail() {
           <Card>
             <CardTitle>Apply</CardTitle>
             <CardContent>
-              {job.hasApplied ? (
+              {job.hasApplied && !isWithdrawnStatus ? (
                 <div>
                   <p className="text-sm text-gray-600 mb-2">
                     You have already applied to this job.
@@ -161,6 +172,11 @@ export default function StudentJobDetail() {
                 </div>
               ) : (
                 <>
+                  {hasWithdrawn && (
+                    <Alert variant="info" className="mb-4">
+                      Your previous application was withdrawn. You can reapply if you'd like.
+                    </Alert>
+                  )}
                   <p className="text-sm text-gray-600 mb-4">
                     Applications used: {stats?.applicationsUsed ?? 0} / {MAX_APPLICATIONS}
                   </p>
@@ -179,6 +195,8 @@ export default function StudentJobDetail() {
                       ? 'Already Hired'
                       : (stats?.applicationsUsed ?? 0) >= MAX_APPLICATIONS
                       ? 'Limit Reached'
+                      : hasWithdrawn
+                      ? 'Reapply Now'
                       : 'Apply Now'}
                   </Button>
                   <p className="text-xs text-gray-500 mt-2 text-center">

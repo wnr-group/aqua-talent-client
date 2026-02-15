@@ -43,7 +43,7 @@ export default function AdminDashboard() {
         <>
           {/* Pending Items */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Link to="/admin/companies" className="group">
+            <Link to="/companies" className="group">
               <Card hover className="h-full border-l-4 border-l-yellow-500">
                 <CardContent>
                   <div className="flex items-center justify-between">
@@ -63,7 +63,7 @@ export default function AdminDashboard() {
               </Card>
             </Link>
 
-            <Link to="/admin/jobs" className="group">
+            <Link to="/jobs" className="group">
               <Card hover className="h-full border-l-4 border-l-yellow-500">
                 <CardContent>
                   <div className="flex items-center justify-between">

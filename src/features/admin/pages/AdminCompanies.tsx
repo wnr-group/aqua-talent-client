@@ -26,10 +26,16 @@ export default function AdminCompanies() {
 
   useEffect(() => {
     const fetchCompanies = async () => {
+      setIsLoading(true)
       try {
         const params = filter !== 'all' ? `?status=${filter}` : ''
-        const data = await api.get<{ companies: Company[] }>(`/admin/companies${params}`)
-        setCompanies(data.companies)
+        const data = await api.get<{ companies: (Company & { _id?: string })[] }>(`/admin/companies${params}`)
+        // Normalize MongoDB _id to id
+        const normalizedCompanies = data.companies.map(c => ({
+          ...c,
+          id: c.id || c._id || '',
+        }))
+        setCompanies(normalizedCompanies)
       } catch {
         // Companies will remain empty
       } finally {
@@ -46,12 +52,28 @@ export default function AdminCompanies() {
       })
       setCompanies((prev) =>
         prev.map((c) =>
-          c.id === companyId ? { ...c, status: CompanyStatus.APPROVED } : c
+          c.id === companyId ? { ...c, status: CompanyStatus.APPROVED, rejectionReason: undefined } : c
         )
       )
       success('Company approved successfully')
-    } catch {
-      showError('Failed to approve company')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to approve company')
+    }
+  }
+
+  const handleSetPending = async (companyId: string) => {
+    try {
+      await api.patch(`/admin/companies/${companyId}`, {
+        status: CompanyStatus.PENDING,
+      })
+      setCompanies((prev) =>
+        prev.map((c) =>
+          c.id === companyId ? { ...c, status: CompanyStatus.PENDING } : c
+        )
+      )
+      success('Company set to pending')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to update company')
     }
   }
 
@@ -64,15 +86,15 @@ export default function AdminCompanies() {
       })
       setCompanies((prev) =>
         prev.map((c) =>
-          c.id === selectedCompany.id ? { ...c, status: CompanyStatus.REJECTED } : c
+          c.id === selectedCompany.id ? { ...c, status: CompanyStatus.REJECTED, rejectionReason: rejectReason } : c
         )
       )
       success('Company rejected')
       setShowRejectModal(false)
       setSelectedCompany(null)
       setRejectReason('')
-    } catch {
-      showError('Failed to reject company')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to reject company')
     }
   }
 
@@ -80,11 +102,6 @@ export default function AdminCompanies() {
     setSelectedCompany(company)
     setShowRejectModal(true)
   }
-
-  const filteredCompanies =
-    filter === 'all'
-      ? companies
-      : companies.filter((c) => c.status === filter)
 
   return (
     <PageContainer title="Manage Companies">
@@ -108,7 +125,7 @@ export default function AdminCompanies() {
         <div className="flex justify-center py-12">
           <LoadingSpinner size="lg" />
         </div>
-      ) : filteredCompanies.length === 0 ? (
+      ) : companies.length === 0 ? (
         <Card>
           <div className="text-center py-8">
             <p className="text-gray-500">No companies found.</p>
@@ -116,17 +133,22 @@ export default function AdminCompanies() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredCompanies.map((company) => (
+          {companies.map((company) => (
             <Card key={company.id}>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
                   <p className="font-semibold text-gray-900">{company.name}</p>
                   <p className="text-sm text-gray-500">{company.email}</p>
                   <p className="text-sm text-gray-400 mt-1">
                     Registered {format(new Date(company.createdAt), 'MMM d, yyyy')}
                   </p>
+                  {company.status === CompanyStatus.REJECTED && company.rejectionReason && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Rejection reason: {company.rejectionReason}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${
                       statusStyles[company.status].bg
@@ -145,6 +167,38 @@ export default function AdminCompanies() {
                         onClick={() => openRejectModal(company)}
                       >
                         Reject
+                      </Button>
+                    </>
+                  )}
+                  {company.status === CompanyStatus.REJECTED && (
+                    <>
+                      <Button size="sm" onClick={() => handleApprove(company.id)}>
+                        Re-approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSetPending(company.id)}
+                      >
+                        Set Pending
+                      </Button>
+                    </>
+                  )}
+                  {company.status === CompanyStatus.APPROVED && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openRejectModal(company)}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSetPending(company.id)}
+                      >
+                        Set Pending
                       </Button>
                     </>
                   )}
@@ -174,7 +228,7 @@ export default function AdminCompanies() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white"
             placeholder="Enter rejection reason..."
           />
           <div className="flex justify-end gap-3">

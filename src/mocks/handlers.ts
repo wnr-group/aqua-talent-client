@@ -25,17 +25,21 @@ export const handlers = [
 
     const user = findUser(body.username, body.password, body.userType)
     if (!user) {
-      return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+      return HttpResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
     auth.setCurrentUser(user)
 
+    // Return token + user format to match real backend
     return HttpResponse.json({
-      id: user.id,
-      username: user.username,
-      userType: user.userType,
-      company: user.userType === UserType.COMPANY ? user.data : null,
-      student: user.userType === UserType.STUDENT ? user.data : null,
+      token: `mock-jwt-token-${user.id}-${Date.now()}`,
+      user: {
+        id: user.id,
+        username: user.username,
+        userType: user.userType,
+        company: user.userType === UserType.COMPANY ? user.data : null,
+        student: user.userType === UserType.STUDENT ? user.data : null,
+      },
     })
   }),
 
@@ -552,5 +556,73 @@ export const handlers = [
     }
 
     return HttpResponse.json(app)
+  }),
+
+  // ============ PUBLIC ============
+
+  // Public job listings (approved jobs only)
+  http.get(`${API_URL}/jobs`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const url = new URL(request.url)
+    const search = url.searchParams.get('search')?.toLowerCase()
+    const location = url.searchParams.get('location')?.toLowerCase()
+    const page = parseInt(url.searchParams.get('page') || '1')
+    const limit = parseInt(url.searchParams.get('limit') || '12')
+
+    // Only return approved jobs
+    let jobs = mockJobs.filter((j) => j.status === JobStatus.APPROVED)
+
+    if (search) {
+      jobs = jobs.filter(
+        (j) =>
+          j.title.toLowerCase().includes(search) ||
+          j.description.toLowerCase().includes(search) ||
+          j.company?.name?.toLowerCase().includes(search)
+      )
+    }
+
+    if (location) {
+      jobs = jobs.filter((j) => j.location.toLowerCase().includes(location))
+    }
+
+    const total = jobs.length
+    const totalPages = Math.ceil(total / limit)
+    const start = (page - 1) * limit
+    const paginatedJobs = jobs.slice(start, start + limit)
+
+    return HttpResponse.json({
+      jobs: paginatedJobs,
+      total,
+      page,
+      totalPages,
+    })
+  }),
+
+  // Public job detail
+  http.get(`${API_URL}/jobs/:jobId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const job = mockJobs.find((j) => j.id === params.jobId && j.status === JobStatus.APPROVED)
+    if (!job) {
+      return HttpResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+    return HttpResponse.json(job)
+  }),
+
+  // Check if user has applied to a job
+  http.get(`${API_URL}/jobs/:jobId/application-status`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ hasApplied: false })
+    }
+
+    const hasApplied = mockApplications.some(
+      (a) =>
+        a.jobPostingId === params.jobId &&
+        a.studentId === user.id &&
+        a.status !== ApplicationStatus.WITHDRAWN
+    )
+
+    return HttpResponse.json({ hasApplied })
   }),
 ]

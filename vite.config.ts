@@ -9,4 +9,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    host: true, // Listen on all addresses
+    port: 80,   // Default HTTP port (requires sudo)
+    // Allow local development domains
+    // Students use main domain, company and admin use subdomains
+    allowedHosts: [
+      'localhost',
+      'aquatalent.local',
+      'company.aquatalent.local',
+      'admin.aquatalent.local',
+    ],
+  },
 })

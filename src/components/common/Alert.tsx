@@ -11,26 +11,26 @@ interface AlertProps {
   onClose?: () => void
 }
 
-const variantStyles: Record<AlertVariant, { bg: string; text: string; icon: string }> = {
+const variantStyles: Record<AlertVariant, { container: string; text: string; icon: string }> = {
   success: {
-    bg: 'bg-green-50 border-green-200',
-    text: 'text-green-800',
-    icon: 'text-green-500',
+    container: 'bg-emerald-500/15 border-emerald-500/40',
+    text: 'text-emerald-400',
+    icon: 'text-emerald-400',
   },
   error: {
-    bg: 'bg-red-50 border-red-200',
-    text: 'text-red-800',
-    icon: 'text-red-500',
+    container: 'bg-red-500/15 border-red-500/40',
+    text: 'text-red-400',
+    icon: 'text-red-400',
   },
   warning: {
-    bg: 'bg-yellow-50 border-yellow-200',
-    text: 'text-yellow-800',
-    icon: 'text-yellow-500',
+    container: 'bg-amber-500/15 border-amber-500/40',
+    text: 'text-amber-400',
+    icon: 'text-amber-400',
   },
   info: {
-    bg: 'bg-blue-50 border-blue-200',
-    text: 'text-blue-800',
-    icon: 'text-blue-500',
+    container: 'bg-cyan-500/15 border-cyan-500/40',
+    text: 'text-cyan-400',
+    icon: 'text-cyan-400',
   },
 }
 
@@ -47,8 +47,8 @@ export default function Alert({ variant, children, title, className = '', onClos
   return (
     <div
       className={`
-        rounded-lg border p-4
-        ${styles.bg}
+        rounded-xl border p-4 backdrop-blur-sm
+        ${styles.container}
         ${className}
       `}
       role="alert"
@@ -66,9 +66,9 @@ export default function Alert({ variant, children, title, className = '', onClos
             <button
               onClick={onClose}
               className={`
-                inline-flex rounded-md p-1
-                ${styles.text} hover:bg-white/50
-                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent
+                inline-flex rounded-md p-1.5
+                ${styles.text} hover:bg-white/10
+                focus:outline-none focus:ring-2 focus:ring-white/20
                 transition-colors
               `}
             >

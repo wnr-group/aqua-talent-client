@@ -7,7 +7,6 @@ import {
   FileText,
   User,
   Building2,
-  Search,
   CheckSquare,
 } from 'lucide-react'
 import { ReactNode } from 'react'
@@ -18,24 +17,27 @@ interface NavItem {
   icon: ReactNode
 }
 
+// Company portal routes (on company.aquatalent.local subdomain)
 const companyNavItems: NavItem[] = [
-  { label: 'Dashboard', path: '/company', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Job Postings', path: '/company/jobs', icon: <Briefcase className="w-5 h-5" /> },
-  { label: 'Applications', path: '/company/applications', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'Applications', path: '/applications', icon: <FileText className="w-5 h-5" /> },
 ]
 
+// Student portal routes (on main domain)
 const studentNavItems: NavItem[] = [
-  { label: 'Dashboard', path: '/student', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Browse Jobs', path: '/student/jobs', icon: <Search className="w-5 h-5" /> },
-  { label: 'My Applications', path: '/student/applications', icon: <FileText className="w-5 h-5" /> },
-  { label: 'Profile', path: '/student/profile', icon: <User className="w-5 h-5" /> },
+  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Browse Jobs', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'My Applications', path: '/my-applications', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
 ]
 
+// Admin portal routes (on admin.aquatalent.local subdomain)
 const adminNavItems: NavItem[] = [
-  { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Companies', path: '/admin/companies', icon: <Building2 className="w-5 h-5" /> },
-  { label: 'Job Postings', path: '/admin/jobs', icon: <Briefcase className="w-5 h-5" /> },
-  { label: 'Applications', path: '/admin/applications', icon: <CheckSquare className="w-5 h-5" /> },
+  { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Companies', path: '/companies', icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'Applications', path: '/applications', icon: <CheckSquare className="w-5 h-5" /> },
 ]
 
 const navItemsByUserType: Record<UserType, NavItem[]> = {
@@ -59,7 +61,7 @@ export default function Sidebar() {
             <li key={item.path}>
               <NavLink
                 to={item.path}
-                end={item.path === '/company' || item.path === '/student' || item.path === '/admin'}
+                end={item.path === '/' || item.path === '/dashboard'}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive

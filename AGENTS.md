@@ -482,6 +482,50 @@ Company: username: acme     password: password123
 Student: username: john     password: password123
 ```
 
+## Docker Development Setup
+
+The project includes Docker configuration for development with subdomain support.
+
+### Files
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Development container with Vite dev server |
+| `docker-compose.yml` | Orchestration with hot reloading |
+| `setup-hosts.sh` | Script to configure `/etc/hosts` |
+| `.dockerignore` | Files excluded from Docker build |
+
+### Domain Setup
+
+The app uses subdomains to separate portals:
+
+| Portal | Domain | Detection |
+|--------|--------|-----------|
+| Student/Public | `aquatalent.local` | No subdomain |
+| Company | `company.aquatalent.local` | `company` subdomain |
+| Admin | `admin.aquatalent.local` | `admin` subdomain |
+
+Subdomain detection is handled by `src/utils/subdomain.ts`.
+
+### Running with Docker
+
+```bash
+# Setup hosts (one-time, requires sudo)
+sudo ./setup-hosts.sh
+
+# Start dev server with hot reloading
+docker-compose up
+
+# With custom API URL
+VITE_API_URL=http://host.docker.internal:3001/api docker-compose up
+```
+
+### Accessing from Docker
+
+When running the backend on host machine, use `host.docker.internal` instead of `localhost`:
+```bash
+VITE_API_URL=http://host.docker.internal:3001/api
+```
+
 ## Best Practices
 
 1. **Always use TypeScript** - Define proper types for all data

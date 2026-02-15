@@ -68,12 +68,64 @@ npm install
 
 ### Development
 
+#### Option 1: Local Node.js
+
 ```bash
 # Start development server
 npm run dev
 ```
 
 The app will be available at `http://localhost:5173`
+
+#### Option 2: Docker (Recommended)
+
+Docker provides a pre-configured environment with subdomain support for all three portals.
+
+**1. Setup local domains (one-time):**
+```bash
+sudo ./setup-hosts.sh
+```
+
+Or manually add to `/etc/hosts`:
+```
+127.0.0.1 aquatalent.local
+127.0.0.1 company.aquatalent.local
+127.0.0.1 admin.aquatalent.local
+```
+
+**2. Start the development server:**
+```bash
+docker-compose up
+```
+
+**3. Access the portals:**
+
+| Portal | URL |
+|--------|-----|
+| Student Portal | http://aquatalent.local |
+| Company Portal | http://company.aquatalent.local |
+| Admin Portal | http://admin.aquatalent.local |
+
+**Docker Commands:**
+```bash
+# Start in foreground (see logs)
+docker-compose up
+
+# Start in background
+docker-compose up -d
+
+# Stop
+docker-compose down
+
+# Rebuild after package.json changes
+docker-compose up --build
+```
+
+**Environment Variables:**
+```bash
+# Use custom API URL
+VITE_API_URL=http://your-backend:3001/api docker-compose up
+```
 
 ### Build
 

@@ -9,6 +9,7 @@ import Input from '@/components/common/Input'
 import Alert from '@/components/common/Alert'
 import { useNotification } from '@/contexts/NotificationContext'
 import { jobCreateSchema, JobCreateFormData } from '@/types/schemas/job'
+import { JOB_TYPES } from '@/types'
 import { api } from '@/services/api/client'
 
 export default function CompanyJobCreate() {
@@ -27,9 +28,14 @@ export default function CompanyJobCreate() {
   const onSubmit = async (data: JobCreateFormData) => {
     setIsLoading(true)
     try {
-      await api.post('/company/jobs', data)
+      // Convert date to ISO datetime format for backend
+      const payload = {
+        ...data,
+        deadline: data.deadline ? new Date(data.deadline + 'T23:59:59').toISOString() : undefined,
+      }
+      await api.post('/company/jobs', payload)
       success('Job posted successfully! It will be visible after admin approval.')
-      navigate('/company/jobs')
+      navigate('/jobs')
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to create job')
     } finally {
@@ -59,7 +65,7 @@ export default function CompanyJobCreate() {
             <textarea
               {...register('description')}
               rows={6}
-              className={`block w-full rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
+              className={`block w-full px-4 py-3 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
                 errors.description ? 'border-red-500' : ''
               }`}
               placeholder="Describe the role, responsibilities, and what you're looking for..."
@@ -76,12 +82,27 @@ export default function CompanyJobCreate() {
               error={errors.location?.message}
               placeholder="e.g., Remote, New York, etc."
             />
-            <Input
-              label="Job Type"
-              {...register('jobType')}
-              error={errors.jobType?.message}
-              placeholder="e.g., Full-time, Part-time, Internship"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Type
+              </label>
+              <select
+                {...register('jobType')}
+                className={`block w-full px-4 py-2.5 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
+                  errors.jobType ? 'border-red-500' : ''
+                }`}
+              >
+                <option value="">Select job type</option>
+                {JOB_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+              {errors.jobType && (
+                <p className="mt-1 text-sm text-red-600">{errors.jobType.message}</p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -106,7 +127,7 @@ export default function CompanyJobCreate() {
             <textarea
               {...register('requirements')}
               rows={4}
-              className={`block w-full rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
+              className={`block w-full px-4 py-3 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
                 errors.requirements ? 'border-red-500' : ''
               }`}
               placeholder="List the required skills, qualifications, and experience..."
@@ -123,7 +144,7 @@ export default function CompanyJobCreate() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/company/jobs')}
+              onClick={() => navigate('/jobs')}
             >
               Cancel
             </Button>

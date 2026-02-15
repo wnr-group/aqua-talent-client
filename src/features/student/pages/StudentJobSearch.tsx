@@ -86,7 +86,7 @@ export default function StudentJobSearch() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link
-                        to={`/student/jobs/${job.id}`}
+                        to={`/jobs/${job.id}`}
                         className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
                       >
                         {job.title}
@@ -128,7 +128,7 @@ export default function StudentJobSearch() {
                     </div>
                   </div>
                 </div>
-                <Link to={`/student/jobs/${job.id}`} className="flex-shrink-0">
+                <Link to={`/jobs/${job.id}`} className="flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
