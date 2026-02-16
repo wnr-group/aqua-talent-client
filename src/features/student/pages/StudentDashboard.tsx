@@ -19,7 +19,7 @@ import Logo from '@/components/common/Logo'
 
 interface DashboardStats {
   applicationsUsed: number
-  applicationLimit?: number
+  applicationLimit?: number | null
   pendingApplications: number
   isHired: boolean
 }
@@ -59,7 +59,13 @@ export default function StudentDashboard() {
   }
 
   const applicationLimit = stats?.applicationLimit ?? 2
-  const applicationsRemaining = applicationLimit - (stats?.applicationsUsed ?? 0)
+  const hasUnlimitedApplications = applicationLimit === null
+  const applicationsRemaining = hasUnlimitedApplications
+    ? null
+    : applicationLimit - (stats?.applicationsUsed ?? 0)
+  const usageText = hasUnlimitedApplications
+    ? `${stats?.applicationsUsed ?? 0} applications used`
+    : `${stats?.applicationsUsed ?? 0}/${applicationLimit} applications used`
   const isFreeTier = (subscription?.subscriptionTier ?? 'free') === 'free'
 
   return (
@@ -165,7 +171,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground mb-3">
-                    {stats?.applicationsUsed ?? 0}/{applicationLimit} applications used
+                    {usageText}
                   </p>
                   {isFreeTier && (
                     <Link
@@ -189,13 +195,17 @@ export default function StudentDashboard() {
                     <p className="text-sm font-medium text-muted-foreground">Applications</p>
                     <p className="text-3xl font-display font-bold text-foreground">
                       {stats?.applicationsUsed ?? 0}
-                      <span className="text-lg font-normal text-muted-foreground"> / {applicationLimit}</span>
+                      {!hasUnlimitedApplications && (
+                        <span className="text-lg font-normal text-muted-foreground"> / {applicationLimit}</span>
+                      )}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground">
-                    {applicationsRemaining > 0
+                    {hasUnlimitedApplications
+                      ? 'Unlimited applications available'
+                      : applicationsRemaining! > 0
                       ? `${applicationsRemaining} application${applicationsRemaining > 1 ? 's' : ''} remaining`
                       : 'Application limit reached'}
                   </p>
@@ -293,7 +303,7 @@ export default function StudentDashboard() {
             )}
 
             {/* Warning for application limit */}
-            {applicationsRemaining === 0 && !stats?.isHired && (
+            {!hasUnlimitedApplications && applicationsRemaining === 0 && !stats?.isHired && (
               <div className="mt-6 p-4 rounded-xl bg-sand/10 border border-sand/30">
                 <p className="text-sand text-sm">
                   You have reached your application limit. Withdraw an existing application to apply to new jobs.

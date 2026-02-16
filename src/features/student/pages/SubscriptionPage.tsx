@@ -35,7 +35,7 @@ interface SubscriptionResponse {
 
 interface DashboardResponse {
   applicationsUsed: number
-  applicationLimit?: number
+  applicationLimit?: number | null
 }
 
 export default function SubscriptionPage() {
@@ -89,8 +89,13 @@ export default function SubscriptionPage() {
   }
 
   const isFree = subscription?.subscriptionTier === 'free'
-  const applicationLimit = dashboard?.applicationLimit ?? 2
-  const paidPlanForComparison = services[0]
+  const rawApplicationLimit = dashboard?.applicationLimit
+  const hasUnlimitedApplications =
+    rawApplicationLimit === null || rawApplicationLimit === Number.POSITIVE_INFINITY
+  const applicationLimit = hasUnlimitedApplications ? null : (rawApplicationLimit ?? 2)
+  const usageText = hasUnlimitedApplications
+    ? `${dashboard?.applicationsUsed ?? 0} applications used`
+    : `${dashboard?.applicationsUsed ?? 0}/${applicationLimit} applications used`
 
   return (
     <div className="min-h-screen ocean-bg">
@@ -145,10 +150,7 @@ export default function SubscriptionPage() {
         {dashboard && (
           <Card className="mb-6 bg-white/95" padding="md">
             <p className="text-sm text-gray-600">
-              <span className="font-semibold">
-                {dashboard.applicationsUsed}/{applicationLimit}
-              </span>{' '}
-              applications used
+              <span className="font-semibold">{usageText}</span>
             </p>
           </Card>
         )}
@@ -226,11 +228,7 @@ export default function SubscriptionPage() {
                       Active applications
                     </td>
                     <td className="px-4 py-3">2 max</td>
-                    <td className="px-4 py-3">
-                      {paidPlanForComparison?.maxApplications
-                        ? `${paidPlanForComparison.maxApplications} max`
-                        : 'Unlimited'}
-                    </td>
+                    <td className="px-4 py-3">Unlimited</td>
                   </tr>
 
                   <tr className="border-b border-gray-100">

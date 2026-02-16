@@ -334,13 +334,8 @@ export const handlers = [
     )
 
     const currentSubscription = mockStudentSubscriptions[user.id]
-    const defaultLimit = 2
-    const paidService =
-      currentSubscription?.subscriptionTier === 'paid' && currentSubscription.serviceId
-        ? mockServices.find((item) => item._id === currentSubscription.serviceId)
-        : null
-
-    const applicationLimit = paidService?.maxApplications ?? defaultLimit
+    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
+    const applicationLimit = isPaidTier ? null : 2
 
     return HttpResponse.json({
       applicationsUsed: studentApps.length,
@@ -421,7 +416,10 @@ export const handlers = [
     const activeApps = mockApplications.filter(
       (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
     )
-    if (activeApps.length >= 2) {
+
+    const currentSubscription = mockStudentSubscriptions[user.id]
+    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
+    if (!isPaidTier && activeApps.length >= 2) {
       return HttpResponse.json({ message: 'Application limit reached (2)' }, { status: 400 })
     }
 

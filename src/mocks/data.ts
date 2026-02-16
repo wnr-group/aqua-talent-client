@@ -169,7 +169,7 @@ export interface MockServicePlan {
   price: number
   description: string
   features: string[]
-  maxApplications: number
+  maxApplications?: number
 }
 
 export const mockServices: MockServicePlan[] = [
@@ -179,12 +179,11 @@ export const mockServices: MockServicePlan[] = [
     price: 499,
     description: 'For serious job seekers who want more applications and priority support.',
     features: [
-      'Up to 10 active applications',
+      'Unlimited active applications',
       'Priority support',
       'Featured profile visibility',
       'Early access to premium jobs',
     ],
-    maxApplications: 10,
   },
 ]
 
