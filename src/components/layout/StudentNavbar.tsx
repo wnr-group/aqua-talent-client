@@ -6,6 +6,7 @@ import {
   FileText,
   User,
   LayoutDashboard,
+  Gem,
   LogOut,
   GraduationCap,
 } from 'lucide-react'
@@ -49,6 +50,12 @@ export default function StudentNavbar({ showDashboardButton = true }: StudentNav
                 <span className="flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Profile
+                </span>
+              </NavLink>
+              <NavLink to="/subscription" className={navLinkClass}>
+                <span className="flex items-center gap-2">
+                  <Gem className="w-4 h-4" />
+                  Subscription
                 </span>
               </NavLink>
             </div>

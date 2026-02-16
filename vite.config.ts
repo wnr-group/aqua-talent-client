@@ -11,7 +11,7 @@ export default defineConfig({
   },
   server: {
     host: true, // Listen on all addresses
-    port: 80,   // Default HTTP port (requires sudo)
+    port: 5173, // Non-privileged local dev port
     // Allow local development domains
     // Students use main domain, company and admin use subdomains
     allowedHosts: [

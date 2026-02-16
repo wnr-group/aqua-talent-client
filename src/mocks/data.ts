@@ -163,6 +163,51 @@ export const mockApplications: Application[] = [
   },
 ]
 
+export interface MockServicePlan {
+  _id: string
+  name: string
+  price: number
+  description: string
+  features: string[]
+  maxApplications: number
+}
+
+export const mockServices: MockServicePlan[] = [
+  {
+    _id: 'service-pro-monthly',
+    name: 'Pro',
+    price: 499,
+    description: 'For serious job seekers who want more applications and priority support.',
+    features: [
+      'Up to 10 active applications',
+      'Priority support',
+      'Featured profile visibility',
+      'Early access to premium jobs',
+    ],
+    maxApplications: 10,
+  },
+]
+
+type StudentSubscription = {
+  subscriptionTier: 'free' | 'paid'
+  serviceId?: string
+  endDate?: string
+}
+
+export const mockStudentSubscriptions: Record<string, StudentSubscription> = {
+  'student-1': {
+    subscriptionTier: 'free',
+  },
+  'student-2': {
+    subscriptionTier: 'paid',
+    serviceId: 'service-pro-monthly',
+    endDate: '2026-12-31T00:00:00.000Z',
+  },
+  'student-3': {
+    subscriptionTier: 'free',
+  },
+}
+
 // Session storage for current user
 let currentUser: {
   id: string
