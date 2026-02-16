@@ -18,9 +18,9 @@ export default function Card({ children, className = '', padding = 'md', hover =
   return (
     <div
       className={`
-        bg-white rounded-lg border border-gray-200
+        bg-ocean-surface rounded-lg border border-border
         ${paddingStyles[padding]}
-        ${hover ? 'hover:shadow-md hover:border-gray-300 transition-all duration-200' : 'shadow-sm'}
+        ${hover ? 'hover:shadow-md hover:border-border transition-all duration-200' : 'shadow-sm'}
         ${className}
       `}
     >
@@ -50,7 +50,7 @@ interface CardTitleProps {
 
 export function CardTitle({ children, className = '', as: Tag = 'h3' }: CardTitleProps) {
   return (
-    <Tag className={`text-lg font-semibold text-gray-900 ${className}`}>
+    <Tag className={`text-lg font-semibold text-foreground ${className}`}>
       {children}
     </Tag>
   )
@@ -63,7 +63,7 @@ interface CardDescriptionProps {
 
 export function CardDescription({ children, className = '' }: CardDescriptionProps) {
   return (
-    <p className={`text-sm text-gray-500 mt-1 ${className}`}>
+    <p className={`text-sm text-muted-foreground mt-1 ${className}`}>
       {children}
     </p>
   )
@@ -85,7 +85,7 @@ interface CardFooterProps {
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return (
-    <div className={`pt-4 mt-4 border-t border-gray-200 ${className}`}>
+    <div className={`pt-4 mt-4 border-t border-border ${className}`}>
       {children}
     </div>
   )

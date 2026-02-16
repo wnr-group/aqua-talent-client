@@ -10,7 +10,7 @@ export default function CurrentPlanBadge({ isCurrent }: CurrentPlanBadgeProps) {
   }
 
   return (
-    <Badge variant="primary" className="bg-glow-cyan/20 text-glow-cyan border border-glow-cyan/30">
+    <Badge variant="primary" className="bg-glow-cyan/20 text-foreground border border-glow-cyan/30">
       Current Plan
     </Badge>
   )

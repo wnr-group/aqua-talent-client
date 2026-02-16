@@ -58,14 +58,14 @@ export default function StudentDashboard() {
     navigate('/')
   }
 
-  const applicationLimit = stats?.applicationLimit ?? 2
-  const hasUnlimitedApplications = applicationLimit === null
+  const applicationLimit = stats?.applicationLimit
+  const hasUnlimitedApplications = applicationLimit === Number.POSITIVE_INFINITY
   const applicationsRemaining = hasUnlimitedApplications
     ? null
-    : applicationLimit - (stats?.applicationsUsed ?? 0)
+    : (applicationLimit ?? 0) - (stats?.applicationsUsed ?? 0)
   const usageText = hasUnlimitedApplications
-    ? `${stats?.applicationsUsed ?? 0} applications used`
-    : `${stats?.applicationsUsed ?? 0}/${applicationLimit} applications used`
+    ? 'Unlimited applications'
+    : `${stats?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
   const isFreeTier = (subscription?.subscriptionTier ?? 'free') === 'free'
 
   return (
@@ -196,7 +196,7 @@ export default function StudentDashboard() {
                     <p className="text-3xl font-display font-bold text-foreground">
                       {stats?.applicationsUsed ?? 0}
                       {!hasUnlimitedApplications && (
-                        <span className="text-lg font-normal text-muted-foreground"> / {applicationLimit}</span>
+                        <span className="text-lg font-normal text-muted-foreground"> / {applicationLimit ?? '-'}</span>
                       )}
                     </p>
                   </div>

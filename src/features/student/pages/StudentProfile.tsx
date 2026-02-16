@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import Badge from '@/components/common/Badge'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
 import { api } from '@/services/api/client'
@@ -130,6 +131,17 @@ export default function StudentProfile() {
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold text-foreground mb-2">My Profile</h1>
           <p className="text-muted-foreground">Manage your account information</p>
+          <div className="mt-3 flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground">{user?.student?.fullName || user?.username}</p>
+            <Badge
+              variant={(user as { student?: { subscriptionTier?: 'free' | 'paid' } } | null)?.student?.subscriptionTier === 'paid' ? 'primary' : 'secondary'}
+              className={(user as { student?: { subscriptionTier?: 'free' | 'paid' } } | null)?.student?.subscriptionTier === 'paid'
+                ? 'bg-glow-cyan/20 text-foreground border border-glow-cyan/30'
+                : 'bg-ocean-dark/50 text-muted-foreground border border-border'}
+            >
+              {(user as { student?: { subscriptionTier?: 'free' | 'paid' } } | null)?.student?.subscriptionTier === 'paid' ? 'Paid Tier' : 'Free Tier'}
+            </Badge>
+          </div>
         </div>
 
         {isFetching ? (

@@ -83,22 +83,21 @@ export default function SubscriptionPage() {
   if (loading) {
     return (
       <div className="min-h-screen ocean-bg flex items-center justify-center">
-        <p className="text-white">Loading subscription...</p>
+        <p className="text-foreground">Loading subscription...</p>
       </div>
     )
   }
 
   const isFree = subscription?.subscriptionTier === 'free'
-  const rawApplicationLimit = dashboard?.applicationLimit
-  const hasUnlimitedApplications =
-    rawApplicationLimit === null || rawApplicationLimit === Number.POSITIVE_INFINITY
-  const applicationLimit = hasUnlimitedApplications ? null : (rawApplicationLimit ?? 2)
+  const applicationLimit = dashboard?.applicationLimit
+  const hasUnlimitedApplications = applicationLimit === Number.POSITIVE_INFINITY
   const usageText = hasUnlimitedApplications
     ? `${dashboard?.applicationsUsed ?? 0} applications used`
-    : `${dashboard?.applicationsUsed ?? 0}/${applicationLimit} applications used`
+    : `${dashboard?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
 
   return (
-    <div className="min-h-screen ocean-bg">
+    <div className="min-h-screen ocean-bg text-foreground">
+
       <StudentNavbar showDashboardButton={false} />
 
       <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-28 sm:px-6 lg:px-8">
@@ -120,14 +119,14 @@ export default function SubscriptionPage() {
 
         {/* Current subscription status */}
         {subscription && (
-          <Card className="mb-6 bg-white/95" padding="md">
+          <Card className="mb-6 bg-ocean-dark/50" padding="md">
             <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Current Subscription</p>
                 <div className="mt-1 flex items-center gap-2">
                   <Badge
                     variant={isFree ? 'secondary' : 'primary'}
-                    className={isFree ? '' : 'bg-glow-cyan/20 text-glow-cyan border border-glow-cyan/30'}
+                    className={isFree ? 'bg-ocean-surface text-foreground border border-border' : 'bg-glow-cyan/20 text-foreground border border-glow-cyan/30'}
                   >
                     {isFree ? 'Free Tier' : subscription.currentSubscription?.service?.name || 'Paid Tier'}
                   </Badge>
@@ -135,9 +134,9 @@ export default function SubscriptionPage() {
               </div>
 
               {subscription.currentSubscription?.endDate && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Expires on{' '}
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-foreground">
                     {new Date(subscription.currentSubscription.endDate).toLocaleDateString()}
                   </span>
                 </p>
@@ -148,8 +147,8 @@ export default function SubscriptionPage() {
 
         {/* Usage Display */}
         {dashboard && (
-          <Card className="mb-6 bg-white/95" padding="md">
-            <p className="text-sm text-gray-600">
+          <Card className="mb-6 bg-ocean-dark/50" padding="md">
+            <p className="text-sm text-muted-foreground">
               <span className="font-semibold">{usageText}</span>
             </p>
           </Card>
@@ -191,10 +190,10 @@ export default function SubscriptionPage() {
 
         {/* Expiry Display */}
         {subscription?.currentSubscription && (
-          <Card className="mt-6 bg-white/95" padding="md">
-            <p className="text-sm text-gray-600">
+          <Card className="mt-6 bg-ocean-dark/50" padding="md">
+            <p className="text-sm text-muted-foreground">
               Expires on{' '}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-foreground">
                 {new Date(
                   subscription.currentSubscription.endDate
                 ).toLocaleDateString()}
@@ -204,11 +203,11 @@ export default function SubscriptionPage() {
         )}
 
         {/* Feature Comparison Table */}
-        <Card className="mt-8 border-border bg-white/95" padding="lg">
+        <Card className="mt-8 border-border bg-ocean-dark/50" padding="lg">
           <CardContent>
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-glow-cyan" />
-              <CardTitle className="text-xl font-display">
+              <CardTitle className="text-xl font-display text-foreground">
                 Feature Comparison
               </CardTitle>
             </div>
@@ -216,29 +215,29 @@ export default function SubscriptionPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-600">
+                  <tr className="border-b border-border text-left text-muted-foreground">
                     <th className="py-3 pr-4 font-semibold">Feature</th>
                     <th className="px-4 py-3 font-semibold">Free</th>
                     <th className="px-4 py-3 font-semibold">Paid</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-100">
-                    <td className="py-3 pr-4 font-medium text-gray-900">
+                  <tr className="border-b border-border">
+                    <td className="py-3 pr-4 font-medium text-foreground">
                       Active applications
                     </td>
-                    <td className="px-4 py-3">2 max</td>
-                    <td className="px-4 py-3">Unlimited</td>
+                    <td className="px-4 py-3 text-foreground">2 max</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited</td>
                   </tr>
 
-                  <tr className="border-b border-gray-100">
-                    <td className="py-3 pr-4 font-medium text-gray-900">
+                  <tr className="border-b border-border">
+                    <td className="py-3 pr-4 font-medium text-foreground">
                       Priority support
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <Minus className="inline w-4 h-4" /> No
                     </td>
-                    <td className="px-4 py-3 text-glow-teal">
+                    <td className="px-4 py-3 text-foreground">
                       <Check className="inline w-4 h-4" /> Yes
                     </td>
                   </tr>
@@ -249,10 +248,10 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* Upgrade benefits */}
-        <Card className="mt-6 border-border bg-white/95" padding="md">
+        <Card className="mt-6 border-border bg-ocean-dark/50" padding="md">
           <CardContent>
-            <p className="text-sm font-medium text-gray-900 mb-2">Why upgrade?</p>
-            <ul className="space-y-2 text-sm text-gray-600">
+            <p className="text-sm font-medium text-foreground mb-2">Why upgrade?</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-glow-teal" />
                 Apply to more opportunities each month
