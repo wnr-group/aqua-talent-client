@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { PageContainer } from '@/components/layout'
 import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
@@ -18,7 +17,6 @@ const statusStyles: Record<CompanyStatus, { bg: string; text: string }> = {
 
 export default function AdminCompanies() {
   const { success, error: showError } = useNotification()
-  const navigate = useNavigate()
   const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<CompanyStatus | 'all'>(CompanyStatus.PENDING)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { PageContainer } from '@/components/layout'
 import Card, { CardContent } from '@/components/common/Card'
@@ -49,7 +49,6 @@ const normalizeCompany = (item: Company & { _id?: string }): AdminCompanyRecord 
 export default function AdminCompanyProfile() {
   const { companyId } = useParams<{ companyId?: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
   const { success, error: showError } = useNotification()
   const [company, setCompany] = useState<Company | null>(null)
   const [companyList, setCompanyList] = useState<AdminCompanyRecord[]>([])

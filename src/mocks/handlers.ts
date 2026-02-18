@@ -11,11 +11,59 @@ import {
 } from './data'
 import { UserType, CompanyStatus, JobStatus, ApplicationStatus } from '@/types/enums'
 import { Company, Student, JobPosting, Application } from '@/types/entities'
+import type { ProfileCompletenessData } from '@/features/student/types'
 
 const API_URL = 'http://localhost:3001/api'
 
 // Simulate network delay
 const DELAY_MS = 300
+
+interface CompletenessCheck {
+  label: string
+  isComplete: boolean
+}
+
+const COMPLETENESS_CHECKS = (student: Student): CompletenessCheck[] => {
+  const skillsCount = student.skills?.filter((skill) => !!skill)?.length ?? 0
+  const educationCount = student.education?.length ?? 0
+  const experienceCount = student.experience?.length ?? 0
+
+  return [
+    { label: 'Add a short bio', isComplete: Boolean(student.bio && student.bio.trim().length >= 80) },
+    { label: 'Specify your location', isComplete: Boolean(student.location) },
+    { label: 'Set your availability date', isComplete: Boolean(student.availableFrom) },
+    { label: 'Add a profile link', isComplete: Boolean(student.profileLink) },
+    { label: 'Add at least 3 skills', isComplete: skillsCount >= 3 },
+    { label: 'Add your education history', isComplete: educationCount > 0 },
+    { label: 'Add at least one experience', isComplete: experienceCount > 0 },
+    { label: 'Upload your resume', isComplete: Boolean(student.resumeUrl) },
+    { label: 'Record an intro video', isComplete: Boolean(student.introVideoUrl) },
+  ]
+}
+
+function calculateStudentCompleteness(student: Student): ProfileCompletenessData {
+  const checks = COMPLETENESS_CHECKS(student)
+  const totalChecks = checks.length || 1
+  const completed = checks.filter((check) => check.isComplete).length
+  const percentage = Math.round((completed / totalChecks) * 100)
+  const missingItems = checks.filter((check) => !check.isComplete).map((check) => check.label)
+
+  return {
+    percentage,
+    missingItems,
+  }
+}
+
+function updateStudentRecord(studentId: string, updates: Partial<Student>): Student | null {
+  const index = mockStudents.findIndex((student) => student.id === studentId)
+  if (index === -1) {
+    return null
+  }
+
+  const updated = { ...mockStudents[index]!, ...updates } as Student
+  mockStudents[index] = updated
+  return updated
+}
 
 export const handlers = [
   // ============ AUTH ============
@@ -499,6 +547,52 @@ export const handlers = [
     }
 
     return HttpResponse.json({ success: true })
+  }),
+
+  http.get(`${API_URL}/student/profile/completeness`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const studentRecord = mockStudents.find((student) => student.id === user.id) || (user.data as Student)
+    const completeness = calculateStudentCompleteness(studentRecord)
+    return HttpResponse.json(completeness)
+  }),
+
+  http.post(`${API_URL}/student/profile/resume`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    await request.formData()
+    const resumeUrl = `https://cdn.aquatalent.local/resumes/${user.id}-${Date.now()}.pdf`
+    const updated = updateStudentRecord(user.id, { resumeUrl })
+    if (updated) {
+      user.data = updated
+    }
+
+    return HttpResponse.json({ resumeUrl })
+  }),
+
+  http.post(`${API_URL}/student/profile/video`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    await request.formData()
+    const introVideoUrl = `https://cdn.aquatalent.local/videos/${user.id}-${Date.now()}.mp4`
+    const updated = updateStudentRecord(user.id, { introVideoUrl })
+    if (updated) {
+      user.data = updated
+    }
+
+    return HttpResponse.json({ introVideoUrl })
   }),
 
   // ============ ADMIN ============
