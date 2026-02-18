@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PageContainer } from '@/components/layout'
+import CompanyPageContainer from '@/features/company/components/CompanyPageContainer'
+import {
+  COMPANY_INPUT_STYLES,
+  COMPANY_SELECT_STYLES,
+  COMPANY_TEXTAREA_STYLES,
+} from '@/features/company/components/companyFormStyles'
 import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
@@ -11,6 +16,8 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { jobCreateSchema, JobCreateFormData } from '@/types/schemas/job'
 import { JOB_TYPES } from '@/types'
 import { api } from '@/services/api/client'
+
+const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
 
 export default function CompanyJobCreate() {
   const navigate = useNavigate()
@@ -44,8 +51,8 @@ export default function CompanyJobCreate() {
   }
 
   return (
-    <PageContainer title="Post New Job">
-      <Card className="max-w-2xl">
+    <CompanyPageContainer title="Post New Job">
+      <Card className={`max-w-2xl ${CARD_BASE_CLASSES}`}>
         <Alert variant="info" className="mb-6">
           Job postings require admin approval before they become visible to students.
         </Alert>
@@ -56,6 +63,7 @@ export default function CompanyJobCreate() {
             {...register('title')}
             error={errors.title?.message}
             placeholder="e.g., Software Engineering Intern"
+            className={COMPANY_INPUT_STYLES}
           />
 
           <div>
@@ -65,13 +73,15 @@ export default function CompanyJobCreate() {
             <textarea
               {...register('description')}
               rows={6}
-              className={`block w-full px-4 py-3 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
-                errors.description ? 'border-red-500' : ''
+              className={`${COMPANY_TEXTAREA_STYLES} ${
+                errors.description
+                  ? 'border-destructive/70 focus:ring-destructive/40 focus:border-destructive'
+                  : ''
               }`}
               placeholder="Describe the role, responsibilities, and what you're looking for..."
             />
             {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.description.message}</p>
             )}
           </div>
 
@@ -81,6 +91,7 @@ export default function CompanyJobCreate() {
               {...register('location')}
               error={errors.location?.message}
               placeholder="e.g., Remote, New York, etc."
+              className={COMPANY_INPUT_STYLES}
             />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -88,8 +99,10 @@ export default function CompanyJobCreate() {
               </label>
               <select
                 {...register('jobType')}
-                className={`block w-full px-4 py-2.5 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
-                  errors.jobType ? 'border-red-500' : ''
+                className={`${COMPANY_SELECT_STYLES} ${
+                  errors.jobType
+                    ? 'border-destructive/70 focus:ring-destructive/40 focus:border-destructive'
+                    : ''
                 }`}
               >
                 <option value="">Select job type</option>
@@ -111,12 +124,14 @@ export default function CompanyJobCreate() {
               {...register('salaryRange')}
               error={errors.salaryRange?.message}
               placeholder="e.g., $50,000 - $70,000"
+              className={COMPANY_INPUT_STYLES}
             />
             <Input
               label="Application Deadline (Optional)"
               type="date"
               {...register('deadline')}
               error={errors.deadline?.message}
+              className={COMPANY_INPUT_STYLES}
             />
           </div>
 
@@ -127,18 +142,23 @@ export default function CompanyJobCreate() {
             <textarea
               {...register('requirements')}
               rows={4}
-              className={`block w-full px-4 py-3 rounded-md shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white ${
-                errors.requirements ? 'border-red-500' : ''
+              className={`${COMPANY_TEXTAREA_STYLES} ${
+                errors.requirements
+                  ? 'border-destructive/70 focus:ring-destructive/40 focus:border-destructive'
+                  : ''
               }`}
               placeholder="List the required skills, qualifications, and experience..."
             />
             {errors.requirements && (
-              <p className="mt-1 text-sm text-red-600">{errors.requirements.message}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.requirements.message}</p>
             )}
           </div>
 
           <div className="flex gap-4">
-            <Button type="submit" isLoading={isLoading}>
+            <Button
+              type="submit"
+              isLoading={isLoading}
+            >
               Post Job
             </Button>
             <Button
@@ -151,6 +171,6 @@ export default function CompanyJobCreate() {
           </div>
         </form>
       </Card>
-    </PageContainer>
+    </CompanyPageContainer>
   )
 }

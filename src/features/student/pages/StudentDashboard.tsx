@@ -63,6 +63,7 @@ export default function StudentDashboard() {
   const applicationsRemaining = hasUnlimitedApplications
     ? null
     : (applicationLimit ?? 0) - (stats?.applicationsUsed ?? 0)
+  const limitedApplicationsRemaining = applicationsRemaining ?? 0
   const usageText = hasUnlimitedApplications
     ? 'Unlimited applications'
     : `${stats?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
@@ -205,8 +206,8 @@ export default function StudentDashboard() {
                   <p className="text-sm text-muted-foreground">
                     {hasUnlimitedApplications
                       ? 'Unlimited applications available'
-                      : applicationsRemaining! > 0
-                      ? `${applicationsRemaining} application${applicationsRemaining > 1 ? 's' : ''} remaining`
+                      : limitedApplicationsRemaining > 0
+                      ? `${limitedApplicationsRemaining} application${limitedApplicationsRemaining > 1 ? 's' : ''} remaining`
                       : 'Application limit reached'}
                   </p>
                 </div>

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Check, Minus, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Card, { CardContent, CardTitle } from '@/components/common/Card'
 import Alert from '@/components/common/Alert'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PricingCard from '@/features/student/components/PricingCard'
 import Badge from '@/components/common/Badge'
 import { api } from '@/services/api/client'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { openRazorpayCheckout } from '@/services/payment/razorpay'
 
 interface ServicePlan {
   _id: string
@@ -38,12 +41,31 @@ interface DashboardResponse {
   applicationLimit?: number | null
 }
 
+const SECTION_CARD_CLASS =
+  'relative overflow-hidden border border-white/10 bg-gradient-to-br from-[#0b1f3f]/85 via-[#081229]/90 to-[#030b18]/95 shadow-[0_25px_60px_rgba(2,8,20,0.35)] backdrop-blur-xl'
+
+const GlowOverlay = ({ accentClass = 'bg-glow-cyan/20' }: { accentClass?: string }) => (
+  <>
+    <div
+      className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_55%)]"
+      aria-hidden="true"
+    />
+    <div
+      className={`pointer-events-none absolute -right-24 -top-16 h-64 w-64 rounded-full blur-[140px] ${accentClass}`}
+      aria-hidden="true"
+    />
+  </>
+)
+
 export default function SubscriptionPage() {
+  const navigate = useNavigate()
+  const { user } = useAuthContext()
   const [services, setServices] = useState<ServicePlan[]>([])
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null)
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [processingServiceId, setProcessingServiceId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -62,21 +84,68 @@ export default function SubscriptionPage() {
       setSubscription(subscriptionData)
       setDashboard(dashboardData)
     } catch (error) {
-      console.error('Failed loading subscription data', error)
       setErrorMessage('Unable to load subscription details. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUpgrade = async (serviceId: string) => {
+  const handleUpgrade = async (service: ServicePlan) => {
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID
+
+    if (!razorpayKey) {
+      setErrorMessage('Payment gateway is not configured. Please contact support.')
+      return
+    }
+
+    if (!service.price || service.price <= 0) {
+      setErrorMessage('Invalid plan amount. Please select a valid subscription plan.')
+      return
+    }
+
+    if (processingServiceId) {
+      return
+    }
+
+    setErrorMessage(null)
+    setProcessingServiceId(service._id)
+
     try {
-      await api.post('/student/subscription', { serviceId })
+      const paymentResult = await openRazorpayCheckout({
+        key: razorpayKey,
+        amount: Math.round(service.price * 100),
+        currency: 'INR',
+        name: 'AquaTalent',
+        description: `${service.name} Subscription`,
+        prefill: {
+          name: user?.student?.fullName || user?.username,
+          email: user?.student?.email,
+        },
+        notes: {
+          serviceId: service._id,
+          serviceName: service.name,
+        },
+        themeColor: '#22d3ee',
+      })
+
+      await api.post('/student/subscription', {
+        serviceId: service._id,
+        paymentId: paymentResult.paymentId,
+      })
 
       await loadData()
+
+      navigate('/subscription/success', {
+        state: {
+          planName: service.name,
+          paymentId: paymentResult.paymentId,
+        },
+      })
     } catch (error) {
-      console.error('Upgrade failed', error)
-      setErrorMessage('Upgrade failed. Please try again.')
+      const message = error instanceof Error ? error.message : 'Payment failed. Please try again.'
+      setErrorMessage(message)
+    } finally {
+      setProcessingServiceId(null)
     }
   }
 
@@ -119,8 +188,9 @@ export default function SubscriptionPage() {
 
         {/* Current subscription status */}
         {subscription && (
-          <Card className="mb-6 bg-ocean-dark/50" padding="md">
-            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Card className={`mb-6 ${SECTION_CARD_CLASS}`} padding="md">
+            <GlowOverlay accentClass={isFree ? 'bg-glow-cyan/12' : 'bg-glow-teal/25'} />
+            <CardContent className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Current Subscription</p>
                 <div className="mt-1 flex items-center gap-2">
@@ -147,10 +217,13 @@ export default function SubscriptionPage() {
 
         {/* Usage Display */}
         {dashboard && (
-          <Card className="mb-6 bg-ocean-dark/50" padding="md">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold">{usageText}</span>
-            </p>
+          <Card className={`mb-6 ${SECTION_CARD_CLASS}`} padding="md">
+            <GlowOverlay accentClass="bg-glow-blue/20" />
+            <div className="relative z-10">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold">{usageText}</span>
+              </p>
+            </div>
           </Card>
         )}
 
@@ -183,28 +256,33 @@ export default function SubscriptionPage() {
                 subscription?.currentSubscription?.service?._id === service._id
               }
               ctaLabel="Upgrade"
-              onCtaClick={() => handleUpgrade(service._id)}
+              onCtaClick={() => handleUpgrade(service)}
+              isProcessing={processingServiceId === service._id}
             />
           ))}
         </div>
 
         {/* Expiry Display */}
         {subscription?.currentSubscription && (
-          <Card className="mt-6 bg-ocean-dark/50" padding="md">
-            <p className="text-sm text-muted-foreground">
-              Expires on{' '}
-              <span className="font-medium text-foreground">
-                {new Date(
-                  subscription.currentSubscription.endDate
-                ).toLocaleDateString()}
-              </span>
-            </p>
+          <Card className={`mt-6 ${SECTION_CARD_CLASS}`} padding="md">
+            <GlowOverlay accentClass="bg-glow-cyan/18" />
+            <div className="relative z-10">
+              <p className="text-sm text-muted-foreground">
+                Expires on{' '}
+                <span className="font-medium text-foreground">
+                  {new Date(
+                    subscription.currentSubscription.endDate
+                  ).toLocaleDateString()}
+                </span>
+              </p>
+            </div>
           </Card>
         )}
 
         {/* Feature Comparison Table */}
-        <Card className="mt-8 border-border bg-ocean-dark/50" padding="lg">
-          <CardContent>
+        <Card className={`mt-8 ${SECTION_CARD_CLASS}`} padding="lg">
+          <GlowOverlay accentClass="bg-glow-purple/25" />
+          <CardContent className="relative z-10">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-glow-cyan" />
               <CardTitle className="text-xl font-display text-foreground">
@@ -248,8 +326,9 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* Upgrade benefits */}
-        <Card className="mt-6 border-border bg-ocean-dark/50" padding="md">
-          <CardContent>
+        <Card className={`mt-6 ${SECTION_CARD_CLASS}`} padding="md">
+          <GlowOverlay accentClass="bg-glow-teal/22" />
+          <CardContent className="relative z-10">
             <p className="text-sm font-medium text-foreground mb-2">Why upgrade?</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">

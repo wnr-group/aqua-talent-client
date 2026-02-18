@@ -7,7 +7,6 @@ import {
   Search,
   MapPin,
   Clock,
-  Building2,
   Briefcase,
   X,
   ChevronLeft,
@@ -16,6 +15,8 @@ import {
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import Logo from '@/components/common/Logo'
+import CompanyAvatar from '@/components/common/CompanyAvatar'
+import Badge from '@/components/common/Badge'
 
 interface Pagination {
   page: number
@@ -281,9 +282,27 @@ export default function PublicJobsPage() {
                     className={`card-elevated rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 group animate-fade-in-up`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-glow-cyan/20 to-glow-teal/20 flex items-center justify-center border border-glow-cyan/20">
-                        <Building2 className="w-7 h-7 text-glow-teal" />
+                    <div className="flex items-start justify-between mb-4 gap-3">
+                      <div className="flex items-center gap-3">
+                        <CompanyAvatar
+                          name={job.company?.name || 'Company'}
+                          logoUrl={job.company?.logo}
+                          size="md"
+                          variant="dark"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {job.company?.name || 'Company'}
+                          </p>
+                          {job.company?.industry && (
+                            <Badge
+                              variant="secondary"
+                              className="mt-1 bg-white/10 text-white border-white/10 text-[11px]"
+                            >
+                              {job.company.industry}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-glow-teal/10 text-glow-teal border border-glow-teal/20">
                         {job.jobType}
@@ -294,9 +313,11 @@ export default function PublicJobsPage() {
                       {job.title}
                     </h3>
 
-                    <p className="text-muted-foreground mb-4">
-                      {job.company?.name || 'Company'}
-                    </p>
+                    {job.company?.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                        {job.company.description}
+                      </p>
+                    )}
 
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                       {job.description}

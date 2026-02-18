@@ -10,6 +10,9 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { JobPosting, ApplicationStatus } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
+import CompanyAvatar from '@/components/common/CompanyAvatar'
+import Badge from '@/components/common/Badge'
+import { Globe, Linkedin, Twitter } from 'lucide-react'
 
 const MAX_APPLICATIONS = 2
 
@@ -113,14 +116,37 @@ export default function StudentJobDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <div className="mb-4">
-              <p className="text-lg text-blue-600 font-medium">
-                {job.company?.name ?? 'Unknown Company'}
-              </p>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                <span>{job.location}</span>
-                <span>{job.jobType}</span>
-                {job.salaryRange && <span>{job.salaryRange}</span>}
+            <div className="flex items-start gap-4 mb-4">
+              <CompanyAvatar
+                name={job.company?.name ?? 'Company'}
+                logoUrl={job.company?.logo}
+                size="lg"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-lg font-semibold text-gray-900">
+                  {job.company?.name ?? 'Unknown Company'}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-500">
+                  <span>{job.location}</span>
+                  <span>•</span>
+                  <span>{job.jobType}</span>
+                  {job.salaryRange && (
+                    <>
+                      <span>•</span>
+                      <span>{job.salaryRange}</span>
+                    </>
+                  )}
+                </div>
+                {job.company?.industry && (
+                  <div className="mt-2">
+                    <Badge variant="secondary">{job.company.industry}</Badge>
+                  </div>
+                )}
+                {job.company?.description && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    {job.company.description}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -145,6 +171,54 @@ export default function StudentJobDetail() {
                   </span>
                 )}
               </div>
+
+              {(job.company?.website || job.company?.socialLinks?.linkedin || job.company?.socialLinks?.twitter || job.company?.size || job.company?.foundedYear) && (
+                <div className="pt-4 mt-4 border-t border-gray-200 grid gap-3 md:grid-cols-2 text-sm">
+                  {job.company?.size && (
+                    <p className="text-gray-600">
+                      <span className="font-medium text-gray-800">Company Size:</span> {job.company.size} people
+                    </p>
+                  )}
+                  {job.company?.foundedYear && (
+                    <p className="text-gray-600">
+                      <span className="font-medium text-gray-800">Founded:</span> {job.company.foundedYear}
+                    </p>
+                  )}
+                  {job.company?.website && (
+                    <a
+                      href={job.company.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                    >
+                      <Globe className="w-4 h-4" />
+                      Visit Website
+                    </a>
+                  )}
+                  {job.company?.socialLinks?.linkedin && (
+                    <a
+                      href={job.company.socialLinks.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                      LinkedIn
+                    </a>
+                  )}
+                  {job.company?.socialLinks?.twitter && (
+                    <a
+                      href={job.company.socialLinks.twitter}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Twitter
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
         </div>

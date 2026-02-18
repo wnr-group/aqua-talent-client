@@ -1,5 +1,10 @@
 import { CompanyStatus, JobStatus, ApplicationStatus } from './enums'
 
+export interface CompanySocialLinks {
+  linkedin?: string | null
+  twitter?: string | null
+}
+
 export interface Company {
   id: string
   username: string
@@ -9,6 +14,13 @@ export interface Company {
   createdAt: string
   approvedAt?: string | null
   rejectionReason?: string | null
+  logo?: string | null
+  website?: string | null
+  description?: string | null
+  industry?: string | null
+  size?: string | null
+  socialLinks?: CompanySocialLinks | null
+  foundedYear?: number | null
 }
 
 export interface Student {
@@ -46,6 +58,13 @@ export interface JobPosting {
   company?: {
     id: string
     name: string
+    logo?: string | null
+    website?: string | null
+    description?: string | null
+    industry?: string | null
+    size?: string | null
+    socialLinks?: CompanySocialLinks | null
+    foundedYear?: number | null
   } | null
 }
 

@@ -12,6 +12,7 @@ interface PricingCardProps {
   isCurrentPlan: boolean
   ctaLabel: string
   onCtaClick?: () => void
+  isProcessing?: boolean
 }
 
 export default function PricingCard({
@@ -22,17 +23,34 @@ export default function PricingCard({
   isCurrentPlan,
   ctaLabel,
   onCtaClick,
+  isProcessing = false,
 }: PricingCardProps) {
   const isActionable = !isCurrentPlan && !!onCtaClick
 
   return (
     <Card
-      className={`h-full border ${
-        isCurrentPlan ? 'border-glow-cyan bg-ocean-surface shadow-lg shadow-glow-cyan/10' : 'border-border bg-ocean-dark/50'
+      className={`relative h-full overflow-hidden rounded-2xl border bg-transparent transition-all duration-300 ${
+        isCurrentPlan
+          ? 'border-glow-cyan/60 shadow-[0_25px_60px_rgba(34,211,238,0.25)]'
+          : 'border-border/70 hover:border-glow-cyan/40 hover:shadow-[0_25px_60px_rgba(34,211,238,0.15)]'
       }`}
       padding="lg"
     >
-      <CardContent className="flex h-full flex-col">
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-[#0b1f3f] via-[#09152a] to-[#030b18]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.22),_transparent_60%)]"
+        aria-hidden="true"
+      />
+      <div
+        className={`absolute -right-20 -top-12 h-48 w-48 rounded-full blur-[110px] ${
+          isCurrentPlan ? 'bg-glow-cyan/40' : 'bg-glow-cyan/20'
+        }`}
+        aria-hidden="true"
+      />
+      <CardContent className="relative z-10 flex h-full flex-col">
         <div className="mb-4 flex items-center justify-between gap-3">
           <CardTitle className="text-xl font-display text-foreground">{name}</CardTitle>
           <CurrentPlanBadge isCurrent={isCurrentPlan} />
@@ -45,14 +63,15 @@ export default function PricingCard({
           <FeatureList features={features} />
         </div>
 
-        <CardFooter className="mt-6 border-border px-0 pb-0 pt-4">
+        <CardFooter className="mt-6 border-white/10 px-0 pb-0 pt-4">
           <Button
             variant={isActionable ? 'primary' : 'secondary'}
             size="md"
             className="w-full"
             rightIcon={isActionable ? <ArrowRight className="w-4 h-4" /> : undefined}
             onClick={onCtaClick}
-            disabled={!isActionable}
+            disabled={!isActionable || isProcessing}
+            isLoading={isProcessing}
           >
             {isCurrentPlan ? 'Current Plan' : ctaLabel}
           </Button>

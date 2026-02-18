@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { PageContainer } from '@/components/layout'
+import CompanyPageContainer from '@/features/company/components/CompanyPageContainer'
+import { COMPANY_INPUT_STYLES } from '@/features/company/components/companyFormStyles'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
@@ -29,11 +30,11 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-const statusStyles: Record<JobStatus, { bg: string; text: string }> = {
-  [JobStatus.PENDING]: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  [JobStatus.APPROVED]: { bg: 'bg-green-100', text: 'text-green-800' },
-  [JobStatus.REJECTED]: { bg: 'bg-red-100', text: 'text-red-800' },
-  [JobStatus.CLOSED]: { bg: 'bg-gray-100', text: 'text-gray-800' },
+const statusStyles: Record<JobStatus, string> = {
+  [JobStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
+  [JobStatus.APPROVED]: 'bg-green-100 text-green-800',
+  [JobStatus.REJECTED]: 'bg-red-100 text-red-800',
+  [JobStatus.CLOSED]: 'bg-gray-100 text-gray-700',
 }
 
 const appStatusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
@@ -44,6 +45,7 @@ const appStatusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
 }
 
+const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
 interface Pagination {
   page: number
   limit: number
@@ -74,15 +76,14 @@ export default function CompanyJobDetail() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [closeJobModalOpen, setCloseJobModalOpen] = useState(false)
   const [isClosingJob, setIsClosingJob] = useState(false)
-
-  // Fetch job details
   useEffect(() => {
     const fetchJob = async () => {
+      if (!jobId) return
       try {
         const jobData = await api.get<JobPosting & { _id?: string }>(`/company/jobs/${jobId}`)
         setJob({
           ...jobData,
-          id: jobData.id || jobData._id || jobId || '',
+          id: jobData.id || jobData._id || jobId,
         })
       } catch {
         showError('Failed to load job details')
@@ -91,10 +92,10 @@ export default function CompanyJobDetail() {
         setIsLoading(false)
       }
     }
+
     fetchJob()
   }, [jobId, navigate, showError])
 
-  // Fetch applications with filters
   useEffect(() => {
     const fetchApplications = async () => {
       if (!jobId) return
@@ -110,24 +111,34 @@ export default function CompanyJobDetail() {
         const appData = await api.get<{ applications: any[]; pagination: Pagination }>(
           `/company/jobs/${jobId}/applications?${params.toString()}`
         )
-        const normalizedApplications: Application[] = (appData.applications || []).map(app => ({
+
+        const normalizedApplications: Application[] = (appData.applications || []).map((app) => ({
           id: app.id || app._id || '',
-          studentId: typeof app.studentId === 'object' ? (app.studentId._id || app.studentId.id) : app.studentId,
-          jobPostingId: typeof app.jobPostingId === 'object' ? (app.jobPostingId._id || app.jobPostingId.id) : app.jobPostingId,
+          studentId:
+            typeof app.studentId === 'object' ? (app.studentId._id || app.studentId.id) : app.studentId,
+          jobPostingId:
+            typeof app.jobPostingId === 'object'
+              ? (app.jobPostingId._id || app.jobPostingId.id)
+              : app.jobPostingId,
           status: app.status,
           createdAt: app.createdAt,
           rejectionReason: app.rejectionReason,
-          student: app.studentId && typeof app.studentId === 'object' ? {
-            id: app.studentId._id || app.studentId.id || '',
-            fullName: app.studentId.fullName,
-            email: app.studentId.email,
-            profileLink: app.studentId.profileLink,
-          } : app.student,
+          student:
+            app.studentId && typeof app.studentId === 'object'
+              ? {
+                  id: app.studentId._id || app.studentId.id || '',
+                  fullName: app.studentId.fullName,
+                  email: app.studentId.email,
+                  profileLink: app.studentId.profileLink,
+                }
+              : app.student,
         }))
+
         setApplications(normalizedApplications)
         setAppPagination(appData.pagination)
       } catch {
         setApplications([])
+        setAppPagination(null)
       } finally {
         setIsLoadingApps(false)
       }
@@ -137,7 +148,6 @@ export default function CompanyJobDetail() {
     return () => clearTimeout(debounce)
   }, [jobId, appFilter, appSearch, appPage])
 
-  // Reset page when filters change
   useEffect(() => {
     setAppPage(1)
   }, [appFilter, appSearch])
@@ -203,42 +213,42 @@ export default function CompanyJobDetail() {
     }
   }
 
-  const newApplicantsCount = applications.filter((a) => a.status === ApplicationStatus.REVIEWED).length
+  const newApplicantsCount = applications.filter(
+    (app) => app.status === ApplicationStatus.REVIEWED
+  ).length
 
   if (isLoading) {
     return (
-      <PageContainer title="Job Details">
+      <CompanyPageContainer title="Job Details">
         <div className="flex justify-center py-12">
           <LoadingSpinner size="lg" />
         </div>
-      </PageContainer>
+      </CompanyPageContainer>
     )
   }
 
   if (!job) return null
 
   return (
-    <PageContainer title={job.title}>
+    <CompanyPageContainer title={job.title}>
       {/* Back Link */}
       <Link
         to="/jobs"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Jobs
       </Link>
 
       {/* Job Details Card */}
-      <Card className="mb-8">
+      <Card className={`mb-8 ${CARD_BASE_CLASSES}`}>
         <CardContent>
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    statusStyles[job.status].bg
-                  } ${statusStyles[job.status].text}`}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyles[job.status]}`}
                 >
                   {job.status}
                 </span>
@@ -259,7 +269,10 @@ export default function CompanyJobDetail() {
               </div>
             </div>
             {job.status === JobStatus.APPROVED && (
-              <Button variant="outline" onClick={() => setCloseJobModalOpen(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setCloseJobModalOpen(true)}
+              >
                 Close Job
               </Button>
             )}
@@ -296,7 +309,7 @@ export default function CompanyJobDetail() {
             <p className="text-sm text-gray-500 mt-1">
               Review and manage applicants for this position
               {newApplicantsCount > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
                   {newApplicantsCount} new
                 </span>
               )}
@@ -312,10 +325,10 @@ export default function CompanyJobDetail() {
               <button
                 key={status}
                 onClick={() => setAppFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium border ${
                   appFilter === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 {status === 'all' ? 'All' : appStatusConfig[status].label}
@@ -330,6 +343,7 @@ export default function CompanyJobDetail() {
               value={appSearch}
               onChange={(e) => setAppSearch(e.target.value)}
               leftIcon={<Search className="w-4 h-4" />}
+              className={COMPANY_INPUT_STYLES}
             />
           </div>
         </div>
@@ -340,12 +354,12 @@ export default function CompanyJobDetail() {
             <LoadingSpinner size="lg" />
           </div>
         ) : applications.length === 0 ? (
-          <Card>
+          <Card className={`${CARD_BASE_CLASSES} text-gray-900`}>
             <div className="text-center py-12">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-6 h-6 text-gray-400" />
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-500">
+                <FileText className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No applications found</h3>
+              <h3 className="text-lg font-medium mb-1">No applications found</h3>
               <p className="text-gray-500">
                 {appSearch || appFilter !== 'all'
                   ? 'Try adjusting your search criteria.'
@@ -357,27 +371,31 @@ export default function CompanyJobDetail() {
           <>
             <div className="grid gap-4">
               {applications.map((app) => (
-                <Card key={app.id} hover={app.status === ApplicationStatus.REVIEWED}>
+                <Card
+                  key={app.id}
+                  hover={app.status === ApplicationStatus.REVIEWED}
+                  className={`${CARD_BASE_CLASSES} text-gray-900`}
+                >
                   <CardContent>
                     <div className="flex items-start gap-4">
-                      {/* Avatar */}
-                      <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        app.status === ApplicationStatus.HIRED
-                          ? 'bg-green-100'
-                          : app.status === ApplicationStatus.REJECTED
-                          ? 'bg-red-50'
-                          : 'bg-blue-100'
-                      }`}>
+                      <div
+                        className={`w-14 h-14 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                          app.status === ApplicationStatus.HIRED
+                            ? 'bg-green-50 border-green-100 text-green-600'
+                            : app.status === ApplicationStatus.REJECTED
+                            ? 'bg-red-50 border-red-100 text-red-600'
+                            : 'bg-blue-50 border-blue-100 text-blue-600'
+                        }`}
+                      >
                         {app.status === ApplicationStatus.HIRED ? (
-                          <UserCheck className="w-7 h-7 text-green-600" />
+                          <UserCheck className="w-7 h-7" />
                         ) : app.status === ApplicationStatus.REJECTED ? (
-                          <UserX className="w-7 h-7 text-red-400" />
+                          <UserX className="w-7 h-7" />
                         ) : (
-                          <User className="w-7 h-7 text-blue-600" />
+                          <User className="w-7 h-7" />
                         )}
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -390,7 +408,7 @@ export default function CompanyJobDetail() {
                               </Badge>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-3">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                               {app.student?.email && (
                                 <div className="flex items-center gap-1.5">
                                   <Mail className="w-4 h-4" />
@@ -408,7 +426,7 @@ export default function CompanyJobDetail() {
                                 href={app.student.profileLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
                               >
                                 <ExternalLink className="w-4 h-4" />
                                 View Profile
@@ -416,7 +434,6 @@ export default function CompanyJobDetail() {
                             )}
                           </div>
 
-                          {/* Actions */}
                           {app.status === ApplicationStatus.REVIEWED && (
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <Button
@@ -426,7 +443,7 @@ export default function CompanyJobDetail() {
                                 isLoading={processingId === app.id}
                                 leftIcon={<UserCheck className="w-4 h-4" />}
                               >
-                                Hire
+                                Mark as Hired
                               </Button>
                               <Button
                                 size="sm"
@@ -440,7 +457,63 @@ export default function CompanyJobDetail() {
                             </div>
                           )}
                         </div>
+
+                        {app.rejectionReason && (
+                          <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-100">
+                            <p className="text-sm text-red-700">
+                              <span className="font-medium">Rejection reason:</span> {app.rejectionReason}
+                            </p>
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        {app.student?.email ?? 'No email provided'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        {app.student?.profileLink ? 'Portfolio available' : 'No portfolio link'}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {app.status === ApplicationStatus.REVIEWED && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleHireApplicant(app.id)}
+                            disabled={processingId === app.id}
+                            isLoading={processingId === app.id}
+                            leftIcon={<UserCheck className="w-4 h-4" />}
+                          >
+                            Mark as Hired
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openRejectModal(app)}
+                            disabled={processingId === app.id}
+                            leftIcon={<UserX className="w-4 h-4" />}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      {app.status === ApplicationStatus.HIRED && (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <UserCheck className="w-4 h-4" />
+                          <span className="font-medium">Applicant hired</span>
+                        </div>
+                      )}
+                      {app.status === ApplicationStatus.REJECTED && (
+                        <div className="flex items-center gap-2 text-red-700">
+                          <UserX className="w-4 h-4" />
+                          <span className="font-medium">Application rejected</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -450,7 +523,7 @@ export default function CompanyJobDetail() {
             {/* Pagination */}
             {appPagination && appPagination.totalPages > 1 && (
               <div className="flex items-center justify-between pt-4">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   Showing {((appPage - 1) * appPagination.limit) + 1} to {Math.min(appPage * appPagination.limit, appPagination.total)} of {appPagination.total} applications
                 </p>
                 <div className="flex items-center gap-2">
@@ -564,6 +637,6 @@ export default function CompanyJobDetail() {
           </div>
         </div>
       </Modal>
-    </PageContainer>
+    </CompanyPageContainer>
   )
 }

@@ -537,22 +537,97 @@ export const handlers = [
     return HttpResponse.json({ companies })
   }),
 
+  // Admin single company profile
+  http.get(`${API_URL}/admin/companies/:companyId/profile`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const company = mockCompanies.find((c) => c.id === params.companyId)
+    if (!company) {
+      return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
+    }
+
+    return HttpResponse.json(company)
+  }),
+
   // Update company status
   http.patch(`${API_URL}/admin/companies/:companyId`, async ({ params, request }) => {
     await delay(DELAY_MS)
-    const body = (await request.json()) as { status: CompanyStatus; rejectionReason?: string }
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Partial<Company> & {
+      status?: CompanyStatus
+      rejectionReason?: string | null
+    }
     const companyIndex = mockCompanies.findIndex((c) => c.id === params.companyId)
     if (companyIndex === -1) {
       return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
     }
 
     const company = mockCompanies[companyIndex]!
-    company.status = body.status
-    if (body.status === CompanyStatus.APPROVED) {
-      company.approvedAt = new Date().toISOString()
+    if (body.status) {
+      company.status = body.status
+      if (body.status === CompanyStatus.APPROVED) {
+        company.approvedAt = new Date().toISOString()
+        company.rejectionReason = undefined
+      }
     }
-    if (body.rejectionReason) {
-      company.rejectionReason = body.rejectionReason
+
+    if ('rejectionReason' in body) {
+      if (body.rejectionReason) {
+        company.rejectionReason = body.rejectionReason
+      } else {
+        delete company.rejectionReason
+      }
+    }
+
+    return HttpResponse.json(company)
+  }),
+
+  // Update company profile details
+  http.patch(`${API_URL}/admin/companies/:companyId/profile`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Partial<Company>
+    const companyIndex = mockCompanies.findIndex((c) => c.id === params.companyId)
+    if (companyIndex === -1) {
+      return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
+    }
+
+    const company = mockCompanies[companyIndex]!
+
+    if ('description' in body) {
+      company.description = body.description ?? null
+    }
+    if ('website' in body) {
+      company.website = body.website ?? null
+    }
+    if ('industry' in body) {
+      company.industry = body.industry ?? null
+    }
+    if ('size' in body) {
+      company.size = body.size ?? null
+    }
+    if ('foundedYear' in body) {
+      company.foundedYear = body.foundedYear ?? null
+    }
+
+    if ('socialLinks' in body) {
+      const nextLinks = body.socialLinks || {}
+      company.socialLinks = {
+        linkedin: nextLinks.linkedin ?? null,
+        twitter: nextLinks.twitter ?? null,
+      }
     }
 
     return HttpResponse.json(company)
