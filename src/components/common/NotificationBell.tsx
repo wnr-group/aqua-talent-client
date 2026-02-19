@@ -6,7 +6,7 @@ import { useInAppNotifications } from '@/contexts/InAppNotificationContext'
 interface NotificationBellProps {
   /** Path used by the "View all" link inside the dropdown */
   notificationsPath?: string
-  /** Style variant — 'dark' for ocean/glass navbars, 'light' for white header */
+  /** Style variant — 'dark' for teal navbars (student), 'light' for white header (company/admin) */
   variant?: 'dark' | 'light'
 }
 
@@ -17,10 +17,14 @@ export default function NotificationBell({
   const { unreadCount } = useInAppNotifications()
   const [open, setOpen] = useState(false)
 
+  // Button styling for the bell icon
   const buttonClass =
     variant === 'dark'
-      ? 'p-2.5 rounded-xl glass hover:border-glow-cyan/30 text-muted-foreground hover:text-foreground transition-all'
+      ? 'p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all'
       : 'p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors'
+
+  // Map variant to dropdown theme
+  const dropdownTheme = variant === 'dark' ? 'light' : 'light'
 
   return (
     <div className="relative">
@@ -31,7 +35,7 @@ export default function NotificationBell({
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-coral text-white text-[10px] font-bold flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -41,6 +45,7 @@ export default function NotificationBell({
         <NotificationDropdown
           onClose={() => setOpen(false)}
           notificationsPath={notificationsPath}
+          theme={dropdownTheme}
         />
       )}
     </div>
