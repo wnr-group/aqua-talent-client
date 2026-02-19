@@ -98,12 +98,12 @@ export default function PublicJobsPage() {
   }
 
   return (
-    <div className="min-h-screen ocean-bg">
+    <div className="min-h-screen bg-gray-50">
       {/* Navigation - Use StudentNavbar for logged-in students */}
       {isStudent ? (
         <StudentNavbar />
       ) : (
-        <nav className="fixed top-0 left-0 right-0 z-50 glass">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-teal-600 shadow-sm">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link to="/">
@@ -113,19 +113,19 @@ export default function PublicJobsPage() {
               <div className="flex items-center gap-4">
                 <Link
                   to="/jobs"
-                  className="text-foreground font-medium"
+                  className="text-white font-medium"
                 >
                   Browse Jobs
                 </Link>
                 <Link
                   to="/login"
-                  className="px-5 py-2.5 rounded-xl glass hover:border-glow-cyan/30 text-foreground font-medium transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register/student"
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-white text-teal-600 font-semibold hover:bg-gray-100 transition-all"
                 >
                   Get Started
                 </Link>
@@ -139,50 +139,50 @@ export default function PublicJobsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-display font-bold mb-3">
-              Find Your <span className="gradient-text">Perfect Role</span>
+            <h1 className="text-4xl font-display font-bold mb-3 text-gray-900">
+              Find Your <span className="text-teal-600">Perfect Role</span>
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-gray-500 text-lg">
               {total} opportunities waiting for you
             </p>
           </div>
 
           {/* Search & Filters */}
           <form onSubmit={handleSearch} className="mb-8">
-            <div className="glass rounded-2xl p-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
               <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-xl bg-ocean-dark/50 border border-border">
-                  <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200">
+                  <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Job title, keyword, or company..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
 
-                <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-xl bg-ocean-dark/50 border border-border">
-                  <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200">
+                  <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Location..."
                     value={locationInput}
                     onChange={(e) => setLocationInput(e.target.value)}
-                    className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
 
-                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-ocean-dark/50 border border-border">
-                  <Briefcase className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200">
+                  <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   <select
                     value={jobTypeInput}
                     onChange={(e) => setJobTypeInput(e.target.value)}
-                    className="bg-transparent border-none outline-none text-foreground cursor-pointer"
+                    className="bg-transparent border-none outline-none text-gray-900 cursor-pointer"
                   >
-                    <option value="" className="bg-ocean-dark text-foreground">All Types</option>
+                    <option value="" className="bg-white text-gray-900">All Types</option>
                     {JOB_TYPES.map((type) => (
-                      <option key={type} value={type} className="bg-ocean-dark text-foreground">
+                      <option key={type} value={type} className="bg-white text-gray-900">
                         {type}
                       </option>
                     ))}
@@ -191,7 +191,7 @@ export default function PublicJobsPage() {
 
                 <button
                   type="submit"
-                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all"
+                  className="px-8 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all shadow-sm"
                 >
                   Search Jobs
                 </button>
@@ -199,10 +199,10 @@ export default function PublicJobsPage() {
 
               {/* Active filters */}
               {(search || location || jobType) && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border flex-wrap">
-                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 flex-wrap">
+                  <span className="text-sm text-gray-500">Active filters:</span>
                   {search && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-glow-cyan/10 text-glow-cyan text-sm border border-glow-cyan/20">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 text-sm border border-teal-200">
                       {search}
                       <button
                         type="button"
@@ -213,14 +213,14 @@ export default function PublicJobsPage() {
                           params.set('page', '1')
                           setSearchParams(params)
                         }}
-                        className="hover:text-white"
+                        className="hover:text-teal-900"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
                   )}
                   {location && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-glow-teal/10 text-glow-teal text-sm border border-glow-teal/20">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 text-teal-600 text-sm border border-teal-200">
                       {location}
                       <button
                         type="button"
@@ -231,14 +231,14 @@ export default function PublicJobsPage() {
                           params.set('page', '1')
                           setSearchParams(params)
                         }}
-                        className="hover:text-white"
+                        className="hover:text-teal-800"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
                   )}
                   {jobType && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-glow-purple/10 text-glow-purple text-sm border border-glow-purple/20">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-sm border border-purple-200">
                       {jobType}
                       <button
                         type="button"
@@ -249,7 +249,7 @@ export default function PublicJobsPage() {
                           params.set('page', '1')
                           setSearchParams(params)
                         }}
-                        className="hover:text-white"
+                        className="hover:text-purple-900"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -258,7 +258,7 @@ export default function PublicJobsPage() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="text-sm text-muted-foreground hover:text-coral transition-colors ml-2"
+                    className="text-sm text-gray-500 hover:text-red-600 transition-colors ml-2"
                   >
                     Clear all
                   </button>
@@ -279,7 +279,7 @@ export default function PublicJobsPage() {
                   <Link
                     key={job.id}
                     to={`/jobs/${job.id}`}
-                    className={`card-elevated rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 group animate-fade-in-up`}
+                    className={`bg-white rounded-2xl shadow-sm border border-gray-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group animate-fade-in-up`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <div className="flex items-start justify-between mb-4 gap-3">
@@ -288,55 +288,54 @@ export default function PublicJobsPage() {
                           name={job.company?.name || 'Company'}
                           logoUrl={job.company?.logo}
                           size="md"
-                          variant="dark"
                         />
                         <div>
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-sm font-medium text-gray-900">
                             {job.company?.name || 'Company'}
                           </p>
                           {job.company?.industry && (
                             <Badge
                               variant="secondary"
-                              className="mt-1 bg-white/10 text-white border-white/10 text-[11px]"
+                              className="mt-1 text-[11px]"
                             >
                               {job.company.industry}
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-glow-teal/10 text-glow-teal border border-glow-teal/20">
+                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
                         {job.jobType}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-glow-cyan transition-colors line-clamp-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
                       {job.title}
                     </h3>
 
                     {job.company?.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">
                         {job.company.description}
                       </p>
                     )}
 
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-4">
                       {job.description}
                     </p>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground pt-4 border-t border-border">
+                    <div className="flex items-center gap-4 text-sm text-gray-500 pt-4 border-t border-gray-200">
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-4 h-4" />
                         {job.location}
                       </div>
                       {job.salaryRange && (
-                        <div className="text-glow-cyan font-medium">
+                        <div className="text-teal-600 font-medium">
                           {job.salaryRange}
                         </div>
                       )}
                     </div>
 
                     {job.deadline && (
-                      <div className="flex items-center gap-1.5 mt-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-3 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
                         Apply by {new Date(job.deadline).toLocaleDateString()}
                       </div>
@@ -351,9 +350,9 @@ export default function PublicJobsPage() {
                   <button
                     onClick={() => goToPage(page - 1)}
                     disabled={page <= 1}
-                    className="p-2 rounded-xl glass hover:border-glow-cyan/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-teal-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
                   </button>
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -361,14 +360,14 @@ export default function PublicJobsPage() {
                     .map((p, i, arr) => (
                       <div key={p} className="flex items-center gap-2">
                         {i > 0 && arr[i - 1] !== p - 1 && (
-                          <span className="text-muted-foreground px-2">...</span>
+                          <span className="text-gray-400 px-2">...</span>
                         )}
                         <button
                           onClick={() => goToPage(p)}
                           className={`w-10 h-10 rounded-xl font-medium transition-all ${
                             p === page
-                              ? 'bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep'
-                              : 'glass hover:border-glow-cyan/30 text-foreground'
+                              ? 'bg-teal-600 text-white shadow-sm'
+                              : 'bg-white shadow-sm border border-gray-200 hover:border-teal-300 text-gray-900'
                           }`}
                         >
                           {p}
@@ -379,18 +378,18 @@ export default function PublicJobsPage() {
                   <button
                     onClick={() => goToPage(page + 1)}
                     disabled={page >= totalPages}
-                    className="p-2 rounded-xl glass hover:border-glow-cyan/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-teal-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
                   </button>
                 </div>
               )}
             </>
           ) : (
-            <div className="text-center py-20 glass rounded-2xl">
-              <Briefcase className="w-20 h-20 text-muted-foreground mx-auto mb-6" />
-              <h3 className="text-2xl font-display font-semibold mb-3">No jobs found</h3>
-              <p className="text-muted-foreground mb-6">
+            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
+              <Briefcase className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+              <h3 className="text-2xl font-display font-semibold text-gray-900 mb-3">No jobs found</h3>
+              <p className="text-gray-500 mb-6">
                 {search || location
                   ? 'Try adjusting your search filters'
                   : 'Check back soon for new opportunities'}
@@ -398,7 +397,7 @@ export default function PublicJobsPage() {
               {(search || location) && (
                 <button
                   onClick={clearFilters}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold"
+                  className="px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all"
                 >
                   Clear Filters
                 </button>
@@ -412,18 +411,18 @@ export default function PublicJobsPage() {
       {!isAuthenticated && (
         <div className="px-6 pb-12">
           <div className="max-w-7xl mx-auto">
-            <div className="glass rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
-                <h3 className="text-xl font-display font-semibold mb-2">
+                <h3 className="text-xl font-display font-semibold text-gray-900 mb-2">
                   Ready to apply?
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-gray-500">
                   Create your student account to start applying for jobs
                 </p>
               </div>
               <Link
                 to="/register/student"
-                className="px-8 py-4 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all whitespace-nowrap"
+                className="px-8 py-4 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all whitespace-nowrap shadow-sm"
               >
                 Create Account
               </Link>

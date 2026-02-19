@@ -29,41 +29,27 @@ export default function PricingCard({
 
   return (
     <Card
-      className={`relative h-full overflow-hidden rounded-2xl border bg-transparent transition-all duration-300 ${
+      className={`relative h-full overflow-hidden rounded-2xl transition-all duration-300 ${
         isCurrentPlan
-          ? 'border-glow-cyan/60 shadow-[0_25px_60px_rgba(34,211,238,0.25)]'
-          : 'border-border/70 hover:border-glow-cyan/40 hover:shadow-[0_25px_60px_rgba(34,211,238,0.15)]'
+          ? 'border-teal-500 shadow-lg'
+          : 'hover:border-teal-300 hover:shadow-md'
       }`}
       padding="lg"
     >
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-[#0b1f3f] via-[#09152a] to-[#030b18]"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.22),_transparent_60%)]"
-        aria-hidden="true"
-      />
-      <div
-        className={`absolute -right-20 -top-12 h-48 w-48 rounded-full blur-[110px] ${
-          isCurrentPlan ? 'bg-glow-cyan/40' : 'bg-glow-cyan/20'
-        }`}
-        aria-hidden="true"
-      />
-      <CardContent className="relative z-10 flex h-full flex-col">
+      <CardContent className="flex h-full flex-col">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <CardTitle className="text-xl font-display text-foreground">{name}</CardTitle>
+          <CardTitle className="text-xl font-display text-gray-900">{name}</CardTitle>
           <CurrentPlanBadge isCurrent={isCurrentPlan} />
         </div>
 
-        <p className="text-3xl font-display font-bold text-foreground">{price}</p>
-        <CardDescription className="text-muted-foreground">{description}</CardDescription>
+        <p className="text-3xl font-display font-bold text-gray-900">{price}</p>
+        <CardDescription className="text-gray-500">{description}</CardDescription>
 
         <div className="mt-6 flex-1">
           <FeatureList features={features} />
         </div>
 
-        <CardFooter className="mt-6 border-white/10 px-0 pb-0 pt-4">
+        <CardFooter className="mt-6 border-gray-200 px-0 pb-0 pt-4">
           <Button
             variant={isActionable ? 'primary' : 'secondary'}
             size="md"
@@ -80,4 +66,3 @@ export default function PricingCard({
     </Card>
   )
 }
-

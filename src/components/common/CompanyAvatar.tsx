@@ -1,4 +1,5 @@
 import { Building2 } from 'lucide-react'
+import { useMediaUrl } from '@/services/media'
 
 interface CompanyAvatarProps {
   name: string
@@ -44,16 +45,19 @@ export default function CompanyAvatar({
   variant = 'light',
   className = '',
 }: CompanyAvatarProps) {
+  // Fetch presigned URL if logoUrl is an S3 key
+  const resolvedUrl = useMediaUrl(logoUrl)
+
   const fallbackInitial = name?.trim().charAt(0).toUpperCase() || 'C'
   const sizeClass = sizeClasses[size]
   const radiusClass = radiusClasses[size]
   const variantClass = variantClasses[variant]
 
-  if (logoUrl) {
+  if (resolvedUrl) {
     return (
       <div className={`${sizeClass} ${radiusClass} ${variantClass.image} overflow-hidden ${className}`}>
         <img
-          src={logoUrl}
+          src={resolvedUrl}
           alt={`${name} logo`}
           className="h-full w-full object-cover"
           loading="lazy"

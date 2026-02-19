@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Check, Minus, Sparkles } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import Card, { CardContent, CardTitle } from '@/components/common/Card'
 import Alert from '@/components/common/Alert'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PricingCard from '@/features/student/components/PricingCard'
 import Badge from '@/components/common/Badge'
 import { api } from '@/services/api/client'
-import { useAuthContext } from '@/contexts/AuthContext'
-import { openRazorpayCheckout } from '@/services/payment/razorpay'
 
 interface ServicePlan {
   _id: string
@@ -41,31 +38,13 @@ interface DashboardResponse {
   applicationLimit?: number | null
 }
 
-const SECTION_CARD_CLASS =
-  'relative overflow-hidden border border-white/10 bg-gradient-to-br from-[#0b1f3f]/85 via-[#081229]/90 to-[#030b18]/95 shadow-[0_25px_60px_rgba(2,8,20,0.35)] backdrop-blur-xl'
-
-const GlowOverlay = ({ accentClass = 'bg-glow-cyan/20' }: { accentClass?: string }) => (
-  <>
-    <div
-      className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_55%)]"
-      aria-hidden="true"
-    />
-    <div
-      className={`pointer-events-none absolute -right-24 -top-16 h-64 w-64 rounded-full blur-[140px] ${accentClass}`}
-      aria-hidden="true"
-    />
-  </>
-)
-
 export default function SubscriptionPage() {
-  const navigate = useNavigate()
-  const { user } = useAuthContext()
   const [services, setServices] = useState<ServicePlan[]>([])
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null)
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [processingServiceId, setProcessingServiceId] = useState<string | null>(null)
+  const [processingServiceId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -83,7 +62,7 @@ export default function SubscriptionPage() {
       setServices(Array.isArray(servicesData) ? servicesData : servicesData.services || [])
       setSubscription(subscriptionData)
       setDashboard(dashboardData)
-    } catch (error) {
+    } catch {
       setErrorMessage('Unable to load subscription details. Please try again.')
     } finally {
       setLoading(false)
@@ -153,8 +132,8 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen ocean-bg flex items-center justify-center">
-        <p className="text-foreground">Loading subscription...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-900">Loading subscription...</p>
       </div>
     )
   }
@@ -167,17 +146,17 @@ export default function SubscriptionPage() {
     : `${dashboard?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
 
   return (
-    <div className="min-h-screen ocean-bg text-foreground">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
 
       <StudentNavbar showDashboardButton={false} />
 
       <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-28 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-foreground">
+          <h1 className="text-3xl font-display font-bold text-gray-900">
             Subscription
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-gray-500 mt-2">
             Choose a plan that matches your job search pace.
           </p>
         </div>
@@ -190,15 +169,14 @@ export default function SubscriptionPage() {
 
         {/* Current subscription status */}
         {subscription && (
-          <Card className={`mb-6 ${SECTION_CARD_CLASS}`} padding="md">
-            <GlowOverlay accentClass={isFree ? 'bg-glow-cyan/12' : 'bg-glow-teal/25'} />
-            <CardContent className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="mb-6" padding="md">
+            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Current Subscription</p>
+                <p className="text-sm text-gray-500">Current Subscription</p>
                 <div className="mt-1 flex items-center gap-2">
                   <Badge
                     variant={isFree ? 'secondary' : 'primary'}
-                    className={isFree ? 'bg-ocean-surface text-foreground border border-border' : 'bg-glow-cyan/20 text-foreground border border-glow-cyan/30'}
+                    className={isFree ? '' : 'bg-teal-100 text-teal-700 border border-teal-200'}
                   >
                     {isFree ? 'Free Tier' : subscription.currentSubscription?.service?.name || 'Paid Tier'}
                   </Badge>
@@ -206,9 +184,9 @@ export default function SubscriptionPage() {
               </div>
 
               {subscription.currentSubscription?.endDate && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Expires on{' '}
-                  <span className="font-medium text-foreground">
+                  <span className="font-medium text-gray-900">
                     {new Date(subscription.currentSubscription.endDate).toLocaleDateString()}
                   </span>
                 </p>
@@ -219,11 +197,10 @@ export default function SubscriptionPage() {
 
         {/* Usage Display */}
         {dashboard && (
-          <Card className={`mb-6 ${SECTION_CARD_CLASS}`} padding="md">
-            <GlowOverlay accentClass="bg-glow-blue/20" />
-            <div className="relative z-10">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold">{usageText}</span>
+          <Card className="mb-6" padding="md">
+            <div>
+              <p className="text-sm text-gray-500">
+                <span className="font-semibold text-gray-900">{usageText}</span>
               </p>
             </div>
           </Card>
@@ -266,12 +243,11 @@ export default function SubscriptionPage() {
 
         {/* Expiry Display */}
         {subscription?.currentSubscription && (
-          <Card className={`mt-6 ${SECTION_CARD_CLASS}`} padding="md">
-            <GlowOverlay accentClass="bg-glow-cyan/18" />
-            <div className="relative z-10">
-              <p className="text-sm text-muted-foreground">
+          <Card className="mt-6" padding="md">
+            <div>
+              <p className="text-sm text-gray-500">
                 Expires on{' '}
-                <span className="font-medium text-foreground">
+                <span className="font-medium text-gray-900">
                   {new Date(
                     subscription.currentSubscription.endDate
                   ).toLocaleDateString()}
@@ -282,12 +258,11 @@ export default function SubscriptionPage() {
         )}
 
         {/* Feature Comparison Table */}
-        <Card className={`mt-8 ${SECTION_CARD_CLASS}`} padding="lg">
-          <GlowOverlay accentClass="bg-glow-purple/25" />
-          <CardContent className="relative z-10">
+        <Card className="mt-8" padding="lg">
+          <CardContent>
             <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-glow-cyan" />
-              <CardTitle className="text-xl font-display text-foreground">
+              <Sparkles className="h-5 w-5 text-teal-600" />
+              <CardTitle className="text-xl font-display text-gray-900">
                 Feature Comparison
               </CardTitle>
             </div>
@@ -295,30 +270,30 @@ export default function SubscriptionPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-muted-foreground">
+                  <tr className="border-b border-gray-200 text-left text-gray-500">
                     <th className="py-3 pr-4 font-semibold">Feature</th>
                     <th className="px-4 py-3 font-semibold">Free</th>
                     <th className="px-4 py-3 font-semibold">Paid</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="py-3 pr-4 font-medium text-foreground">
+                  <tr className="border-b border-gray-200">
+                    <td className="py-3 pr-4 font-medium text-gray-900">
                       Active applications
                     </td>
-                    <td className="px-4 py-3 text-foreground">2 max</td>
-                    <td className="px-4 py-3 text-foreground">Unlimited</td>
+                    <td className="px-4 py-3 text-gray-900">2 max</td>
+                    <td className="px-4 py-3 text-gray-900">Unlimited</td>
                   </tr>
 
-                  <tr className="border-b border-border">
-                    <td className="py-3 pr-4 font-medium text-foreground">
+                  <tr className="border-b border-gray-200">
+                    <td className="py-3 pr-4 font-medium text-gray-900">
                       Priority support
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-3 text-gray-500">
                       <Minus className="inline w-4 h-4" /> No
                     </td>
-                    <td className="px-4 py-3 text-foreground">
-                      <Check className="inline w-4 h-4" /> Yes
+                    <td className="px-4 py-3 text-gray-900">
+                      <Check className="inline w-4 h-4 text-teal-600" /> Yes
                     </td>
                   </tr>
                 </tbody>
@@ -328,21 +303,20 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* Upgrade benefits */}
-        <Card className={`mt-6 ${SECTION_CARD_CLASS}`} padding="md">
-          <GlowOverlay accentClass="bg-glow-teal/22" />
-          <CardContent className="relative z-10">
-            <p className="text-sm font-medium text-foreground mb-2">Why upgrade?</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+        <Card className="mt-6" padding="md">
+          <CardContent>
+            <p className="text-sm font-medium text-gray-900 mb-2">Why upgrade?</p>
+            <ul className="space-y-2 text-sm text-gray-500">
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-glow-teal" />
+                <Check className="w-4 h-4 text-teal-600" />
                 Apply to more opportunities each month
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-glow-teal" />
+                <Check className="w-4 h-4 text-teal-600" />
                 Access premium features included in paid plans
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-glow-teal" />
+                <Check className="w-4 h-4 text-teal-600" />
                 Keep your job search momentum without limits
               </li>
             </ul>

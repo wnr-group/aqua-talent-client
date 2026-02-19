@@ -384,6 +384,6 @@
 
 /* Selection styling */
 ::selection {
-  background: rgba(0, 212, 170, 0.3);
-  color: var(--foreground);
+  background: #3b82f6;
+  color: #ffffff;
 }

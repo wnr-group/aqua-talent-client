@@ -9,6 +9,7 @@ import Badge from '@/components/common/Badge'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Alert from '@/components/common/Alert'
 import Modal from '@/components/common/Modal'
+import MediaImage from '@/components/common/MediaImage'
 import { useNotification } from '@/contexts/NotificationContext'
 import { Company } from '@/types'
 import { api, ApiClientError } from '@/services/api/client'
@@ -344,7 +345,7 @@ export default function AdminCompanyProfile() {
             <div className="space-y-4 text-gray-900">
               {selectedCompany.logo && (
                 <div className="flex items-center gap-3">
-                  <img
+                  <MediaImage
                     src={selectedCompany.logo}
                     alt={`${selectedCompany.name} logo`}
                     className="h-14 w-14 rounded-lg border border-gray-200 object-cover"
@@ -504,7 +505,7 @@ export default function AdminCompanyProfile() {
             <div className="space-y-4">
               {company.logo && (
                 <div className="flex items-center gap-4">
-                  <img
+                  <MediaImage
                     src={company.logo}
                     alt={`${company.name} logo`}
                     className="h-16 w-16 rounded-lg border border-gray-200 object-cover"

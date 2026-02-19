@@ -32,7 +32,7 @@ export default function Header() {
     <header className="bg-white border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
-          <Logo size="md" />
+          <Logo size="md" variant="light" />
           {user && (
             <span className={`hidden sm:inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${userTypeColors[user.userType]}`}>
               {userTypeLabels[user.userType]}

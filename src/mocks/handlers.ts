@@ -180,6 +180,25 @@ export const handlers = [
     return HttpResponse.json({ success: true })
   }),
 
+  // ============ MEDIA ============
+
+  // Get presigned URL for S3 key
+  http.get(`${API_URL}/media/url`, async ({ request }) => {
+    await delay(100) // Quick response for media URLs
+    const url = new URL(request.url)
+    const key = url.searchParams.get('key')
+
+    if (!key) {
+      return HttpResponse.json({ error: 'Key parameter is required' }, { status: 400 })
+    }
+
+    // In mock mode, return a fake CDN URL based on the key
+    // The key format is typically: type/userId-timestamp.ext
+    const mockUrl = `https://cdn.aquatalent.local/${key}`
+
+    return HttpResponse.json({ url: mockUrl })
+  }),
+
   // ============ COMPANY ============
 
   // Company dashboard stats

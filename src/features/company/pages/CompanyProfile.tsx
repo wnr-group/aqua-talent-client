@@ -14,6 +14,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Badge from "@/components/common/Badge";
 import { useNotification } from "@/contexts/NotificationContext";
 import { api, fetchApi } from "@/services/api/client";
+import { getMediaUrl } from "@/services/media";
 import { Company, CompanyStatus } from "@/types";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Globe, Linkedin, Twitter } from "lucide-react";
@@ -64,6 +65,12 @@ const API_ORIGIN = (() => {
   }
 })();
 
+// Check if a string looks like an S3 key (not a URL)
+const isS3Key = (value: string): boolean => {
+  // S3 keys don't start with http, blob, data, or //
+  return !/^(https?:|blob:|data:|\/\/)/i.test(value);
+};
+
 const resolveLogoUrl = (logo?: string | null): string | null => {
   if (!logo) return null;
 
@@ -86,6 +93,21 @@ const resolveLogoUrl = (logo?: string | null): string | null => {
   }
 
   return `${API_ORIGIN}/${sanitized}`;
+};
+
+// Async version that handles S3 keys
+const resolveLogoUrlAsync = async (logo?: string | null): Promise<string | null> => {
+  if (!logo) return null;
+
+  const sanitized = logo.replace(/\\/g, "/");
+
+  // If it looks like an S3 key, fetch the presigned URL
+  if (isS3Key(sanitized)) {
+    return getMediaUrl(sanitized);
+  }
+
+  // Otherwise use the sync resolver
+  return resolveLogoUrl(logo);
 };
 
 function mapProfileToFormValues(
@@ -160,7 +182,8 @@ setProfile(data);
         mappedValues.name = user.company.name;
       }
       reset(mappedValues);
-      setLogoPreview(resolveLogoUrl(data.logo));
+      const logoUrl = await resolveLogoUrlAsync(data.logo);
+      setLogoPreview(logoUrl);
       setLogoFile(null);
       setLogoError(null);
     } catch (error) {
@@ -217,10 +240,11 @@ setProfile(data);
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!profile) return;
     reset(mapProfileToFormValues(profile));
-    setLogoPreview(resolveLogoUrl(profile.logo));
+    const logoUrl = await resolveLogoUrlAsync(profile.logo);
+    setLogoPreview(logoUrl);
     setLogoFile(null);
     setLogoError(null);
   };

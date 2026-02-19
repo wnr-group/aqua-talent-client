@@ -21,7 +21,7 @@ export default function CompanyHeader() {
     <header className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 text-gray-900">
-          <Logo size="md" />
+          <Logo size="md" variant="light" />
           <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
             Company Portal
           </span>

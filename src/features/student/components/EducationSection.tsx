@@ -9,9 +9,9 @@ interface EducationSectionProps {
 }
 
 const inputClasses = `
-  w-full px-4 py-3 rounded-xl bg-ocean-dark/50 border transition-all text-foreground
-  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-glow-cyan/50 focus:border-glow-cyan
-  border-border hover:border-glow-cyan/30
+  w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
+  border-gray-200 hover:border-teal-300
 `
 
 const EMPTY_EDUCATION = {
@@ -28,25 +28,25 @@ export default function EducationSection({ control, register, errors }: Educatio
   const renderError = (index: number, key: keyof (typeof EMPTY_EDUCATION)) => {
     const fieldErrors = errors.education?.[index]
     const message = fieldErrors?.[key]?.message as string | undefined
-    return message ? <p className="text-sm text-coral">{message}</p> : null
+    return message ? <p className="text-sm text-red-600">{message}</p> : null
   }
 
   return (
-    <section className="glass rounded-2xl p-6">
+    <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-glow-purple/15 border border-glow-purple/30">
-            <GraduationCap className="w-5 h-5 text-glow-purple" />
+          <div className="p-3 rounded-xl bg-purple-100 border border-purple-200">
+            <GraduationCap className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="text-lg font-display font-semibold text-foreground">Education</h3>
-            <p className="text-sm text-muted-foreground">Tell companies where you studied.</p>
+            <h3 className="text-lg font-display font-semibold text-gray-900">Education</h3>
+            <p className="text-sm text-gray-500">Tell companies where you studied.</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => append({ ...EMPTY_EDUCATION })}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-glow-purple/30 text-glow-purple hover:bg-glow-purple/10"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Education
@@ -54,19 +54,19 @@ export default function EducationSection({ control, register, errors }: Educatio
       </div>
 
       {fields.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/70 p-6 text-center text-sm text-muted-foreground bg-ocean-dark/20">
+        <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 bg-gray-50">
           No education added yet. Click "Add Education" to get started.
         </div>
       ) : (
         <div className="space-y-4">
           {fields.map((field, index) => (
-            <div key={field.id} className="rounded-2xl border border-border/60 bg-ocean-dark/40 p-4 space-y-4">
+            <div key={field.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-foreground">Education #{index + 1}</p>
+                <p className="font-medium text-gray-900">Education #{index + 1}</p>
                 <button
                   type="button"
                   onClick={() => remove(index)}
-                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-coral"
+                  className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-red-600 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Remove
@@ -75,7 +75,7 @@ export default function EducationSection({ control, register, errors }: Educatio
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Institution</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Institution</label>
                   <input
                     className={inputClasses}
                     {...register(`education.${index}.institution` as const)}
@@ -84,7 +84,7 @@ export default function EducationSection({ control, register, errors }: Educatio
                   {renderError(index, 'institution')}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Degree</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Degree</label>
                   <input
                     className={inputClasses}
                     {...register(`education.${index}.degree` as const)}
@@ -96,7 +96,7 @@ export default function EducationSection({ control, register, errors }: Educatio
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Field of Study</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Field of Study</label>
                   <input
                     className={inputClasses}
                     {...register(`education.${index}.field` as const)}
@@ -106,7 +106,7 @@ export default function EducationSection({ control, register, errors }: Educatio
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Start Year</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Start Year</label>
                     <input
                       type="number"
                       className={inputClasses}
@@ -118,7 +118,7 @@ export default function EducationSection({ control, register, errors }: Educatio
                     {renderError(index, 'startYear')}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">End Year</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">End Year</label>
                     <input
                       type="number"
                       className={inputClasses}

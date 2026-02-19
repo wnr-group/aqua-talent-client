@@ -16,6 +16,7 @@ import {
   Video,
   MapPin,
   CalendarClock,
+  Gem,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Badge from '@/components/common/Badge'
@@ -23,6 +24,7 @@ import Logo from '@/components/common/Logo'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
 import { api, fetchApi } from '@/services/api/client'
+import { getMediaUrl } from '@/services/media'
 import SkillsSection from '@/features/student/components/SkillsSection'
 import EducationSection from '@/features/student/components/EducationSection'
 import ExperienceSection from '@/features/student/components/ExperienceSection'
@@ -144,9 +146,9 @@ const DEFAULT_FORM_VALUES: StudentProfileFormValues = {
 }
 
 const inputClasses = `
-  w-full px-4 py-3 rounded-xl bg-ocean-dark/50 border transition-all text-foreground
-  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-glow-cyan/50 focus:border-glow-cyan
-  border-border hover:border-glow-cyan/30
+  w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
+  border-gray-200 hover:border-teal-300
 `
 
 const textareaClasses = `${inputClasses} min-h-[140px] resize-none`
@@ -278,8 +280,19 @@ export default function StudentProfile() {
     setIsFetching(true)
     try {
       const data = await api.get<StudentProfileApiResponse>('/student/profile')
-      reset(mapApiToFormValues(data))
-      setResumeUrl(data.resumeUrl ?? null)
+
+      // Resolve S3 keys to presigned URLs
+      const [resolvedResumeUrl, resolvedVideoUrl] = await Promise.all([
+        getMediaUrl(data.resumeUrl),
+        getMediaUrl(data.introVideoUrl),
+      ])
+
+      const formValues = mapApiToFormValues(data)
+      if (resolvedVideoUrl) {
+        formValues.introVideoUrl = resolvedVideoUrl
+      }
+      reset(formValues)
+      setResumeUrl(resolvedResumeUrl)
     } catch (error) {
       if (user?.student) {
         reset({
@@ -317,7 +330,8 @@ export default function StudentProfile() {
         method: 'POST',
         body: formData,
       })
-      setResumeUrl(response?.resumeUrl ?? null)
+      const resolvedUrl = await getMediaUrl(response?.resumeUrl)
+      setResumeUrl(resolvedUrl)
       success('Resume uploaded successfully')
       await fetchCompleteness()
     } catch (error) {
@@ -342,10 +356,13 @@ export default function StudentProfile() {
         body: formData,
       })
       if (response?.introVideoUrl) {
-        setValue('introVideoUrl', response.introVideoUrl, {
-          shouldDirty: true,
-          shouldValidate: true,
-        })
+        const resolvedUrl = await getMediaUrl(response.introVideoUrl)
+        if (resolvedUrl) {
+          setValue('introVideoUrl', resolvedUrl, {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }
       }
       success('Intro video uploaded successfully')
       await fetchCompleteness()
@@ -422,15 +439,15 @@ export default function StudentProfile() {
     const percent = completeness?.percentage ?? 0
 
     if (percent >= 91) {
-      return { label: 'Excellent', colorClass: 'text-glow-teal' }
+      return { label: 'Excellent', colorClass: 'text-green-600' }
     }
     if (percent >= 71) {
-      return { label: 'Good', colorClass: 'text-glow-cyan' }
+      return { label: 'Good', colorClass: 'text-teal-600' }
     }
     if (percent >= 41) {
-      return { label: 'Average', colorClass: 'text-yellow-400' }
+      return { label: 'Average', colorClass: 'text-yellow-600' }
     }
-    return { label: 'Poor', colorClass: 'text-coral' }
+    return { label: 'Poor', colorClass: 'text-red-500' }
   }, [completeness?.percentage])
 
   const memberSince = useMemo(() => {
@@ -444,8 +461,8 @@ export default function StudentProfile() {
   }, [user?.student?.createdAt])
 
   return (
-    <div className="min-h-screen ocean-bg">
-      <nav className="glass sticky top-0 z-40 border-b border-border">
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-teal-600 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3">
@@ -455,29 +472,36 @@ export default function StudentProfile() {
             <div className="flex items-center gap-6">
               <Link
                 to="/jobs"
-                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <Briefcase className="w-4 h-4" />
                 Browse Jobs
               </Link>
               <Link
                 to="/my-applications"
-                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 My Applications
               </Link>
               <Link
                 to="/profile"
-                className="text-foreground flex items-center gap-2"
+                className="text-white flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
                 Profile
               </Link>
+              <Link
+                to="/subscription"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <Gem className="w-4 h-4" />
+                Subscription
+              </Link>
               <NotificationBell notificationsPath="/notifications" variant="dark" />
               <button
                 onClick={handleLogout}
-                className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
@@ -491,20 +515,20 @@ export default function StudentProfile() {
         <div className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-display font-bold text-foreground mb-2">Student Profile</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">Student Profile</h1>
+              <p className="text-gray-500">
                 Showcase your background so companies can match with you faster.
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-gray-900">
                   {user?.student?.fullName || user?.username}
                 </p>
                 <Badge
                   variant={subscriptionTier === 'paid' ? 'primary' : 'secondary'}
                   className={
                     subscriptionTier === 'paid'
-                      ? 'bg-glow-cyan/20 text-foreground border border-glow-cyan/30'
-                      : 'bg-ocean-dark/50 text-muted-foreground border border-border'
+                      ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                      : ''
                   }
                 >
                   {subscriptionTier === 'paid' ? 'Paid Tier' : 'Free Tier'}
@@ -512,15 +536,15 @@ export default function StudentProfile() {
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
                     isProfileComplete
-                      ? 'bg-glow-teal/15 text-glow-teal border-glow-teal/30'
-                      : 'bg-glow-purple/15 text-glow-purple border-glow-purple/30'
+                      ? 'bg-green-100 text-green-700 border-green-200'
+                      : 'bg-purple-100 text-purple-700 border-purple-200'
                   }`}
                 >
                   {profileHealthText}
                 </span>
               </div>
             </div>
-            <div className="max-w-sm text-sm text-muted-foreground">
+            <div className="max-w-sm text-sm text-gray-500">
               Profiles above 80% completeness get highlighted to companies. Keep your story fresh to stand out.
             </div>
           </div>
@@ -537,92 +561,92 @@ export default function StudentProfile() {
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-6"
             >
-              <div className="glass rounded-2xl p-6 space-y-6">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-glow-cyan/10 border border-glow-cyan/30">
-                  <Info className="w-5 h-5 text-glow-cyan flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-teal-50 border border-teal-200">
+                  <Info className="w-5 h-5 text-teal-600 flex-shrink-0" />
+                  <p className="text-sm text-gray-600">
                     Keep your profile up to date. Recruiters see this information before inviting you to interviews.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">Full Name</label>
                     <input className={inputClasses} {...register('fullName')} />
                     {errors.fullName && (
-                      <p className="mt-1.5 text-sm text-coral">{errors.fullName.message}</p>
+                      <p className="mt-1.5 text-sm text-red-600">{errors.fullName.message}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
                     <input type="email" className={inputClasses} {...register('email')} />
                     {errors.email && (
-                      <p className="mt-1.5 text-sm text-coral">{errors.email.message}</p>
+                      <p className="mt-1.5 text-sm text-red-600">{errors.email.message}</p>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-gray-500">
                       Used for notifications and interview invites.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Profile Link</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Profile Link</label>
                   <input
                     className={inputClasses}
                     placeholder="https://linkedin.com/in/yourprofile"
                     {...register('profileLink')}
                   />
                   {errors.profileLink && (
-                    <p className="mt-1.5 text-sm text-coral">{errors.profileLink.message}</p>
+                    <p className="mt-1.5 text-sm text-red-600">{errors.profileLink.message}</p>
                   )}
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-gray-500">
                     Share your LinkedIn, portfolio, or Notion resume.
                   </p>
                 </div>
               </div>
 
-              <div className="glass rounded-2xl p-6 space-y-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
                       <MapPin className="w-4 h-4" /> Location
                     </label>
                     <input className={inputClasses} placeholder="San Francisco, CA" {...register('location')} />
                     {errors.location && (
-                      <p className="mt-1.5 text-sm text-coral">{errors.location.message}</p>
+                      <p className="mt-1.5 text-sm text-red-600">{errors.location.message}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
                       <CalendarClock className="w-4 h-4" /> Available From
                     </label>
                     <input type="date" className={inputClasses} {...register('availableFrom')} />
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-gray-500">
                       Let companies know when you can start.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Bio</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Bio</label>
                   <textarea
                     className={textareaClasses}
                     placeholder="Tell us about your mission, strengths, and what you're looking for."
                     {...register('bio')}
                   />
-                  {errors.bio && <p className="mt-1.5 text-sm text-coral">{errors.bio.message}</p>}
+                  {errors.bio && <p className="mt-1.5 text-sm text-red-600">{errors.bio.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
                     <Video className="w-4 h-4" /> Tell me about yourself video
                   </label>
                   <input type="hidden" {...register('introVideoUrl')} />
-                  <div className="rounded-2xl border border-dashed border-border/70 bg-ocean-dark/30 p-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+                    <p className="text-sm text-gray-500 mb-3">
                       Upload a short intro video (MP4, WebM, MOV up to 30MB).
                     </p>
-                    <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold cursor-pointer">
+                    <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold cursor-pointer hover:bg-teal-700 transition-colors">
                       Upload video
                       <input
                         type="file"
@@ -635,22 +659,22 @@ export default function StudentProfile() {
                       />
                     </label>
                     {isUploadingVideo && (
-                      <p className="mt-2 text-xs text-muted-foreground">Uploading...</p>
+                      <p className="mt-2 text-xs text-gray-500">Uploading...</p>
                     )}
-                    {videoError && <p className="mt-2 text-sm text-coral">{videoError}</p>}
+                    {videoError && <p className="mt-2 text-sm text-red-600">{videoError}</p>}
                     {introVideoUrlValue ? (
                       <div className="mt-4 space-y-2">
                         <video
                           src={introVideoUrlValue}
                           controls
-                          className="w-full rounded-xl border border-border"
+                          className="w-full rounded-xl border border-gray-200"
                         />
-                        <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-gray-500">
                           <a
                             href={introVideoUrlValue}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-glow-cyan underline"
+                            className="text-teal-600 underline"
                           >
                             Open in new tab
                           </a>
@@ -659,20 +683,20 @@ export default function StudentProfile() {
                             onClick={() =>
                               setValue('introVideoUrl', '', { shouldDirty: true, shouldValidate: true })
                             }
-                            className="text-coral hover:underline"
+                            className="text-red-600 hover:underline"
                           >
                             Remove video
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="mt-3 text-xs text-muted-foreground">
+                      <p className="mt-3 text-xs text-gray-500">
                         Share your story in under 60 seconds. Strong intros stand out to recruiters.
                       </p>
                     )}
                   </div>
                   {errors.introVideoUrl && (
-                    <p className="mt-1.5 text-sm text-coral">{errors.introVideoUrl.message}</p>
+                    <p className="mt-1.5 text-sm text-red-600">{errors.introVideoUrl.message}</p>
                   )}
                 </div>
               </div>
@@ -681,28 +705,28 @@ export default function StudentProfile() {
               <EducationSection control={control} register={register} errors={errors} />
               <ExperienceSection control={control} register={register} errors={errors} />
 
-              <div className="glass rounded-2xl p-6 space-y-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
                 <div>
-                  <h3 className="text-lg font-display font-semibold text-foreground">Resume</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-lg font-display font-semibold text-gray-900">Resume</h3>
+                  <p className="text-sm text-gray-500">
                     Upload a PDF resume (max 5MB). We'll share it with companies when you apply.
                   </p>
                 </div>
                 <div
                   className={`rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
                     dragActive
-                      ? 'border-glow-cyan/60 bg-glow-cyan/5'
-                      : 'border-border/70 bg-ocean-dark/30'
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-300 bg-gray-50'
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <UploadCloud className="w-10 h-10 mx-auto text-glow-cyan mb-3" />
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <UploadCloud className="w-10 h-10 mx-auto text-teal-600 mb-3" />
+                  <p className="text-sm text-gray-500 mb-3">
                     Drag and drop your PDF here, or
                   </p>
-                  <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold cursor-pointer">
+                  <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold cursor-pointer hover:bg-teal-700 transition-colors">
                     Browse files
                     <input
                       type="file"
@@ -714,7 +738,7 @@ export default function StudentProfile() {
                       }}
                     />
                   </label>
-                  <p className="mt-3 text-sm text-foreground flex items-center justify-center gap-2">
+                  <p className="mt-3 text-sm text-gray-900 flex items-center justify-center gap-2">
                     <FileDown className="w-4 h-4" /> {resumeLabel}
                   </p>
                   {resumeUrl && (
@@ -722,14 +746,14 @@ export default function StudentProfile() {
                       href={resumeUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-sm text-glow-cyan underline mt-2 inline-flex items-center gap-2"
+                      className="text-sm text-teal-600 underline mt-2 inline-flex items-center gap-2"
                     >
                       Download current resume
                     </a>
                   )}
-                  {resumeError && <p className="mt-2 text-sm text-coral">{resumeError}</p>}
+                  {resumeError && <p className="mt-2 text-sm text-red-600">{resumeError}</p>}
                   {isUploadingResume && (
-                    <p className="mt-2 text-xs text-muted-foreground">Uploading...</p>
+                    <p className="mt-2 text-xs text-gray-500">Uploading...</p>
                   )}
                 </div>
               </div>
@@ -738,10 +762,10 @@ export default function StudentProfile() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition disabled:opacity-50"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition disabled:opacity-50 shadow-sm"
                 >
                   {isSaving ? (
-                    <div className="w-5 h-5 border-2 border-ocean-deep/30 border-t-ocean-deep rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <Save className="w-5 h-5" />
                   )}
@@ -751,7 +775,7 @@ export default function StudentProfile() {
                   <button
                     type="button"
                     onClick={() => reset()}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-glow-cyan/30"
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300"
                   >
                     <X className="w-5 h-5" />
                     Cancel
@@ -773,7 +797,7 @@ export default function StudentProfile() {
                     <button
                       type="button"
                       onClick={scrollToForm}
-                      className="w-full px-4 py-2 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold"
+                      className="w-full px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors"
                     >
                       Complete Profile
                     </button>
@@ -781,34 +805,34 @@ export default function StudentProfile() {
                 }
               />
 
-              <div className="glass rounded-2xl p-6">
-                <h2 className="text-xl font-display font-semibold text-foreground mb-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-display font-semibold text-gray-900 mb-4">
                   Account Details
                 </h2>
                 <div className="space-y-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Username</p>
-                    <p className="font-medium text-foreground">{user?.username}</p>
+                    <p className="text-gray-500">Username</p>
+                    <p className="font-medium text-gray-900">{user?.username}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Member since</p>
-                    <p className="font-medium text-foreground">{memberSince}</p>
+                    <p className="text-gray-500">Member since</p>
+                    <p className="font-medium text-gray-900">{memberSince}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Status</p>
+                    <p className="text-gray-500">Status</p>
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
                         user?.student?.isHired
-                          ? 'bg-glow-teal/15 text-glow-teal border-glow-teal/30'
-                          : 'bg-glow-purple/15 text-glow-purple border-glow-purple/30'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-purple-100 text-purple-700 border-purple-200'
                       }`}
                     >
                       {user?.student?.isHired ? 'Hired' : 'Actively searching'}
                     </span>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Subscription</p>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-glow-purple/20 text-glow-purple border border-glow-purple/30">
+                    <p className="text-gray-500">Subscription</p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200">
                       {subscriptionTier === 'paid' ? 'Paid tier' : 'Free tier (2 apps)'}
                     </span>
                   </div>

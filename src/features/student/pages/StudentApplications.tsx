@@ -15,40 +15,41 @@ import {
   XCircle,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Gem
 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
 import NotificationBell from '@/components/common/NotificationBell'
 
 const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border: string; icon: typeof Clock }> = {
   [ApplicationStatus.PENDING]: {
-    bg: 'bg-sand/10',
-    text: 'text-sand',
-    border: 'border-sand/30',
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    border: 'border-yellow-200',
     icon: Clock
   },
   [ApplicationStatus.REVIEWED]: {
-    bg: 'bg-glow-blue/10',
-    text: 'text-glow-blue',
-    border: 'border-glow-blue/30',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
     icon: AlertCircle
   },
   [ApplicationStatus.HIRED]: {
-    bg: 'bg-glow-teal/10',
-    text: 'text-glow-teal',
-    border: 'border-glow-teal/30',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    border: 'border-green-200',
     icon: CheckCircle
   },
   [ApplicationStatus.REJECTED]: {
-    bg: 'bg-coral/10',
-    text: 'text-coral',
-    border: 'border-coral/30',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    border: 'border-red-200',
     icon: XCircle
   },
   [ApplicationStatus.WITHDRAWN]: {
-    bg: 'bg-muted/10',
-    text: 'text-muted-foreground',
-    border: 'border-border',
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-200',
     icon: XCircle
   },
 }
@@ -128,9 +129,9 @@ export default function StudentApplications() {
     status !== ApplicationStatus.REJECTED
 
   return (
-    <div className="min-h-screen ocean-bg">
+    <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="glass sticky top-0 z-40 border-b border-border">
+      <nav className="bg-teal-600 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3">
@@ -140,29 +141,36 @@ export default function StudentApplications() {
             <div className="flex items-center gap-6">
               <Link
                 to="/jobs"
-                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <Briefcase className="w-4 h-4" />
                 Browse Jobs
               </Link>
               <Link
                 to="/my-applications"
-                className="text-foreground flex items-center gap-2"
+                className="text-white flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 My Applications
               </Link>
               <Link
                 to="/profile"
-                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
                 Profile
               </Link>
+              <Link
+                to="/subscription"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <Gem className="w-4 h-4" />
+                Subscription
+              </Link>
               <NotificationBell notificationsPath="/notifications" variant="dark" />
               <button
                 onClick={handleLogout}
-                className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"
+                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
@@ -175,8 +183,8 @@ export default function StudentApplications() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2">My Applications</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">My Applications</h1>
+          <p className="text-gray-500">
             Active applications: {activeApplications.length} / 2
           </p>
         </div>
@@ -186,14 +194,14 @@ export default function StudentApplications() {
             <LoadingSpinner size="lg" />
           </div>
         ) : applications.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-glow-cyan/20 to-glow-teal/20 flex items-center justify-center border border-glow-cyan/30">
-              <FileText className="w-8 h-8 text-glow-cyan" />
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-teal-50 flex items-center justify-center border border-teal-200">
+              <FileText className="w-8 h-8 text-teal-600" />
             </div>
-            <p className="text-muted-foreground mb-6">You haven't applied to any jobs yet.</p>
+            <p className="text-gray-500 mb-6">You haven't applied to any jobs yet.</p>
             <Link
               to="/jobs"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all shadow-sm"
             >
               <Briefcase className="w-5 h-5" />
               Browse Jobs
@@ -206,20 +214,20 @@ export default function StudentApplications() {
               const StatusIcon = config.icon
 
               return (
-                <div key={app.id} className="glass rounded-2xl p-6">
+                <div key={app.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <Link
                         to={`/jobs/${app.jobPostingId}`}
-                        className="text-lg font-display font-semibold text-foreground hover:text-glow-cyan transition-colors flex items-center gap-2"
+                        className="text-lg font-display font-semibold text-gray-900 hover:text-teal-600 transition-colors flex items-center gap-2"
                       >
                         {app.jobPosting?.title ?? 'Unknown Job'}
                         <ExternalLink className="w-4 h-4" />
                       </Link>
-                      <p className="text-glow-cyan mt-1">
+                      <p className="text-teal-600 mt-1">
                         {app.jobPosting?.company?.name ?? 'Unknown Company'}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <p className="text-sm text-gray-500 mt-2">
                         Applied {format(new Date(app.createdAt), 'MMM d, yyyy')}
                       </p>
                     </div>
@@ -233,7 +241,7 @@ export default function StudentApplications() {
                       {canWithdraw(app.status) && (
                         <button
                           onClick={() => handleWithdraw(app.id)}
-                          className="px-4 py-2 rounded-xl border border-coral/30 text-coral hover:bg-coral/10 transition-colors text-sm font-medium"
+                          className="px-4 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
                         >
                           Withdraw
                         </button>
@@ -242,8 +250,8 @@ export default function StudentApplications() {
                   </div>
 
                   {app.status === ApplicationStatus.HIRED && (
-                    <div className="mt-4 p-4 rounded-xl bg-glow-teal/10 border border-glow-teal/30">
-                      <p className="text-glow-teal text-sm font-medium flex items-center gap-2">
+                    <div className="mt-4 p-4 rounded-xl bg-green-50 border border-green-200">
+                      <p className="text-green-700 text-sm font-medium flex items-center gap-2">
                         <CheckCircle className="w-5 h-5" />
                         Congratulations! You've been hired for this position.
                       </p>
@@ -251,8 +259,8 @@ export default function StudentApplications() {
                   )}
 
                   {app.status === ApplicationStatus.REJECTED && (
-                    <div className="mt-4 p-4 rounded-xl bg-muted/10 border border-border">
-                      <p className="text-muted-foreground text-sm">
+                    <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <p className="text-gray-500 text-sm">
                         This application was not successful. Keep searching!
                       </p>
                     </div>

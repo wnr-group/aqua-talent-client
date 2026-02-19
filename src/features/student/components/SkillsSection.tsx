@@ -10,9 +10,9 @@ interface SkillsSectionProps {
 }
 
 const inputClasses = `
-  w-full px-4 py-3 rounded-xl bg-ocean-dark/50 border transition-all text-foreground
-  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-glow-cyan/50 focus:border-glow-cyan
-  border-border hover:border-glow-cyan/30
+  w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
+  border-gray-200 hover:border-teal-300
 `
 
 export default function SkillsSection({ control, maxSkills = 25, error }: SkillsSectionProps) {
@@ -47,14 +47,14 @@ export default function SkillsSection({ control, maxSkills = 25, error }: Skills
   }
 
   return (
-    <section className="glass rounded-2xl p-6">
+    <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 rounded-xl bg-glow-cyan/10 border border-glow-cyan/30">
-          <Tag className="w-5 h-5 text-glow-cyan" />
+        <div className="p-3 rounded-xl bg-teal-100 border border-teal-200">
+          <Tag className="w-5 h-5 text-teal-600" />
         </div>
         <div>
-          <h3 className="text-lg font-display font-semibold text-foreground">Skills & Tools</h3>
-          <p className="text-sm text-muted-foreground">Add keywords recruiters look for. Press Enter to add.</p>
+          <h3 className="text-lg font-display font-semibold text-gray-900">Skills & Tools</h3>
+          <p className="text-sm text-gray-500">Add keywords recruiters look for. Press Enter to add.</p>
         </div>
       </div>
 
@@ -70,12 +70,12 @@ export default function SkillsSection({ control, maxSkills = 25, error }: Skills
           <button
             type="button"
             onClick={handleAddSkill}
-            className="px-4 py-3 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold hover:opacity-90 transition"
+            className="px-4 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors"
           >
             Add
           </button>
         </div>
-        {error && <p className="text-sm text-coral">{error}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -83,16 +83,16 @@ export default function SkillsSection({ control, maxSkills = 25, error }: Skills
           field.value.map((skill, index) => (
             <span
               key={`${skill}-${index}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-ocean-dark/60 text-foreground border border-border/70"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-gray-100 text-gray-900 border border-gray-200"
             >
               {skill}
-              <button type="button" onClick={() => handleRemoveSkill(index)} className="hover:text-coral">
+              <button type="button" onClick={() => handleRemoveSkill(index)} className="hover:text-red-600 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </span>
           ))
         ) : (
-          <p className="text-sm text-muted-foreground">No skills added yet.</p>
+          <p className="text-sm text-gray-500">No skills added yet.</p>
         )}
       </div>
     </section>
