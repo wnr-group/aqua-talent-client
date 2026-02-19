@@ -12,6 +12,7 @@ import {
 import { UserType, CompanyStatus, JobStatus, ApplicationStatus } from '@/types/enums'
 import { Company, Student, JobPosting, Application } from '@/types/entities'
 import type { ProfileCompletenessData } from '@/features/student/types'
+import { mockNotifications } from './data'
 
 const API_URL = 'http://localhost:3001/api'
 
@@ -137,6 +138,20 @@ export const handlers = [
     }
 
     mockCompanies.push(newCompany)
+
+    // ── Notify admin: new company registration ─────────────────────────────
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-admin-reg`,
+      recipientId: 'admin-1',
+      recipientType: 'admin',
+      type: 'company_status',
+      title: 'New company registration',
+      message: `${newCompany.name} has registered and is pending approval.`,
+      link: '/companies',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    })
+
     return HttpResponse.json({ success: true, message: 'Registration submitted' })
   }),
 
@@ -227,6 +242,20 @@ export const handlers = [
     }
 
     mockJobs.push(newJob)
+
+    // ── Notify admin: new job pending review ───────────────────────────────
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-admin-job`,
+      recipientId: 'admin-1',
+      recipientType: 'admin',
+      type: 'new_application',
+      title: 'New job posting pending review',
+      message: `${company.name} submitted a new job posting: ${newJob.title}.`,
+      link: '/jobs',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    })
+
     return HttpResponse.json(newJob)
   }),
 
@@ -297,6 +326,21 @@ export const handlers = [
       if (studentIndex !== -1) {
         mockStudents[studentIndex]!.isHired = true
       }
+
+      // ── Notify student: hired ──────────────────────────────────────────
+      const jobTitle = app.jobPosting?.title ?? 'a position'
+      const companyName = app.jobPosting?.company?.name ?? 'a company'
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-hired`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Congratulations — you have been hired!',
+        message: `${companyName} has selected you for the ${jobTitle} role. Check your applications for next steps.`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
     }
 
     return HttpResponse.json(app)
@@ -487,6 +531,36 @@ export const handlers = [
     }
 
     mockApplications.push(newApp)
+
+    // ── Generate notifications ─────────────────────────────────────────────
+    const now = new Date().toISOString()
+
+    // Notify admin: new application pending review
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-admin`,
+      recipientId: 'admin-1',
+      recipientType: 'admin',
+      type: 'new_application',
+      title: 'New application pending review',
+      message: `${student.fullName} applied for ${job.title}. Review and approve to make it visible to the company.`,
+      link: '/applications',
+      isRead: false,
+      createdAt: now,
+    })
+
+    // Notify student: application submitted confirmation
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-student`,
+      recipientId: user.id,
+      recipientType: 'student',
+      type: 'application_status',
+      title: 'Application submitted',
+      message: `Your application for ${job.title} has been submitted successfully and is pending review.`,
+      link: '/my-applications',
+      isRead: false,
+      createdAt: now,
+    })
+
     return HttpResponse.json(newApp)
   }),
 
@@ -595,6 +669,68 @@ export const handlers = [
     return HttpResponse.json({ introVideoUrl })
   }),
 
+  // ============ NOTIFICATIONS ============
+
+  http.get(`${API_URL}/notifications`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const page = parseInt(url.searchParams.get('page') || '1')
+    const limit = parseInt(url.searchParams.get('limit') || '10')
+
+    const recipientId = user.userType === UserType.ADMIN ? 'admin-1' : user.id
+    const userNotifs = mockNotifications
+      .filter((n) => n.recipientId === recipientId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    const total = userNotifs.length
+    const start = (page - 1) * limit
+    const notifications = userNotifs.slice(start, start + limit)
+
+    return HttpResponse.json({ notifications, total, page, limit })
+  }),
+
+  http.get(`${API_URL}/notifications/unread-count`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user) {
+      return HttpResponse.json({ count: 0 })
+    }
+
+    const recipientId = user.userType === UserType.ADMIN ? 'admin-1' : user.id
+    const count = mockNotifications.filter((n) => n.recipientId === recipientId && !n.isRead).length
+    return HttpResponse.json({ count })
+  }),
+
+  http.patch(`${API_URL}/notifications/:notifId/read`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const notif = mockNotifications.find((n) => n.id === params.notifId)
+    if (notif) {
+      notif.isRead = true
+    }
+    return HttpResponse.json({ success: true })
+  }),
+
+  http.patch(`${API_URL}/notifications/read-all`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const recipientId = user.userType === UserType.ADMIN ? 'admin-1' : user.id
+    mockNotifications
+      .filter((n) => n.recipientId === recipientId)
+      .forEach((n) => {
+        n.isRead = true
+      })
+    return HttpResponse.json({ success: true })
+  }),
+
   // ============ ADMIN ============
 
   // Admin dashboard
@@ -681,6 +817,33 @@ export const handlers = [
       }
     }
 
+    // ── Notify company: status change ──────────────────────────────────────
+    if (body.status === CompanyStatus.APPROVED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-company-approved`,
+        recipientId: company.id,
+        recipientType: 'company',
+        type: 'company_status',
+        title: 'Company profile approved',
+        message: 'Your company profile has been approved. You can now post jobs.',
+        link: '/jobs',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    } else if (body.status === CompanyStatus.REJECTED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-company-rejected`,
+        recipientId: company.id,
+        recipientType: 'company',
+        type: 'company_status',
+        title: 'Company profile not approved',
+        message: `Your company profile was not approved.${body.rejectionReason ? ' Reason: ' + body.rejectionReason : ''}`,
+        link: '/profile',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
     return HttpResponse.json(company)
   }),
 
@@ -759,6 +922,34 @@ export const handlers = [
       job.rejectionReason = body.rejectionReason
     }
 
+    // ── Notify company: job status change ──────────────────────────────────
+    const companyId = job.companyId
+    if (body.status === JobStatus.APPROVED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-job-approved`,
+        recipientId: companyId,
+        recipientType: 'company',
+        type: 'company_status',
+        title: 'Job posting approved',
+        message: `Your job posting "${job.title}" has been approved and is now visible to students.`,
+        link: '/jobs',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    } else if (body.status === JobStatus.REJECTED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-job-rejected`,
+        recipientId: companyId,
+        recipientType: 'company',
+        type: 'company_status',
+        title: 'Job posting not approved',
+        message: `Your job posting "${job.title}" was not approved.${body.rejectionReason ? ' Reason: ' + body.rejectionReason : ''}`,
+        link: '/jobs',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
     return HttpResponse.json(job)
   }),
 
@@ -796,6 +987,54 @@ export const handlers = [
 
     if (body.rejectionReason) {
       app.rejectionReason = body.rejectionReason
+    }
+
+    // ── Generate notifications ─────────────────────────────────────────────
+    const now = new Date().toISOString()
+    const jobTitle = app.jobPosting?.title ?? 'a job'
+
+    if (body.status === ApplicationStatus.REVIEWED) {
+      // Notify company: new application available for review
+      const companyId = app.jobPosting?.companyId
+      if (companyId) {
+        mockNotifications.unshift({
+          id: `notif-${Date.now()}-company`,
+          recipientId: companyId,
+          recipientType: 'company',
+          type: 'new_application',
+          title: 'New application received',
+          message: `${app.student?.fullName ?? 'A student'} applied for ${jobTitle}. Review their profile now.`,
+          link: '/applications',
+          isRead: false,
+          createdAt: now,
+        })
+      }
+
+      // Notify student: application approved by admin
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-student`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Application reviewed',
+        message: `Your application for ${jobTitle} has been reviewed and approved.`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: now,
+      })
+    } else if (body.status === ApplicationStatus.REJECTED) {
+      // Notify student: application rejected
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-student-rej`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Application not approved',
+        message: `Your application for ${jobTitle} was not approved.${body.rejectionReason ? ' Reason: ' + body.rejectionReason : ''}`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: now,
+      })
     }
 
     return HttpResponse.json(app)

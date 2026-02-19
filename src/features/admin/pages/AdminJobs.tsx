@@ -177,7 +177,7 @@ export default function AdminJobs() {
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Job Types</option>
             {JOB_TYPES.map((type) => (
@@ -338,7 +338,7 @@ export default function AdminJobs() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
-            className="w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white"
+            className="block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter rejection reason (optional)..."
           />
           <div className="flex justify-end gap-3">

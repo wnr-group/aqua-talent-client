@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuthContext } from '@/contexts/AuthContext'
 import Logo from '@/components/common/Logo'
+import NotificationBell from '@/components/common/NotificationBell'
 import {
   Briefcase,
   FileText,
@@ -81,6 +82,8 @@ export default function StudentNavbar({ showDashboardButton = true }: StudentNav
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}
+
+            <NotificationBell notificationsPath="/notifications" variant="dark" />
 
             <button
               onClick={logout}

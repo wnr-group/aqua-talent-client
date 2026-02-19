@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+import { InAppNotificationProvider } from '@/contexts/InAppNotificationContext'
 import NotificationToast from '@/components/common/NotificationToast'
 import ProtectedRoute from '@/components/common/ProtectedRoute'
 import { UserType } from '@/types'
@@ -37,6 +38,11 @@ import AdminCompanies from '@/features/admin/pages/AdminCompanies'
 import AdminJobs from '@/features/admin/pages/AdminJobs'
 import AdminApplications from '@/features/admin/pages/AdminApplications'
 import AdminCompanyProfile from '@/features/admin/pages/AdminCompanyProfile'
+
+// Portal-specific notification pages
+import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
+import CompanyNotificationsPage from '@/features/notifications/pages/CompanyNotificationsPage'
+import AdminNotificationsPage from '@/features/notifications/pages/AdminNotificationsPage'
 
 // Get portal type based on subdomain
 const portalType = getPortalType()
@@ -92,6 +98,14 @@ function PublicRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
             <PaymentSuccessPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <NotificationsPage />
           </ProtectedRoute>
         }
       />
@@ -155,6 +169,14 @@ function CompanyPortalRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyNotificationsPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -214,6 +236,14 @@ function AdminPortalRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminNotificationsPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -237,10 +267,12 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <div className="min-h-screen bg-background">
-            <AppRoutes />
-            <NotificationToast />
-          </div>
+          <InAppNotificationProvider>
+            <div className="min-h-screen bg-background">
+              <AppRoutes />
+              <NotificationToast />
+            </div>
+          </InAppNotificationProvider>
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>

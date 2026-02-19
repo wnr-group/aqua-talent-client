@@ -2,6 +2,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { UserType } from '@/types'
 import Button from '@/components/common/Button'
 import Logo from '@/components/common/Logo'
+import NotificationBell from '@/components/common/NotificationBell'
 import { LogOut, User } from 'lucide-react'
 
 const userTypeLabels: Record<UserType, string> = {
@@ -11,9 +12,9 @@ const userTypeLabels: Record<UserType, string> = {
 }
 
 const userTypeColors: Record<UserType, string> = {
-  [UserType.COMPANY]: 'bg-purple-100 text-purple-700',
+  [UserType.COMPANY]: 'bg-blue-50 text-blue-700 border border-blue-100',
   [UserType.STUDENT]: 'bg-blue-100 text-blue-700',
-  [UserType.ADMIN]: 'bg-orange-100 text-orange-700',
+  [UserType.ADMIN]: 'bg-blue-50 text-blue-700 border border-blue-100',
 }
 
 export default function Header() {
@@ -33,7 +34,7 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Logo size="md" />
           {user && (
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${userTypeColors[user.userType]}`}>
+            <span className={`hidden sm:inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${userTypeColors[user.userType]}`}>
               {userTypeLabels[user.userType]}
             </span>
           )}
@@ -47,6 +48,7 @@ export default function Header() {
               </div>
               <span className="font-medium text-gray-900">{user.username}</span>
             </div>
+            <NotificationBell notificationsPath="/notifications" variant="light" />
             <Button
               variant="ghost"
               size="sm"

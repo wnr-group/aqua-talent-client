@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
+import NotificationBell from '@/components/common/NotificationBell'
 
 const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border: string; icon: typeof Clock }> = {
   [ApplicationStatus.PENDING]: {
@@ -158,6 +159,7 @@ export default function StudentApplications() {
                 <User className="w-4 h-4" />
                 Profile
               </Link>
+              <NotificationBell notificationsPath="/notifications" variant="dark" />
               <button
                 onClick={handleLogout}
                 className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"

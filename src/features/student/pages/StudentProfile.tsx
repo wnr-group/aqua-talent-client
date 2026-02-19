@@ -27,6 +27,7 @@ import SkillsSection from '@/features/student/components/SkillsSection'
 import EducationSection from '@/features/student/components/EducationSection'
 import ExperienceSection from '@/features/student/components/ExperienceSection'
 import ProfileCompleteness from '@/features/student/components/ProfileCompleteness'
+import NotificationBell from '@/components/common/NotificationBell'
 import type {
   StudentProfileFormValues,
   ProfileCompletenessData,
@@ -473,6 +474,7 @@ export default function StudentProfile() {
                 <User className="w-4 h-4" />
                 Profile
               </Link>
+              <NotificationBell notificationsPath="/notifications" variant="dark" />
               <button
                 onClick={handleLogout}
                 className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"

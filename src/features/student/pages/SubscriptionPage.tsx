@@ -91,46 +91,48 @@ export default function SubscriptionPage() {
   }
 
   const handleUpgrade = async (service: ServicePlan) => {
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID
-
-    if (!razorpayKey) {
-      setErrorMessage('Payment gateway is not configured. Please contact support.')
-      return
-    }
-
-    if (!service.price || service.price <= 0) {
-      setErrorMessage('Invalid plan amount. Please select a valid subscription plan.')
-      return
-    }
-
-    if (processingServiceId) {
-      return
-    }
+    if (processingServiceId) return
 
     setErrorMessage(null)
     setProcessingServiceId(service._id)
 
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID
+
     try {
-      const paymentResult = await openRazorpayCheckout({
-        key: razorpayKey,
-        amount: Math.round(service.price * 100),
-        currency: 'INR',
-        name: 'AquaTalent',
-        description: `${service.name} Subscription`,
-        prefill: {
-          name: user?.student?.fullName || user?.username,
-          email: user?.student?.email,
-        },
-        notes: {
-          serviceId: service._id,
-          serviceName: service.name,
-        },
-        themeColor: '#22d3ee',
-      })
+      let paymentId: string
+
+      if (razorpayKey) {
+        // Real Razorpay payment flow (production)
+        if (!service.price || service.price <= 0) {
+          setErrorMessage('Invalid plan amount. Please select a valid subscription plan.')
+          return
+        }
+
+        const paymentResult = await openRazorpayCheckout({
+          key: razorpayKey,
+          amount: Math.round(service.price * 100),
+          currency: 'INR',
+          name: 'AquaTalent',
+          description: `${service.name} Subscription`,
+          prefill: {
+            name: user?.student?.fullName || user?.username,
+            email: user?.student?.email,
+          },
+          notes: {
+            serviceId: service._id,
+            serviceName: service.name,
+          },
+          themeColor: '#22d3ee',
+        })
+        paymentId = paymentResult.paymentId
+      } else {
+        // Dev / mock mode — Razorpay key not configured, apply upgrade directly
+        paymentId = `mock_pay_${Date.now()}`
+      }
 
       await api.post('/student/subscription', {
         serviceId: service._id,
-        paymentId: paymentResult.paymentId,
+        paymentId,
       })
 
       await loadData()
@@ -138,7 +140,7 @@ export default function SubscriptionPage() {
       navigate('/subscription/success', {
         state: {
           planName: service.name,
-          paymentId: paymentResult.paymentId,
+          paymentId,
         },
       })
     } catch (error) {

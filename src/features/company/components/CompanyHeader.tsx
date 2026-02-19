@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { LogOut, Building2 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
 import { useAuthContext } from '@/contexts/AuthContext'
+import NotificationBell from '@/components/common/NotificationBell'
 
 export default function CompanyHeader() {
   const { user, logout, isAuthenticated } = useAuthContext()
@@ -37,6 +38,8 @@ export default function CompanyHeader() {
                 <p className="text-xs text-gray-500">{user.username}</p>
               </div>
             </div>
+
+            <NotificationBell notificationsPath="/notifications" variant="light" />
 
             <button
               onClick={handleLogout}

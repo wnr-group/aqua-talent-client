@@ -18,6 +18,7 @@ import {
   Gem
 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
+import NotificationBell from '@/components/common/NotificationBell'
 
 interface DashboardStats {
   applicationsUsed: number
@@ -124,6 +125,7 @@ export default function StudentDashboard() {
                 <Gem className="w-4 h-4" />
                 Subscription
               </Link>
+              <NotificationBell notificationsPath="/notifications" variant="dark" />
               <button
                 onClick={handleLogout}
                 className="text-muted-foreground hover:text-coral transition-colors flex items-center gap-2"

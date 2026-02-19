@@ -582,7 +582,7 @@ export default function AdminCompanyProfile() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   rows={5}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Share the company mission, culture, and highlights"
                   {...register('description')}
                 />
@@ -599,7 +599,7 @@ export default function AdminCompanyProfile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
                   <select
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     {...register('industry')}
                   >
                     <option value="">Select industry</option>
@@ -613,7 +613,7 @@ export default function AdminCompanyProfile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company Size</label>
                   <select
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     {...register('size')}
                   >
                     <option value="">Select size</option>

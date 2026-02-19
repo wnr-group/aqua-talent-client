@@ -206,6 +206,158 @@ type StudentSubscription = {
   endDate?: string
 }
 
+export interface AppNotification {
+  id: string
+  recipientId: string
+  recipientType: 'student' | 'company' | 'admin'
+  type: 'application_status' | 'company_status' | 'new_application' | 'system'
+  title: string
+  message: string
+  link?: string | null
+  isRead: boolean
+  createdAt: string
+}
+
+export const mockNotifications: AppNotification[] = [
+  // ── Student notifications ──────────────────────────────────────────────
+  {
+    id: 'notif-1',
+    recipientId: 'student-1',
+    recipientType: 'student',
+    type: 'application_status',
+    title: 'Application reviewed',
+    message: 'Your application for Software Engineer Intern at Acme Corporation has been reviewed and approved.',
+    link: '/my-applications',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: 'notif-2',
+    recipientId: 'student-1',
+    recipientType: 'student',
+    type: 'system',
+    title: 'Complete your profile',
+    message: 'Your profile is less than 70% complete. Add skills and experience to stand out.',
+    link: '/profile',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: 'notif-3',
+    recipientId: 'student-1',
+    recipientType: 'student',
+    type: 'application_status',
+    title: 'Application submitted',
+    message: 'Your application for Product Design Intern has been submitted successfully.',
+    link: '/my-applications',
+    isRead: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+  {
+    id: 'notif-7',
+    recipientId: 'student-1',
+    recipientType: 'student',
+    type: 'application_status',
+    title: 'Congratulations — you have been hired!',
+    message: 'Acme Corporation has selected you for the Software Engineer Intern role. Check your applications for next steps.',
+    link: '/my-applications',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+  },
+  {
+    id: 'notif-8',
+    recipientId: 'student-1',
+    recipientType: 'student',
+    type: 'system',
+    title: 'New jobs matching your skills',
+    message: 'Browse 5 new job postings that match your skills and preferences.',
+    link: '/jobs',
+    isRead: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+  },
+
+  // ── Company notifications ───────────────────────────────────────────────
+  {
+    id: 'notif-4',
+    recipientId: 'company-1',
+    recipientType: 'company',
+    type: 'new_application',
+    title: 'New application received',
+    message: 'John Doe applied for the Software Engineer Intern position.',
+    link: '/applications',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+  },
+  {
+    id: 'notif-5',
+    recipientId: 'company-1',
+    recipientType: 'company',
+    type: 'company_status',
+    title: 'Company profile approved',
+    message: 'Your company profile has been approved. You can now post jobs.',
+    link: '/jobs',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 'notif-9',
+    recipientId: 'company-1',
+    recipientType: 'company',
+    type: 'new_application',
+    title: 'Multiple new applications',
+    message: '3 candidates have applied to your active jobs in the last 24 hours.',
+    link: '/applications',
+    isRead: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+  },
+
+  // ── Admin notifications ─────────────────────────────────────────────────
+  {
+    id: 'notif-6',
+    recipientId: 'admin-1',
+    recipientType: 'admin',
+    type: 'company_status',
+    title: 'New company registration',
+    message: 'TechStart Inc has registered and is pending approval.',
+    link: '/companies',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+  },
+  {
+    id: 'notif-10',
+    recipientId: 'admin-1',
+    recipientType: 'admin',
+    type: 'new_application',
+    title: 'New application pending review',
+    message: 'A student has applied to Software Engineer Intern. Review and approve to make it visible to the company.',
+    link: '/applications',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+  },
+  {
+    id: 'notif-11',
+    recipientId: 'admin-1',
+    recipientType: 'admin',
+    type: 'company_status',
+    title: 'Job posting pending review',
+    message: 'Acme Corporation submitted a new job posting for your review.',
+    link: '/jobs',
+    isRead: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+  },
+  {
+    id: 'notif-12',
+    recipientId: 'admin-1',
+    recipientType: 'admin',
+    type: 'system',
+    title: 'Platform activity summary',
+    message: '12 new applications, 2 new company registrations, and 4 new job postings this week.',
+    link: '/',
+    isRead: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+  },
+]
+
 export const mockStudentSubscriptions: Record<string, StudentSubscription> = {
   'student-1': {
     subscriptionTier: 'free',

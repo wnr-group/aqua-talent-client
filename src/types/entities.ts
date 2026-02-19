@@ -103,3 +103,21 @@ export interface Application {
   student?: Student | null
   jobPosting?: JobPosting | null
 }
+
+export type InAppNotificationType =
+  | 'application_status'
+  | 'company_status'
+  | 'new_application'
+  | 'system'
+
+export interface InAppNotification {
+  id: string
+  recipientId: string
+  recipientType: 'student' | 'company' | 'admin'
+  type: InAppNotificationType
+  title: string
+  message: string
+  link?: string | null
+  isRead: boolean
+  createdAt: string
+}
