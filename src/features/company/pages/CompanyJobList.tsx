@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import CompanyPageContainer from '@/features/company/components/CompanyPageContainer'
 import {
   COMPANY_INPUT_STYLES,
@@ -9,16 +9,28 @@ import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import { useNotification } from '@/contexts/NotificationContext'
 import { JobPosting, JobStatus, JOB_TYPES } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, ChevronLeft, ChevronRight, Briefcase } from 'lucide-react'
+import { Search, MapPin, ChevronLeft, ChevronRight, Briefcase, Pencil, Send, EyeOff, RefreshCw } from 'lucide-react'
 
 const statusStyles: Record<JobStatus, string> = {
+  [JobStatus.DRAFT]: 'bg-gray-100 text-gray-600',
   [JobStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [JobStatus.APPROVED]: 'bg-green-100 text-green-800',
   [JobStatus.REJECTED]: 'bg-red-100 text-red-800',
-  [JobStatus.CLOSED]: 'bg-gray-100 text-gray-700',
+  [JobStatus.UNPUBLISHED]: 'bg-orange-100 text-orange-800',
+  [JobStatus.CLOSED]: 'bg-gray-200 text-gray-700',
+}
+
+const statusLabels: Record<JobStatus, string> = {
+  [JobStatus.DRAFT]: 'Draft',
+  [JobStatus.PENDING]: 'Pending',
+  [JobStatus.APPROVED]: 'Approved',
+  [JobStatus.REJECTED]: 'Rejected',
+  [JobStatus.UNPUBLISHED]: 'Unpublished',
+  [JobStatus.CLOSED]: 'Closed',
 }
 
 const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
@@ -30,6 +42,8 @@ interface Pagination {
 }
 
 export default function CompanyJobList() {
+  const navigate = useNavigate()
+  const { success, error: showError } = useNotification()
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<JobStatus | 'all'>('all')
@@ -38,6 +52,7 @@ export default function CompanyJobList() {
   const [jobType, setJobType] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -77,6 +92,53 @@ export default function CompanyJobList() {
     setPage(1)
   }, [filter, search, location, jobType])
 
+  const refetchJobs = () => {
+    // Trigger re-fetch by toggling a dummy dep — simplest approach is to
+    // just re-set page which is already a dep of the fetch effect
+    setPage((p) => p)
+  }
+
+  const handleSubmitDraft = async (jobId: string) => {
+    setActionLoading(jobId)
+    try {
+      await api.patch(`/company/jobs/${jobId}`, { status: 'pending' })
+      success('Job submitted for review!')
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: JobStatus.PENDING } : j)))
+    } catch {
+      showError('Failed to submit job')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleUnpublish = async (jobId: string) => {
+    setActionLoading(jobId)
+    try {
+      await api.patch(`/company/jobs/${jobId}/unpublish`, {})
+      success('Job unpublished. Students can no longer see it.')
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: JobStatus.UNPUBLISHED } : j)))
+    } catch {
+      showError('Failed to unpublish job')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRepublish = async (jobId: string) => {
+    setActionLoading(jobId)
+    try {
+      await api.patch(`/company/jobs/${jobId}/republish`, {})
+      success('Job resubmitted for review.')
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: JobStatus.PENDING } : j)))
+    } catch {
+      showError('Failed to republish job')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  void refetchJobs // suppress unused warning – exists as a util
+
   return (
     <CompanyPageContainer
       title="Job Postings"
@@ -90,7 +152,7 @@ export default function CompanyJobList() {
       <div className="mb-6 space-y-4">
         {/* Status Tabs */}
         <div className="flex gap-2 flex-wrap">
-          {(['all', JobStatus.PENDING, JobStatus.APPROVED, JobStatus.REJECTED, JobStatus.CLOSED] as const).map(
+          {(['all', JobStatus.DRAFT, JobStatus.PENDING, JobStatus.APPROVED, JobStatus.UNPUBLISHED, JobStatus.REJECTED, JobStatus.CLOSED] as const).map(
             (status) => (
               <button
                 key={status}
@@ -103,7 +165,7 @@ export default function CompanyJobList() {
               >
                 {status === 'all'
                   ? 'All'
-                  : status.charAt(0).toUpperCase() + status.slice(1)}
+                  : statusLabels[status]}
               </button>
             )
           )}
@@ -169,30 +231,97 @@ export default function CompanyJobList() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <Link
-                      to={`/jobs/${job.id}`}
+                      to={job.status === JobStatus.DRAFT ? `/jobs/${job.id}/edit` : `/jobs/${job.id}`}
                       className="text-lg font-semibold text-gray-900 hover:text-blue-600"
                     >
-                      {job.title}
+                      {job.title || '(Untitled Draft)'}
                     </Link>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                      <span>{job.location}</span>
-                      <span>{job.jobType}</span>
+                      {job.location && <span>{job.location}</span>}
+                      {job.jobType && <span>{job.jobType}</span>}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
                       Posted {format(new Date(job.createdAt), 'MMM d, yyyy')}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyles[job.status]}`}
                     >
-                      {job.status}
+                      {statusLabels[job.status]}
                     </span>
-                    <Link to={`/jobs/${job.id}`}>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </Link>
+
+                    {/* Contextual actions */}
+                    {job.status === JobStatus.DRAFT && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/jobs/${job.id}/edit`)}
+                          leftIcon={<Pencil className="w-4 h-4" />}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSubmitDraft(job.id)}
+                          isLoading={actionLoading === job.id}
+                          disabled={!!actionLoading}
+                          leftIcon={<Send className="w-4 h-4" />}
+                        >
+                          Submit
+                        </Button>
+                      </>
+                    )}
+
+                    {job.status === JobStatus.APPROVED && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUnpublish(job.id)}
+                          isLoading={actionLoading === job.id}
+                          disabled={!!actionLoading}
+                          leftIcon={<EyeOff className="w-4 h-4" />}
+                        >
+                          Unpublish
+                        </Button>
+                        <Link to={`/jobs/${job.id}`}>
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+
+                    {job.status === JobStatus.UNPUBLISHED && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleRepublish(job.id)}
+                          isLoading={actionLoading === job.id}
+                          disabled={!!actionLoading}
+                          leftIcon={<RefreshCw className="w-4 h-4" />}
+                        >
+                          Republish
+                        </Button>
+                        <Link to={`/jobs/${job.id}`}>
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+
+                    {(job.status === JobStatus.PENDING ||
+                      job.status === JobStatus.REJECTED ||
+                      job.status === JobStatus.CLOSED) && (
+                      <Link to={`/jobs/${job.id}`}>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </Card>

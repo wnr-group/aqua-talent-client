@@ -143,6 +143,33 @@ export const mockJobs: JobPosting[] = [
     createdAt: '2024-02-08T00:00:00Z',
     company: { id: 'company-2', name: 'TechStart Inc' },
   },
+  {
+    id: 'job-5',
+    companyId: 'company-1',
+    title: 'Marketing Coordinator',
+    description: '',
+    requirements: '',
+    location: 'Remote',
+    jobType: 'Full-time',
+    salaryRange: '',
+    status: JobStatus.DRAFT,
+    createdAt: '2024-02-12T00:00:00Z',
+    company: { id: 'company-1', name: 'Acme Corporation' },
+  },
+  {
+    id: 'job-6',
+    companyId: 'company-1',
+    title: 'DevOps Engineer',
+    description: 'Manage CI/CD pipelines and cloud infrastructure. Work with Kubernetes, Docker, and AWS to keep our systems reliable and scalable.',
+    requirements: 'Experience with AWS, Docker, Kubernetes. Strong Linux skills.',
+    location: 'San Francisco, CA',
+    jobType: 'Full-time',
+    salaryRange: '$120,000-150,000/year',
+    status: JobStatus.UNPUBLISHED,
+    createdAt: '2024-01-20T00:00:00Z',
+    approvedAt: '2024-01-22T00:00:00Z',
+    company: { id: 'company-1', name: 'Acme Corporation' },
+  },
 ]
 
 export const mockApplications: Application[] = [

@@ -226,6 +226,7 @@ export const handlers = [
     const body = (await request.json()) as Partial<JobPosting>
     const company = user.data as Company
 
+    const isDraft = (body as Record<string, unknown>).status === 'draft'
     const newJob: JobPosting = {
       id: `job-${Date.now()}`,
       companyId: user.id,
@@ -236,27 +237,57 @@ export const handlers = [
       jobType: body.jobType || 'Full-time',
       salaryRange: body.salaryRange || null,
       deadline: body.deadline || null,
-      status: JobStatus.PENDING,
+      status: isDraft ? JobStatus.DRAFT : JobStatus.PENDING,
       createdAt: new Date().toISOString(),
       company: { id: company.id, name: company.name },
     }
 
     mockJobs.push(newJob)
 
-    // ── Notify admin: new job pending review ───────────────────────────────
-    mockNotifications.unshift({
-      id: `notif-${Date.now()}-admin-job`,
-      recipientId: 'admin-1',
-      recipientType: 'admin',
-      type: 'new_application',
-      title: 'New job posting pending review',
-      message: `${company.name} submitted a new job posting: ${newJob.title}.`,
-      link: '/jobs',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    })
+    // ── Notify admin: new job pending review (skip for drafts) ─────────
+    if (!isDraft) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-admin-job`,
+        recipientId: 'admin-1',
+        recipientType: 'admin',
+        type: 'new_application',
+        title: 'New job posting pending review',
+        message: `${company.name} submitted a new job posting: ${newJob.title}.`,
+        link: '/jobs',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
 
     return HttpResponse.json(newJob)
+  }),
+
+  // Unpublish job
+  http.patch(`${API_URL}/company/jobs/:jobId/unpublish`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const jobIndex = mockJobs.findIndex((j) => j.id === params.jobId)
+    if (jobIndex === -1) {
+      return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
+    }
+    if (mockJobs[jobIndex]!.status !== JobStatus.APPROVED) {
+      return HttpResponse.json({ message: 'Only approved jobs can be unpublished' }, { status: 400 })
+    }
+    mockJobs[jobIndex] = { ...mockJobs[jobIndex]!, status: JobStatus.UNPUBLISHED }
+    return HttpResponse.json(mockJobs[jobIndex])
+  }),
+
+  // Republish job
+  http.patch(`${API_URL}/company/jobs/:jobId/republish`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const jobIndex = mockJobs.findIndex((j) => j.id === params.jobId)
+    if (jobIndex === -1) {
+      return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
+    }
+    if (mockJobs[jobIndex]!.status !== JobStatus.UNPUBLISHED) {
+      return HttpResponse.json({ message: 'Only unpublished jobs can be republished' }, { status: 400 })
+    }
+    mockJobs[jobIndex] = { ...mockJobs[jobIndex]!, status: JobStatus.PENDING }
+    return HttpResponse.json(mockJobs[jobIndex])
   }),
 
   // Get job detail

@@ -11,9 +11,11 @@ export enum CompanyStatus {
 }
 
 export enum JobStatus {
+  DRAFT = 'draft',
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  UNPUBLISHED = 'unpublished',
   CLOSED = 'closed',
 }
 

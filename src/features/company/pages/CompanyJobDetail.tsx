@@ -28,13 +28,27 @@ import {
   FileText,
   ArrowLeft,
   AlertTriangle,
+  EyeOff,
+  RefreshCw,
+  Pencil,
 } from 'lucide-react'
 
 const statusStyles: Record<JobStatus, string> = {
+  [JobStatus.DRAFT]: 'bg-gray-100 text-gray-600',
   [JobStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [JobStatus.APPROVED]: 'bg-green-100 text-green-800',
   [JobStatus.REJECTED]: 'bg-red-100 text-red-800',
-  [JobStatus.CLOSED]: 'bg-gray-100 text-gray-700',
+  [JobStatus.UNPUBLISHED]: 'bg-orange-100 text-orange-800',
+  [JobStatus.CLOSED]: 'bg-gray-200 text-gray-700',
+}
+
+const statusLabels: Record<JobStatus, string> = {
+  [JobStatus.DRAFT]: 'Draft',
+  [JobStatus.PENDING]: 'Pending',
+  [JobStatus.APPROVED]: 'Approved',
+  [JobStatus.REJECTED]: 'Rejected',
+  [JobStatus.UNPUBLISHED]: 'Unpublished',
+  [JobStatus.CLOSED]: 'Closed',
 }
 
 const appStatusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
@@ -76,6 +90,8 @@ export default function CompanyJobDetail() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [closeJobModalOpen, setCloseJobModalOpen] = useState(false)
   const [isClosingJob, setIsClosingJob] = useState(false)
+  const [isUnpublishing, setIsUnpublishing] = useState(false)
+  const [isRepublishing, setIsRepublishing] = useState(false)
   useEffect(() => {
     const fetchJob = async () => {
       if (!jobId) return
@@ -151,6 +167,34 @@ export default function CompanyJobDetail() {
   useEffect(() => {
     setAppPage(1)
   }, [appFilter, appSearch])
+
+  const handleUnpublish = async () => {
+    if (!job) return
+    setIsUnpublishing(true)
+    try {
+      await api.patch(`/company/jobs/${jobId}/unpublish`, {})
+      setJob({ ...job, status: JobStatus.UNPUBLISHED })
+      success('Job unpublished. Students can no longer see it.')
+    } catch {
+      showError('Failed to unpublish job')
+    } finally {
+      setIsUnpublishing(false)
+    }
+  }
+
+  const handleRepublish = async () => {
+    if (!job) return
+    setIsRepublishing(true)
+    try {
+      await api.patch(`/company/jobs/${jobId}/republish`, {})
+      setJob({ ...job, status: JobStatus.PENDING })
+      success('Job resubmitted for review.')
+    } catch {
+      showError('Failed to republish job')
+    } finally {
+      setIsRepublishing(false)
+    }
+  }
 
   const handleCloseJob = async () => {
     if (!job) return
@@ -250,7 +294,7 @@ export default function CompanyJobDetail() {
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyles[job.status]}`}
                 >
-                  {job.status}
+                  {statusLabels[job.status]}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -268,12 +312,40 @@ export default function CompanyJobDetail() {
                 </div>
               </div>
             </div>
-            {job.status === JobStatus.APPROVED && (
+            {job.status === JobStatus.DRAFT && (
               <Button
                 variant="outline"
-                onClick={() => setCloseJobModalOpen(true)}
+                onClick={() => navigate(`/jobs/${jobId}/edit`)}
+                leftIcon={<Pencil className="w-4 h-4" />}
               >
-                Close Job
+                Edit Draft
+              </Button>
+            )}
+            {job.status === JobStatus.APPROVED && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleUnpublish}
+                  isLoading={isUnpublishing}
+                  leftIcon={<EyeOff className="w-4 h-4" />}
+                >
+                  Unpublish
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCloseJobModalOpen(true)}
+                >
+                  Close Job
+                </Button>
+              </div>
+            )}
+            {job.status === JobStatus.UNPUBLISHED && (
+              <Button
+                onClick={handleRepublish}
+                isLoading={isRepublishing}
+                leftIcon={<RefreshCw className="w-4 h-4" />}
+              >
+                Republish
               </Button>
             )}
           </div>

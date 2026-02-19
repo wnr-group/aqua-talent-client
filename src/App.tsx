@@ -22,6 +22,7 @@ import CompanyDashboard from '@/features/company/pages/CompanyDashboard'
 import CompanyJobList from '@/features/company/pages/CompanyJobList'
 import CompanyJobCreate from '@/features/company/pages/CompanyJobCreate'
 import CompanyJobDetail from '@/features/company/pages/CompanyJobDetail'
+import CompanyJobEdit from '@/features/company/pages/CompanyJobEdit'
 import CompanyApplications from '@/features/company/pages/CompanyApplications'
 import CompanyProfile from '@/features/company/pages/CompanyProfile'
 
@@ -142,6 +143,14 @@ function CompanyPortalRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
             <CompanyJobCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:jobId/edit"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyJobEdit />
           </ProtectedRoute>
         }
       />

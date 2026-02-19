@@ -12,9 +12,11 @@ import { format } from 'date-fns'
 import { Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const statusStyles: Record<JobStatus, { bg: string; text: string }> = {
+  [JobStatus.DRAFT]: { bg: 'bg-gray-100', text: 'text-gray-600' },
   [JobStatus.PENDING]: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
   [JobStatus.APPROVED]: { bg: 'bg-green-100', text: 'text-green-800' },
   [JobStatus.REJECTED]: { bg: 'bg-red-100', text: 'text-red-800' },
+  [JobStatus.UNPUBLISHED]: { bg: 'bg-orange-100', text: 'text-orange-800' },
   [JobStatus.CLOSED]: { bg: 'bg-gray-100', text: 'text-gray-800' },
 }
 
