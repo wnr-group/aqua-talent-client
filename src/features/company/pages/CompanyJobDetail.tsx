@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import CompanyPageContainer from '@/features/company/components/CompanyPageContainer'
 import { COMPANY_INPUT_STYLES } from '@/features/company/components/companyFormStyles'
+import StudentProfileModal from '@/features/company/components/StudentProfileModal'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
@@ -31,6 +32,7 @@ import {
   EyeOff,
   RefreshCw,
   Pencil,
+  Eye,
 } from 'lucide-react'
 
 const statusStyles: Record<JobStatus, string> = {
@@ -92,6 +94,18 @@ export default function CompanyJobDetail() {
   const [isClosingJob, setIsClosingJob] = useState(false)
   const [isUnpublishing, setIsUnpublishing] = useState(false)
   const [isRepublishing, setIsRepublishing] = useState(false)
+
+  // Student profile modal
+  const [studentProfileModalOpen, setStudentProfileModalOpen] = useState(false)
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedStudentName, setSelectedStudentName] = useState<string>('')
+
+  const openStudentProfile = (studentId: string, studentName: string) => {
+    setSelectedStudentId(studentId)
+    setSelectedStudentName(studentName)
+    setStudentProfileModalOpen(true)
+  }
+
   useEffect(() => {
     const fetchJob = async () => {
       if (!jobId) return
@@ -493,17 +507,26 @@ export default function CompanyJobDetail() {
                               </div>
                             </div>
 
-                            {app.student?.profileLink && (
-                              <a
-                                href={app.student.profileLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
                               >
-                                <ExternalLink className="w-4 h-4" />
-                                View Profile
-                              </a>
-                            )}
+                                <Eye className="w-4 h-4" />
+                                View Full Profile
+                              </button>
+                              {app.student?.profileLink && (
+                                <a
+                                  href={app.student.profileLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  External Link
+                                </a>
+                              )}
+                            </div>
                           </div>
 
                           {app.status === ApplicationStatus.REVIEWED && (
@@ -709,6 +732,14 @@ export default function CompanyJobDetail() {
           </div>
         </div>
       </Modal>
+
+      {/* Student Profile Modal */}
+      <StudentProfileModal
+        isOpen={studentProfileModalOpen}
+        onClose={() => setStudentProfileModalOpen(false)}
+        studentId={selectedStudentId}
+        studentName={selectedStudentName}
+      />
     </CompanyPageContainer>
   )
 }

@@ -5,6 +5,7 @@ import {
   COMPANY_INPUT_STYLES,
   COMPANY_SELECT_STYLES,
 } from '@/features/company/components/companyFormStyles'
+import StudentProfileModal from '@/features/company/components/StudentProfileModal'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
@@ -27,6 +28,7 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from 'lucide-react'
 
 const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
@@ -60,6 +62,17 @@ export default function CompanyApplications() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
+
+  // Student profile modal
+  const [studentProfileModalOpen, setStudentProfileModalOpen] = useState(false)
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedStudentName, setSelectedStudentName] = useState<string>('')
+
+  const openStudentProfile = (studentId: string, studentName: string) => {
+    setSelectedStudentId(studentId)
+    setSelectedStudentName(studentName)
+    setStudentProfileModalOpen(true)
+  }
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -286,17 +299,26 @@ export default function CompanyApplications() {
                             </Badge>
                           </div>
 
-                          {app.student?.profileLink && (
-                            <a
-                              href={app.student.profileLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-3"
+                          <div className="flex items-center gap-3 mb-3">
+                            <button
+                              onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              View Profile
-                            </a>
-                          )}
+                              <Eye className="w-3.5 h-3.5" />
+                              View Full Profile
+                            </button>
+                            {app.student?.profileLink && (
+                              <a
+                                href={app.student.profileLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                External Link
+                              </a>
+                            )}
+                          </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             <div className="flex items-center gap-1.5">
@@ -420,6 +442,14 @@ export default function CompanyApplications() {
           </div>
         </div>
       </Modal>
+
+      {/* Student Profile Modal */}
+      <StudentProfileModal
+        isOpen={studentProfileModalOpen}
+        onClose={() => setStudentProfileModalOpen(false)}
+        studentId={selectedStudentId}
+        studentName={selectedStudentName}
+      />
     </CompanyPageContainer>
   )
 }

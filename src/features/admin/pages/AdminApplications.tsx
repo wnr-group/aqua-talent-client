@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PageContainer } from '@/components/layout'
+import AdminStudentProfileModal from '@/features/admin/components/AdminStudentProfileModal'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
@@ -23,6 +24,7 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from 'lucide-react'
 
 const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
@@ -58,6 +60,17 @@ export default function AdminApplications() {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Student profile modal
+  const [studentProfileModalOpen, setStudentProfileModalOpen] = useState(false)
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedStudentName, setSelectedStudentName] = useState<string>('')
+
+  const openStudentProfile = (studentId: string, studentName: string) => {
+    setSelectedStudentId(studentId)
+    setSelectedStudentName(studentName)
+    setStudentProfileModalOpen(true)
+  }
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -277,17 +290,26 @@ export default function AdminApplications() {
                             </Badge>
                           </div>
 
-                          {app.student?.profileLink && (
-                            <a
-                              href={app.student.profileLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-3"
+                          <div className="flex items-center gap-3 mb-3">
+                            <button
+                              onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              View Profile
-                            </a>
-                          )}
+                              <Eye className="w-3.5 h-3.5" />
+                              View Full Profile
+                            </button>
+                            {app.student?.profileLink && (
+                              <a
+                                href={app.student.profileLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                External Link
+                              </a>
+                            )}
+                          </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             <div className="flex items-center gap-1.5">
@@ -466,6 +488,14 @@ export default function AdminApplications() {
           </div>
         </div>
       </Modal>
+
+      {/* Student Profile Modal */}
+      <AdminStudentProfileModal
+        isOpen={studentProfileModalOpen}
+        onClose={() => setStudentProfileModalOpen(false)}
+        studentId={selectedStudentId}
+        studentName={selectedStudentName}
+      />
     </PageContainer>
   )
 }
