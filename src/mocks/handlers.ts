@@ -4,6 +4,8 @@ import {
   mockStudents,
   mockJobs,
   mockApplications,
+  mockServices,
+  mockStudentSubscriptions,
   auth,
   findUser,
 } from './data'
@@ -254,6 +256,70 @@ export const handlers = [
 
   // ============ STUDENT ============
 
+  // Available subscription services
+  http.get(`${API_URL}/services`, async () => {
+    await delay(DELAY_MS)
+    return HttpResponse.json({ services: mockServices })
+  }),
+
+  // Student subscription details
+  http.get(`${API_URL}/student/subscription`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const current = mockStudentSubscriptions[user.id] || { subscriptionTier: 'free' as const }
+
+    if (current.subscriptionTier === 'paid' && current.serviceId && current.endDate) {
+      const service = mockServices.find((item) => item._id === current.serviceId)
+
+      return HttpResponse.json({
+        subscriptionTier: 'paid',
+        currentSubscription: {
+          service: service ? { _id: service._id, name: service.name } : undefined,
+          endDate: current.endDate,
+        },
+      })
+    }
+
+    return HttpResponse.json({
+      subscriptionTier: 'free',
+      currentSubscription: null,
+    })
+  }),
+
+  // Upgrade student subscription
+  http.post(`${API_URL}/student/subscription`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as { serviceId?: string }
+    if (!body.serviceId) {
+      return HttpResponse.json({ message: 'serviceId is required' }, { status: 400 })
+    }
+
+    const service = mockServices.find((item) => item._id === body.serviceId)
+    if (!service) {
+      return HttpResponse.json({ message: 'Service not found' }, { status: 404 })
+    }
+
+    const endDate = new Date()
+    endDate.setMonth(endDate.getMonth() + 1)
+
+    mockStudentSubscriptions[user.id] = {
+      subscriptionTier: 'paid',
+      serviceId: service._id,
+      endDate: endDate.toISOString(),
+    }
+
+    return HttpResponse.json({ success: true })
+  }),
+
   // Student dashboard
   http.get(`${API_URL}/student/dashboard`, async () => {
     await delay(DELAY_MS)
@@ -267,8 +333,13 @@ export const handlers = [
       (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
     )
 
+    const currentSubscription = mockStudentSubscriptions[user.id]
+    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
+    const applicationLimit = isPaidTier ? null : 2
+
     return HttpResponse.json({
       applicationsUsed: studentApps.length,
+      applicationLimit,
       pendingApplications: studentApps.filter((a) => a.status === ApplicationStatus.PENDING).length,
       isHired: student.isHired,
     })
@@ -345,7 +416,10 @@ export const handlers = [
     const activeApps = mockApplications.filter(
       (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
     )
-    if (activeApps.length >= 2) {
+
+    const currentSubscription = mockStudentSubscriptions[user.id]
+    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
+    if (!isPaidTier && activeApps.length >= 2) {
       return HttpResponse.json({ message: 'Application limit reached (2)' }, { status: 400 })
     }
 

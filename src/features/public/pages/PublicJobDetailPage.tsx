@@ -26,6 +26,8 @@ export default function PublicJobDetailPage() {
   const { success, error: showError } = useNotification()
 
   const [job, setJob] = useState<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus } | null>(null)
+  const [dashboard, setDashboard] = useState<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean } | null>(null)
+  const [subscription, setSubscription] = useState<{ subscriptionTier: 'free' | 'paid' } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
 
@@ -37,9 +39,17 @@ export default function PublicJobDetailPage() {
       if (!jobId) return
       setIsLoading(true)
       try {
-        // Use /student/jobs/:jobId which returns application status for authenticated students
         const data = await api.get<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }>(`/student/jobs/${jobId}`)
         setJob(data)
+
+        if (isStudent) {
+          const [dashboardData, subscriptionData] = await Promise.all([
+            api.get<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean }>('/student/dashboard'),
+            api.get<{ subscriptionTier: 'free' | 'paid' }>('/student/subscription'),
+          ])
+          setDashboard(dashboardData)
+          setSubscription(subscriptionData)
+        }
       } catch {
         showError('Job not found')
         navigate('/jobs')
@@ -48,7 +58,12 @@ export default function PublicJobDetailPage() {
       }
     }
     fetchJob()
-  }, [jobId, navigate, showError])
+  }, [jobId, navigate, showError, isStudent])
+
+  const applicationLimit = dashboard?.applicationLimit ?? 2
+  const isPaidTier = subscription?.subscriptionTier === 'paid'
+  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === Number.POSITIVE_INFINITY || isPaidTier
+  const hasReachedFreeLimit = !hasUnlimitedApplications && (dashboard?.applicationsUsed ?? 0) >= applicationLimit
 
   const handleApply = async () => {
     if (!isAuthenticated) {
@@ -58,6 +73,16 @@ export default function PublicJobDetailPage() {
 
     if (user?.userType !== UserType.STUDENT) {
       showError('Only students can apply for jobs')
+      return
+    }
+
+    if (dashboard?.isHired) {
+      showError('You are already hired and cannot apply to new jobs')
+      return
+    }
+
+    if (hasReachedFreeLimit) {
+      showError('Application limit reached for free tier (2). Upgrade to apply to unlimited jobs.')
       return
     }
 
@@ -333,13 +358,47 @@ export default function PublicJobDetailPage() {
                     Applications Closed
                   </button>
                 ) : (
-                  <button
-                    onClick={handleApply}
-                    disabled={isApplying}
-                    className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all disabled:opacity-50"
-                  >
-                    {isApplying ? 'Applying...' : isAuthenticated ? 'Apply Now' : 'Sign In to Apply'}
-                  </button>
+                  <>
+                    {isStudent && dashboard && (
+                      <div className="mb-4 text-sm">
+                        {hasUnlimitedApplications ? (
+                          <p className="text-glow-teal">Paid tier: Unlimited applications available.</p>
+                        ) : (
+                          <p className="text-muted-foreground">
+                            {dashboard.applicationsUsed}/{applicationLimit} applications used
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {isStudent && hasReachedFreeLimit ? (
+                      <div className="rounded-xl border border-sand/30 bg-sand/10 p-4">
+                        <p className="text-sm text-sand mb-3">
+                          Free tier limit reached. Upgrade to apply to unlimited jobs.
+                        </p>
+                        <Link
+                          to="/subscription"
+                          className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal px-6 py-3 font-semibold text-ocean-deep"
+                        >
+                          Upgrade to Unlimited
+                        </Link>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleApply}
+                        disabled={isApplying || (isStudent && !!dashboard?.isHired)}
+                        className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold glow-sm hover:glow-md transition-all disabled:opacity-50"
+                      >
+                        {isApplying
+                          ? 'Applying...'
+                          : dashboard?.isHired
+                          ? 'Already Hired'
+                          : isAuthenticated
+                          ? 'Apply Now'
+                          : 'Sign In to Apply'}
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {!isAuthenticated && !hasActiveApplication && !isWithdrawn && !isRejected && !isDeadlinePassed && (

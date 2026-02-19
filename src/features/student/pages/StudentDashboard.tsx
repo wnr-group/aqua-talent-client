@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import Badge from '@/components/common/Badge'
 import { api } from '@/services/api/client'
 import {
   FileText,
@@ -11,31 +12,40 @@ import {
   User,
   ArrowRight,
   LogOut,
-  Briefcase
+  Briefcase,
+  Gem
 } from 'lucide-react'
 import Logo from '@/components/common/Logo'
 
-const MAX_APPLICATIONS = 2
-
 interface DashboardStats {
   applicationsUsed: number
+  applicationLimit?: number | null
   pendingApplications: number
   isHired: boolean
+}
+
+interface SubscriptionStatus {
+  subscriptionTier: 'free' | 'paid'
 }
 
 export default function StudentDashboard() {
   const { user, logout } = useAuthContext()
   const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await api.get<DashboardStats>('/student/dashboard')
-        setStats(data)
+        const [dashboardData, subscriptionData] = await Promise.all([
+          api.get<DashboardStats>('/student/dashboard'),
+          api.get<SubscriptionStatus>('/student/subscription'),
+        ])
+        setStats(dashboardData)
+        setSubscription(subscriptionData)
       } catch {
-        // Stats will remain null
+        // Data will remain null
       } finally {
         setIsLoading(false)
       }
@@ -48,7 +58,15 @@ export default function StudentDashboard() {
     navigate('/')
   }
 
-  const applicationsRemaining = MAX_APPLICATIONS - (stats?.applicationsUsed ?? 0)
+  const applicationLimit = stats?.applicationLimit
+  const hasUnlimitedApplications = applicationLimit === Number.POSITIVE_INFINITY
+  const applicationsRemaining = hasUnlimitedApplications
+    ? null
+    : (applicationLimit ?? 0) - (stats?.applicationsUsed ?? 0)
+  const usageText = hasUnlimitedApplications
+    ? 'Unlimited applications'
+    : `${stats?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
+  const isFreeTier = (subscription?.subscriptionTier ?? 'free') === 'free'
 
   return (
     <div className="min-h-screen ocean-bg">
@@ -81,6 +99,13 @@ export default function StudentDashboard() {
               >
                 <User className="w-4 h-4" />
                 Profile
+              </Link>
+              <Link
+                to="/subscription"
+                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <Gem className="w-4 h-4" />
+                Subscription
               </Link>
               <button
                 onClick={handleLogout}
@@ -125,7 +150,41 @@ export default function StudentDashboard() {
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+              {/* Subscription Card */}
+              <div className="glass rounded-2xl p-6 hover:border-glow-cyan/30 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-glow-cyan/20 to-glow-purple/20 flex items-center justify-center border border-glow-cyan/30">
+                    <Gem className="w-7 h-7 text-glow-cyan" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Subscription</p>
+                    <div className="mt-1">
+                      <Badge
+                        variant={isFreeTier ? 'secondary' : 'primary'}
+                        className={isFreeTier ? 'bg-muted text-muted-foreground' : 'bg-glow-cyan/20 text-glow-cyan border border-glow-cyan/30'}
+                      >
+                        {isFreeTier ? 'Free Tier' : 'Paid Tier'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {usageText}
+                  </p>
+                  {isFreeTier && (
+                    <Link
+                      to="/subscription"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep text-sm font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      Upgrade
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+
               {/* Applications Card */}
               <div className="glass rounded-2xl p-6 hover:border-glow-cyan/30 transition-colors">
                 <div className="flex items-center gap-4">
@@ -136,13 +195,17 @@ export default function StudentDashboard() {
                     <p className="text-sm font-medium text-muted-foreground">Applications</p>
                     <p className="text-3xl font-display font-bold text-foreground">
                       {stats?.applicationsUsed ?? 0}
-                      <span className="text-lg font-normal text-muted-foreground"> / {MAX_APPLICATIONS}</span>
+                      {!hasUnlimitedApplications && (
+                        <span className="text-lg font-normal text-muted-foreground"> / {applicationLimit ?? '-'}</span>
+                      )}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground">
-                    {applicationsRemaining > 0
+                    {hasUnlimitedApplications
+                      ? 'Unlimited applications available'
+                      : applicationsRemaining! > 0
                       ? `${applicationsRemaining} application${applicationsRemaining > 1 ? 's' : ''} remaining`
                       : 'Application limit reached'}
                   </p>
@@ -240,7 +303,7 @@ export default function StudentDashboard() {
             )}
 
             {/* Warning for application limit */}
-            {applicationsRemaining === 0 && !stats?.isHired && (
+            {!hasUnlimitedApplications && applicationsRemaining === 0 && !stats?.isHired && (
               <div className="mt-6 p-4 rounded-xl bg-sand/10 border border-sand/30">
                 <p className="text-sand text-sm">
                   You have reached your application limit. Withdraw an existing application to apply to new jobs.

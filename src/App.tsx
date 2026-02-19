@@ -27,6 +27,7 @@ import CompanyApplications from '@/features/company/pages/CompanyApplications'
 import StudentDashboard from '@/features/student/pages/StudentDashboard'
 import StudentApplications from '@/features/student/pages/StudentApplications'
 import StudentProfile from '@/features/student/pages/StudentProfile'
+import SubscriptionPage from '@/features/student/pages/SubscriptionPage'
 
 // Admin portal pages
 import AdminDashboard from '@/features/admin/pages/AdminDashboard'
@@ -72,6 +73,14 @@ function PublicRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
             <StudentProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <SubscriptionPage />
           </ProtectedRoute>
         }
       />
