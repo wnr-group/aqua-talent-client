@@ -4,6 +4,8 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Badge from '@/components/common/Badge'
 import { api } from '@/services/api/client'
+import ProfileCompleteness from '@/features/student/components/ProfileCompleteness'
+import type { ProfileCompletenessData } from '@/features/student/types'
 import {
   FileText,
   Clock,
@@ -34,6 +36,8 @@ export default function StudentDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [completeness, setCompleteness] = useState<ProfileCompletenessData | null>(null)
+  const [isCompletenessLoading, setIsCompletenessLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -50,7 +54,19 @@ export default function StudentDashboard() {
         setIsLoading(false)
       }
     }
+    const fetchProfileHealth = async () => {
+      try {
+        const data = await api.get<ProfileCompletenessData>('/student/profile/completeness')
+        setCompleteness(data)
+      } catch {
+        setCompleteness(null)
+      } finally {
+        setIsCompletenessLoading(false)
+      }
+    }
+
     fetchStats()
+    fetchProfileHealth()
   }, [])
 
   const handleLogout = async () => {
@@ -63,6 +79,7 @@ export default function StudentDashboard() {
   const applicationsRemaining = hasUnlimitedApplications
     ? null
     : (applicationLimit ?? 0) - (stats?.applicationsUsed ?? 0)
+  const limitedApplicationsRemaining = applicationsRemaining ?? 0
   const usageText = hasUnlimitedApplications
     ? 'Unlimited applications'
     : `${stats?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
@@ -205,8 +222,8 @@ export default function StudentDashboard() {
                   <p className="text-sm text-muted-foreground">
                     {hasUnlimitedApplications
                       ? 'Unlimited applications available'
-                      : applicationsRemaining! > 0
-                      ? `${applicationsRemaining} application${applicationsRemaining > 1 ? 's' : ''} remaining`
+                      : limitedApplicationsRemaining > 0
+                      ? `${limitedApplicationsRemaining} application${limitedApplicationsRemaining > 1 ? 's' : ''} remaining`
                       : 'Application limit reached'}
                   </p>
                 </div>
@@ -261,6 +278,25 @@ export default function StudentDashboard() {
               </div>
             </div>
 
+            <div className="mb-8">
+              <ProfileCompleteness
+                percentage={completeness?.percentage}
+                missingItems={completeness?.missingItems}
+                isLoading={isCompletenessLoading}
+                description="Improve your match rate by finishing these items."
+                actionSlot={
+                  completeness && completeness.percentage < 100 ? (
+                    <Link
+                      to="/profile"
+                      className="inline-flex items-center justify-center w-full md:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-glow-cyan to-glow-teal text-ocean-deep font-semibold"
+                    >
+                      Update profile
+                    </Link>
+                  ) : null
+                }
+              />
+            </div>
+
             {/* Quick Actions */}
             {!stats?.isHired && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -298,6 +334,21 @@ export default function StudentDashboard() {
                       <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-glow-purple transition-colors" />
                     </div>
                   </div>
+                </Link>
+              </div>
+            )}
+
+            {completeness && completeness.percentage < 80 && !stats?.isHired && (
+              <div className="mt-6 p-4 rounded-xl bg-glow-purple/10 border border-glow-purple/30 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Complete your profile to unlock more matches.</p>
+                  <p className="text-sm text-muted-foreground">Add your resume, skills, and experience to reach 80%.</p>
+                </div>
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-glow-purple/40 text-glow-purple hover:bg-glow-purple/10"
+                >
+                  Complete profile
                 </Link>
               </div>
             )}

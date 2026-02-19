@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PageContainer } from '@/components/layout'
+import CompanyPageContainer from '@/features/company/components/CompanyPageContainer'
+import {
+  COMPANY_INPUT_STYLES,
+  COMPANY_SELECT_STYLES,
+} from '@/features/company/components/companyFormStyles'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
@@ -33,6 +37,7 @@ const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' |
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
 }
 
+const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
 type FilterStatus = 'all' | ApplicationStatus.REVIEWED | ApplicationStatus.HIRED | ApplicationStatus.REJECTED
 
 interface Pagination {
@@ -166,7 +171,7 @@ export default function CompanyApplications() {
   const newApplicantsCount = applications.filter((a) => a.status === ApplicationStatus.REVIEWED).length
 
   return (
-    <PageContainer
+    <CompanyPageContainer
       title="Applications"
       description={`Review applicants for your job postings${newApplicantsCount > 0 ? ` • ${newApplicantsCount} new` : ''}`}
     >
@@ -178,15 +183,15 @@ export default function CompanyApplications() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium border ${
                 filter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
               }`}
             >
               {status === 'all' ? 'All' : statusConfig[status].label}
               {status === ApplicationStatus.REVIEWED && newApplicantsCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
                   {newApplicantsCount}
                 </span>
               )}
@@ -201,17 +206,19 @@ export default function CompanyApplications() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4" />}
+            className={COMPANY_INPUT_STYLES}
           />
           <Input
             placeholder="Filter by location..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             leftIcon={<MapPin className="w-4 h-4" />}
+            className={COMPANY_INPUT_STYLES}
           />
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={COMPANY_SELECT_STYLES}
           >
             <option value="">All Job Types</option>
             {JOB_TYPES.map((type) => (
@@ -228,12 +235,12 @@ export default function CompanyApplications() {
           <LoadingSpinner size="lg" />
         </div>
       ) : applications.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
+        <Card className={CARD_BASE_CLASSES}>
+          <div className="text-center py-12 text-gray-900">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-6 h-6 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No applications found</h3>
+            <h3 className="text-lg font-medium mb-1">No applications found</h3>
             <p className="text-gray-500">
               {filter !== 'all' || search || location || jobType
                 ? 'Try adjusting your search criteria.'
@@ -245,18 +252,28 @@ export default function CompanyApplications() {
         <>
           <div className="space-y-4">
             {applications.map((app) => (
-              <Card key={app.id} hover={app.status === ApplicationStatus.REVIEWED}>
+              <Card
+                key={app.id}
+                hover={app.status === ApplicationStatus.REVIEWED}
+                className={`${CARD_BASE_CLASSES} text-gray-900`}
+              >
                 <CardContent>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          app.status === ApplicationStatus.HIRED ? 'bg-green-100' : 'bg-blue-100'
-                        }`}>
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                            app.status === ApplicationStatus.HIRED
+                              ? 'bg-green-50 border-green-100 text-green-600'
+                              : app.status === ApplicationStatus.REJECTED
+                              ? 'bg-red-50 border-red-100 text-red-600'
+                              : 'bg-blue-50 border-blue-100 text-blue-600'
+                          }`}
+                        >
                           {app.status === ApplicationStatus.HIRED ? (
-                            <UserCheck className="w-6 h-6 text-green-600" />
+                            <UserCheck className="w-6 h-6" />
                           ) : (
-                            <User className="w-6 h-6 text-blue-600" />
+                            <User className="w-6 h-6" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -331,7 +348,7 @@ export default function CompanyApplications() {
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div className="mt-6 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Showing {((page - 1) * pagination.limit) + 1} to {Math.min(page * pagination.limit, pagination.total)} of {pagination.total} applications
               </p>
               <div className="flex items-center gap-2">
@@ -403,6 +420,6 @@ export default function CompanyApplications() {
           </div>
         </div>
       </Modal>
-    </PageContainer>
+    </CompanyPageContainer>
   )
 }

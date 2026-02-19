@@ -22,6 +22,7 @@ const companyNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
   { label: 'Applications', path: '/applications', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Company Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
 ]
 
 // Student portal routes (on main domain)
@@ -38,6 +39,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Companies', path: '/companies', icon: <Building2 className="w-5 h-5" /> },
   { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
   { label: 'Applications', path: '/applications', icon: <CheckSquare className="w-5 h-5" /> },
+  { label: 'Company Profiles', path: '/companies/profiles', icon: <User className="w-5 h-5" /> },
 ]
 
 const navItemsByUserType: Record<UserType, NavItem[]> = {

@@ -22,18 +22,21 @@ import CompanyJobList from '@/features/company/pages/CompanyJobList'
 import CompanyJobCreate from '@/features/company/pages/CompanyJobCreate'
 import CompanyJobDetail from '@/features/company/pages/CompanyJobDetail'
 import CompanyApplications from '@/features/company/pages/CompanyApplications'
+import CompanyProfile from '@/features/company/pages/CompanyProfile'
 
 // Student portal pages
 import StudentDashboard from '@/features/student/pages/StudentDashboard'
 import StudentApplications from '@/features/student/pages/StudentApplications'
 import StudentProfile from '@/features/student/pages/StudentProfile'
 import SubscriptionPage from '@/features/student/pages/SubscriptionPage'
+import PaymentSuccessPage from '@/features/student/pages/PaymentSuccessPage'
 
 // Admin portal pages
 import AdminDashboard from '@/features/admin/pages/AdminDashboard'
 import AdminCompanies from '@/features/admin/pages/AdminCompanies'
 import AdminJobs from '@/features/admin/pages/AdminJobs'
 import AdminApplications from '@/features/admin/pages/AdminApplications'
+import AdminCompanyProfile from '@/features/admin/pages/AdminCompanyProfile'
 
 // Get portal type based on subdomain
 const portalType = getPortalType()
@@ -81,6 +84,14 @@ function PublicRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
             <SubscriptionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription/success"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <PaymentSuccessPage />
           </ProtectedRoute>
         }
       />
@@ -136,6 +147,14 @@ function CompanyPortalRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyProfile />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -158,6 +177,24 @@ function AdminPortalRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
             <AdminCompanies />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/companies/profiles"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminCompanyProfile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/companies/profiles/:companyId"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminCompanyProfile />
           </ProtectedRoute>
         }
       />

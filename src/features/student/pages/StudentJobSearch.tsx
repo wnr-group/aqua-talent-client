@@ -6,10 +6,11 @@ import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Badge from '@/components/common/Badge'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import CompanyAvatar from '@/components/common/CompanyAvatar'
 import { JobPosting } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, Briefcase, DollarSign, Calendar, Building2, ArrowRight } from 'lucide-react'
+import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight } from 'lucide-react'
 
 export default function StudentJobSearch() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
@@ -81,9 +82,11 @@ export default function StudentJobSearch() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-6 h-6 text-blue-600" />
-                    </div>
+                    <CompanyAvatar
+                      name={job.company?.name ?? 'Company'}
+                      logoUrl={job.company?.logo}
+                      size="md"
+                    />
                     <div className="flex-1 min-w-0">
                       <Link
                         to={`/jobs/${job.id}`}
@@ -91,9 +94,22 @@ export default function StudentJobSearch() {
                       >
                         {job.title}
                       </Link>
-                      <p className="text-sm text-blue-600 font-medium mt-0.5">
-                        {job.company?.name ?? 'Unknown Company'}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <p className="text-sm text-blue-600 font-medium">
+                          {job.company?.name ?? 'Unknown Company'}
+                        </p>
+                        {job.company?.industry && (
+                          <Badge variant="secondary" className="text-xs">
+                            {job.company.industry}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {job.company?.description && (
+                        <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+                          {job.company.description}
+                        </p>
+                      )}
 
                       <div className="flex flex-wrap items-center gap-3 mt-3">
                         <div className="flex items-center gap-1.5 text-sm text-gray-500">

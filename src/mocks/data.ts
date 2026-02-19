@@ -23,6 +23,15 @@ export const mockCompanies: Company[] = [
     status: CompanyStatus.APPROVED,
     createdAt: '2024-01-15T00:00:00Z',
     approvedAt: '2024-01-16T00:00:00Z',
+    description: 'Acme builds innovative tooling and infrastructure for modern product teams.',
+    website: 'https://acme.com',
+    industry: 'Technology',
+    size: '201-500',
+    socialLinks: {
+      linkedin: 'https://linkedin.com/company/acme',
+      twitter: 'https://twitter.com/acme',
+    },
+    foundedYear: 1998,
   },
   {
     id: 'company-2',
@@ -31,6 +40,8 @@ export const mockCompanies: Company[] = [
     email: 'jobs@techstart.io',
     status: CompanyStatus.PENDING,
     createdAt: '2024-02-01T00:00:00Z',
+    industry: 'Technology',
+    size: '51-200',
   },
   {
     id: 'company-3',
@@ -40,6 +51,8 @@ export const mockCompanies: Company[] = [
     status: CompanyStatus.REJECTED,
     createdAt: '2024-01-20T00:00:00Z',
     rejectionReason: 'Incomplete registration information',
+    industry: 'Manufacturing',
+    size: '1000+',
   },
 ]
 

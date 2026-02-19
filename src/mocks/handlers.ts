@@ -11,11 +11,59 @@ import {
 } from './data'
 import { UserType, CompanyStatus, JobStatus, ApplicationStatus } from '@/types/enums'
 import { Company, Student, JobPosting, Application } from '@/types/entities'
+import type { ProfileCompletenessData } from '@/features/student/types'
 
 const API_URL = 'http://localhost:3001/api'
 
 // Simulate network delay
 const DELAY_MS = 300
+
+interface CompletenessCheck {
+  label: string
+  isComplete: boolean
+}
+
+const COMPLETENESS_CHECKS = (student: Student): CompletenessCheck[] => {
+  const skillsCount = student.skills?.filter((skill) => !!skill)?.length ?? 0
+  const educationCount = student.education?.length ?? 0
+  const experienceCount = student.experience?.length ?? 0
+
+  return [
+    { label: 'Add a short bio', isComplete: Boolean(student.bio && student.bio.trim().length >= 80) },
+    { label: 'Specify your location', isComplete: Boolean(student.location) },
+    { label: 'Set your availability date', isComplete: Boolean(student.availableFrom) },
+    { label: 'Add a profile link', isComplete: Boolean(student.profileLink) },
+    { label: 'Add at least 3 skills', isComplete: skillsCount >= 3 },
+    { label: 'Add your education history', isComplete: educationCount > 0 },
+    { label: 'Add at least one experience', isComplete: experienceCount > 0 },
+    { label: 'Upload your resume', isComplete: Boolean(student.resumeUrl) },
+    { label: 'Record an intro video', isComplete: Boolean(student.introVideoUrl) },
+  ]
+}
+
+function calculateStudentCompleteness(student: Student): ProfileCompletenessData {
+  const checks = COMPLETENESS_CHECKS(student)
+  const totalChecks = checks.length || 1
+  const completed = checks.filter((check) => check.isComplete).length
+  const percentage = Math.round((completed / totalChecks) * 100)
+  const missingItems = checks.filter((check) => !check.isComplete).map((check) => check.label)
+
+  return {
+    percentage,
+    missingItems,
+  }
+}
+
+function updateStudentRecord(studentId: string, updates: Partial<Student>): Student | null {
+  const index = mockStudents.findIndex((student) => student.id === studentId)
+  if (index === -1) {
+    return null
+  }
+
+  const updated = { ...mockStudents[index]!, ...updates } as Student
+  mockStudents[index] = updated
+  return updated
+}
 
 export const handlers = [
   // ============ AUTH ============
@@ -501,6 +549,52 @@ export const handlers = [
     return HttpResponse.json({ success: true })
   }),
 
+  http.get(`${API_URL}/student/profile/completeness`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const studentRecord = mockStudents.find((student) => student.id === user.id) || (user.data as Student)
+    const completeness = calculateStudentCompleteness(studentRecord)
+    return HttpResponse.json(completeness)
+  }),
+
+  http.post(`${API_URL}/student/profile/resume`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    await request.formData()
+    const resumeUrl = `https://cdn.aquatalent.local/resumes/${user.id}-${Date.now()}.pdf`
+    const updated = updateStudentRecord(user.id, { resumeUrl })
+    if (updated) {
+      user.data = updated
+    }
+
+    return HttpResponse.json({ resumeUrl })
+  }),
+
+  http.post(`${API_URL}/student/profile/video`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    await request.formData()
+    const introVideoUrl = `https://cdn.aquatalent.local/videos/${user.id}-${Date.now()}.mp4`
+    const updated = updateStudentRecord(user.id, { introVideoUrl })
+    if (updated) {
+      user.data = updated
+    }
+
+    return HttpResponse.json({ introVideoUrl })
+  }),
+
   // ============ ADMIN ============
 
   // Admin dashboard
@@ -537,22 +631,97 @@ export const handlers = [
     return HttpResponse.json({ companies })
   }),
 
+  // Admin single company profile
+  http.get(`${API_URL}/admin/companies/:companyId/profile`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const company = mockCompanies.find((c) => c.id === params.companyId)
+    if (!company) {
+      return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
+    }
+
+    return HttpResponse.json(company)
+  }),
+
   // Update company status
   http.patch(`${API_URL}/admin/companies/:companyId`, async ({ params, request }) => {
     await delay(DELAY_MS)
-    const body = (await request.json()) as { status: CompanyStatus; rejectionReason?: string }
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Partial<Company> & {
+      status?: CompanyStatus
+      rejectionReason?: string | null
+    }
     const companyIndex = mockCompanies.findIndex((c) => c.id === params.companyId)
     if (companyIndex === -1) {
       return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
     }
 
     const company = mockCompanies[companyIndex]!
-    company.status = body.status
-    if (body.status === CompanyStatus.APPROVED) {
-      company.approvedAt = new Date().toISOString()
+    if (body.status) {
+      company.status = body.status
+      if (body.status === CompanyStatus.APPROVED) {
+        company.approvedAt = new Date().toISOString()
+        company.rejectionReason = undefined
+      }
     }
-    if (body.rejectionReason) {
-      company.rejectionReason = body.rejectionReason
+
+    if ('rejectionReason' in body) {
+      if (body.rejectionReason) {
+        company.rejectionReason = body.rejectionReason
+      } else {
+        delete company.rejectionReason
+      }
+    }
+
+    return HttpResponse.json(company)
+  }),
+
+  // Update company profile details
+  http.patch(`${API_URL}/admin/companies/:companyId/profile`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Partial<Company>
+    const companyIndex = mockCompanies.findIndex((c) => c.id === params.companyId)
+    if (companyIndex === -1) {
+      return HttpResponse.json({ message: 'Company not found' }, { status: 404 })
+    }
+
+    const company = mockCompanies[companyIndex]!
+
+    if ('description' in body) {
+      company.description = body.description ?? null
+    }
+    if ('website' in body) {
+      company.website = body.website ?? null
+    }
+    if ('industry' in body) {
+      company.industry = body.industry ?? null
+    }
+    if ('size' in body) {
+      company.size = body.size ?? null
+    }
+    if ('foundedYear' in body) {
+      company.foundedYear = body.foundedYear ?? null
+    }
+
+    if ('socialLinks' in body) {
+      const nextLinks = body.socialLinks || {}
+      company.socialLinks = {
+        linkedin: nextLinks.linkedin ?? null,
+        twitter: nextLinks.twitter ?? null,
+      }
     }
 
     return HttpResponse.json(company)

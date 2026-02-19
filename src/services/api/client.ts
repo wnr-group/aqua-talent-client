@@ -53,8 +53,13 @@ export async function fetchApi<T>(
 
   const token = tokenManager.getToken()
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(fetchOptions.headers as Record<string, string>),
+  }
+
+  const isFormData = fetchOptions.body instanceof FormData
+
+  if (!isFormData) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
   }
 
   if (token) {
