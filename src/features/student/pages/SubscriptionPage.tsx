@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, Minus, Sparkles } from 'lucide-react'
 import Card, { CardContent, CardTitle } from '@/components/common/Card'
 import Alert from '@/components/common/Alert'
@@ -6,6 +7,8 @@ import StudentNavbar from '@/components/layout/StudentNavbar'
 import PricingCard from '@/features/student/components/PricingCard'
 import Badge from '@/components/common/Badge'
 import { api } from '@/services/api/client'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { openRazorpayCheckout } from '@/services/razorpay'
 
 interface ServicePlan {
   _id: string
@@ -39,12 +42,14 @@ interface DashboardResponse {
 }
 
 export default function SubscriptionPage() {
+  const { user } = useAuthContext()
+  const navigate = useNavigate()
   const [services, setServices] = useState<ServicePlan[]>([])
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null)
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [processingServiceId] = useState<string | null>(null)
+  const [processingServiceId, setProcessingServiceId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()

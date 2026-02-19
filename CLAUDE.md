@@ -241,3 +241,10 @@ After making changes:
 - Don't skip TypeScript types
 - Don't forget loading/empty states
 - Don't forget error handling with notifications
+
+## Active Technologies
+- TypeScript 5.6 with React 18.3 + React, Tailwind CSS 4.x, Vite 6.x, Lucide React (icons) (001-student-light-theme)
+- N/A (UI-only change) (001-student-light-theme)
+
+## Recent Changes
+- 001-student-light-theme: Added TypeScript 5.6 with React 18.3 + React, Tailwind CSS 4.x, Vite 6.x, Lucide React (icons)

@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: aqua-talent-client
     ports:
-      - "80:80"
+      - "80:5173"
     volumes:
       # Mount source code for hot reloading
       - .:/app

@@ -31,7 +31,7 @@ import StudentDashboard from '@/features/student/pages/StudentDashboard'
 import StudentApplications from '@/features/student/pages/StudentApplications'
 import StudentProfile from '@/features/student/pages/StudentProfile'
 import SubscriptionPage from '@/features/student/pages/SubscriptionPage'
-import PaymentSuccessPage from '@/features/student/pages/PaymentSuccessPage'
+// import PaymentSuccessPage from '@/features/student/pages/PaymentSuccessPage'
 
 // Admin portal pages
 import AdminDashboard from '@/features/admin/pages/AdminDashboard'
@@ -94,14 +94,14 @@ function PublicRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
+      {/* <Route
         path="/subscription/success"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
             <PaymentSuccessPage />
           </ProtectedRoute>
         }
-      />
+      /> */}
       <Route
         path="/notifications"
         element={
