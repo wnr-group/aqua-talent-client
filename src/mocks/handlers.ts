@@ -4,8 +4,9 @@ import {
   mockStudents,
   mockJobs,
   mockApplications,
-  mockServices,
+  mockSubscriptionPlans,
   mockStudentSubscriptions,
+  mockFreeTierConfig,
   auth,
   findUser,
 } from './data'
@@ -305,7 +306,7 @@ export const handlers = [
     if (mockJobs[jobIndex]!.status !== JobStatus.UNPUBLISHED) {
       return HttpResponse.json({ message: 'Only unpublished jobs can be republished' }, { status: 400 })
     }
-    mockJobs[jobIndex] = { ...mockJobs[jobIndex]!, status: JobStatus.PENDING }
+    mockJobs[jobIndex] = { ...mockJobs[jobIndex]!, status: JobStatus.APPROVED }
     return HttpResponse.json(mockJobs[jobIndex])
   }),
 
@@ -398,10 +399,14 @@ export const handlers = [
 
   // ============ STUDENT ============
 
-  // Available subscription services
+  // Available subscription plans (public endpoint)
   http.get(`${API_URL}/services`, async () => {
     await delay(DELAY_MS)
-    return HttpResponse.json({ services: mockServices })
+    // Return active plans sorted by displayOrder
+    const activePlans = mockSubscriptionPlans
+      .filter((p) => p.isActive)
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+    return HttpResponse.json({ plans: activePlans })
   }),
 
   // Student subscription details
@@ -415,12 +420,19 @@ export const handlers = [
     const current = mockStudentSubscriptions[user.id] || { subscriptionTier: 'free' as const }
 
     if (current.subscriptionTier === 'paid' && current.serviceId && current.endDate) {
-      const service = mockServices.find((item) => item._id === current.serviceId)
+      // Find plan by either id or _id for backwards compatibility
+      const plan = mockSubscriptionPlans.find(
+        (item) => item.id === current.serviceId || item._id === current.serviceId
+      )
 
       return HttpResponse.json({
         subscriptionTier: 'paid',
         currentSubscription: {
-          service: service ? { _id: service._id, name: service.name } : undefined,
+          plan: plan
+            ? { id: plan.id, name: plan.name, tier: plan.tier, maxApplications: plan.maxApplications }
+            : undefined,
+          // Keep service for backwards compatibility
+          service: plan ? { _id: plan._id, name: plan.name } : undefined,
           endDate: current.endDate,
         },
       })
@@ -440,22 +452,36 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const body = (await request.json()) as { serviceId?: string }
-    if (!body.serviceId) {
-      return HttpResponse.json({ message: 'serviceId is required' }, { status: 400 })
+    const body = (await request.json()) as { planId?: string; serviceId?: string }
+    const planIdentifier = body.planId || body.serviceId
+    if (!planIdentifier) {
+      return HttpResponse.json({ message: 'planId or serviceId is required' }, { status: 400 })
     }
 
-    const service = mockServices.find((item) => item._id === body.serviceId)
-    if (!service) {
-      return HttpResponse.json({ message: 'Service not found' }, { status: 404 })
+    // Find plan by either id or _id for backwards compatibility
+    const plan = mockSubscriptionPlans.find(
+      (item) => item.id === planIdentifier || item._id === planIdentifier
+    )
+    if (!plan) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
     }
 
+    // Calculate end date based on billing cycle
     const endDate = new Date()
-    endDate.setMonth(endDate.getMonth() + 1)
+    switch (plan.billingCycle) {
+      case 'yearly':
+        endDate.setFullYear(endDate.getFullYear() + 1)
+        break
+      case 'quarterly':
+        endDate.setMonth(endDate.getMonth() + 3)
+        break
+      default:
+        endDate.setMonth(endDate.getMonth() + 1)
+    }
 
     mockStudentSubscriptions[user.id] = {
-      subscriptionTier: 'paid',
-      serviceId: service._id,
+      subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
+      serviceId: plan.id,
       endDate: endDate.toISOString(),
     }
 
@@ -476,8 +502,23 @@ export const handlers = [
     )
 
     const currentSubscription = mockStudentSubscriptions[user.id]
-    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
-    const applicationLimit = isPaidTier ? null : 2
+
+    // Get application limit from subscription plan
+    let applicationLimit: number | null = 2 // Default free tier limit
+    if (currentSubscription?.serviceId) {
+      const plan = mockSubscriptionPlans.find(
+        (p) => p.id === currentSubscription.serviceId || p._id === currentSubscription.serviceId
+      )
+      if (plan) {
+        applicationLimit = plan.maxApplications
+      }
+    } else {
+      // No subscription, use free tier defaults
+      const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free')
+      if (freePlan) {
+        applicationLimit = freePlan.maxApplications
+      }
+    }
 
     return HttpResponse.json({
       applicationsUsed: studentApps.length,
@@ -1088,6 +1129,417 @@ export const handlers = [
     }
 
     return HttpResponse.json(app)
+  }),
+
+  // Admin students - List with filtering
+  http.get(`${API_URL}/admin/students`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const url = new URL(request.url)
+    const subscriptionTier = url.searchParams.get('subscriptionTier') as 'free' | 'paid' | null
+    const hasActiveApplications = url.searchParams.get('hasActiveApplications')
+    const isHired = url.searchParams.get('isHired')
+    const hasResume = url.searchParams.get('hasResume')
+    const hasVideo = url.searchParams.get('hasVideo')
+    const search = url.searchParams.get('search')?.toLowerCase()
+    const page = parseInt(url.searchParams.get('page') || '1')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100)
+
+    let students = mockStudents.map((s) => {
+      const subscription = mockStudentSubscriptions[s.id]
+      const studentApps = mockApplications.filter(
+        (a) => a.studentId === s.id && a.status !== ApplicationStatus.WITHDRAWN
+      )
+      const activeApps = studentApps.filter(
+        (a) => a.status === ApplicationStatus.PENDING || a.status === ApplicationStatus.REVIEWED
+      )
+
+      return {
+        id: s.id,
+        fullName: s.fullName,
+        email: s.email,
+        subscriptionTier: subscription?.subscriptionTier || 'free',
+        isHired: s.isHired,
+        hasResume: Boolean(s.resumeUrl),
+        hasVideo: Boolean(s.introVideoUrl),
+        totalApplications: studentApps.length,
+        activeApplications: activeApps.length,
+        createdAt: s.createdAt,
+      }
+    })
+
+    // Apply filters
+    if (subscriptionTier) {
+      students = students.filter((s) => s.subscriptionTier === subscriptionTier)
+    }
+    if (hasActiveApplications === 'true') {
+      students = students.filter((s) => s.activeApplications > 0)
+    } else if (hasActiveApplications === 'false') {
+      students = students.filter((s) => s.activeApplications === 0)
+    }
+    if (isHired === 'true') {
+      students = students.filter((s) => s.isHired)
+    } else if (isHired === 'false') {
+      students = students.filter((s) => !s.isHired)
+    }
+    if (hasResume === 'true') {
+      students = students.filter((s) => s.hasResume)
+    } else if (hasResume === 'false') {
+      students = students.filter((s) => !s.hasResume)
+    }
+    if (hasVideo === 'true') {
+      students = students.filter((s) => s.hasVideo)
+    } else if (hasVideo === 'false') {
+      students = students.filter((s) => !s.hasVideo)
+    }
+    if (search) {
+      students = students.filter(
+        (s) => s.fullName.toLowerCase().includes(search) || s.email.toLowerCase().includes(search)
+      )
+    }
+
+    const total = students.length
+    const totalPages = Math.ceil(total / limit)
+    const start = (page - 1) * limit
+    const paginatedStudents = students.slice(start, start + limit)
+
+    return HttpResponse.json({
+      students: paginatedStudents,
+      pagination: { page, limit, total, totalPages },
+    })
+  }),
+
+  // Admin student detail
+  http.get(`${API_URL}/admin/students/:studentId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const student = mockStudents.find((s) => s.id === params.studentId)
+    if (!student) {
+      return HttpResponse.json({ message: 'Student not found' }, { status: 404 })
+    }
+
+    const subscription = mockStudentSubscriptions[student.id]
+    const plan = subscription?.serviceId
+      ? mockSubscriptionPlans.find((p) => p.id === subscription.serviceId || p._id === subscription.serviceId)
+      : null
+
+    const studentApps = mockApplications.filter((a) => a.studentId === student.id)
+
+    // Mock payment history
+    const payments = subscription?.subscriptionTier === 'paid' && plan
+      ? [
+          {
+            id: `pay-${student.id}-1`,
+            amount: plan.price,
+            currency: plan.currency,
+            status: 'completed' as const,
+            paymentDate: subscription.endDate
+              ? new Date(new Date(subscription.endDate).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+              : new Date().toISOString(),
+            paymentMethod: 'Razorpay',
+            transactionId: `txn_${Date.now()}`,
+            plan: { name: plan.name, price: plan.price },
+          },
+        ]
+      : []
+
+    return HttpResponse.json({
+      id: student.id,
+      fullName: student.fullName,
+      email: student.email,
+      profileLink: student.profileLink,
+      bio: student.bio,
+      location: student.location,
+      availableFrom: student.availableFrom,
+      skills: student.skills || [],
+      education: student.education || [],
+      experience: student.experience || [],
+      resumeUrl: student.resumeUrl,
+      introVideoUrl: student.introVideoUrl,
+      isHired: student.isHired,
+      createdAt: student.createdAt,
+
+      subscription: {
+        tier: subscription?.subscriptionTier || 'free',
+        current: subscription?.subscriptionTier === 'paid' && plan
+          ? {
+              id: `sub-${student.id}`,
+              status: 'active' as const,
+              startDate: subscription.endDate
+                ? new Date(new Date(subscription.endDate).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+                : new Date().toISOString(),
+              endDate: subscription.endDate || new Date(2099, 11, 31).toISOString(),
+              autoRenew: plan.billingCycle !== 'one-time',
+              plan: {
+                id: plan.id,
+                name: plan.name,
+                description: plan.description,
+                price: plan.price,
+                billingCycle: plan.billingCycle,
+                features: plan.features,
+              },
+            }
+          : null,
+      },
+
+      payments,
+
+      applications: studentApps.map((a) => ({
+        id: a.id,
+        status: a.status,
+        createdAt: a.createdAt,
+        reviewedAt: a.reviewedAt,
+        rejectionReason: a.rejectionReason,
+        job: a.jobPosting
+          ? {
+              id: a.jobPosting.id,
+              title: a.jobPosting.title,
+              location: a.jobPosting.location,
+              jobType: a.jobPosting.jobType,
+              salaryRange: a.jobPosting.salaryRange,
+              status: a.jobPosting.status,
+              company: a.jobPosting.company,
+            }
+          : null,
+      })),
+    })
+  }),
+
+  // Admin assign subscription to student
+  http.patch(`${API_URL}/admin/students/:studentId/subscription`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const student = mockStudents.find((s) => s.id === params.studentId)
+    if (!student) {
+      return HttpResponse.json({ message: 'Student not found' }, { status: 404 })
+    }
+
+    const body = (await request.json()) as {
+      serviceId: string
+      endDate?: string
+      autoRenew?: boolean
+    }
+
+    if (!body.serviceId) {
+      return HttpResponse.json({ message: 'serviceId is required' }, { status: 400 })
+    }
+
+    const plan = mockSubscriptionPlans.find((p) => p.id === body.serviceId || p._id === body.serviceId)
+    if (!plan) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    // Calculate end date
+    let endDate: string
+    if (body.endDate) {
+      endDate = body.endDate
+    } else if (plan.billingCycle === 'one-time') {
+      endDate = new Date(2099, 11, 31).toISOString()
+    } else {
+      const end = new Date()
+      switch (plan.billingCycle) {
+        case 'yearly':
+          end.setFullYear(end.getFullYear() + 1)
+          break
+        case 'quarterly':
+          end.setMonth(end.getMonth() + 3)
+          break
+        default:
+          end.setMonth(end.getMonth() + 1)
+      }
+      endDate = end.toISOString()
+    }
+
+    // Update subscription
+    mockStudentSubscriptions[student.id] = {
+      subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
+      serviceId: plan.id,
+      endDate,
+    }
+
+    return HttpResponse.json({
+      success: true,
+      message: `Successfully assigned ${plan.name} plan to ${student.fullName}`,
+      subscription: {
+        id: `sub-${student.id}`,
+        status: 'active',
+        startDate: new Date().toISOString(),
+        endDate,
+        autoRenew: body.autoRenew ?? (plan.billingCycle !== 'one-time'),
+        plan: {
+          id: plan.id,
+          name: plan.name,
+          description: plan.description,
+          price: plan.price,
+          billingCycle: plan.billingCycle,
+          tier: plan.tier,
+        },
+      },
+    })
+  }),
+
+  // Admin subscription plans - List all
+  http.get(`${API_URL}/admin/subscription-plans`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Return all plans (including inactive) sorted by displayOrder
+    const plans = [...mockSubscriptionPlans].sort((a, b) => a.displayOrder - b.displayOrder)
+    return HttpResponse.json({ plans })
+  }),
+
+  // Admin subscription plans - Get single
+  http.get(`${API_URL}/admin/subscription-plans/:planId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const plan = mockSubscriptionPlans.find((p) => p.id === params.planId)
+    if (!plan) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    return HttpResponse.json(plan)
+  }),
+
+  // Admin subscription plans - Create
+  http.post(`${API_URL}/admin/subscription-plans`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Omit<
+      (typeof mockSubscriptionPlans)[0],
+      'id' | '_id' | 'createdAt' | 'updatedAt'
+    >
+
+    const now = new Date().toISOString()
+    const newPlan = {
+      ...body,
+      id: `plan-${Date.now()}`,
+      _id: `plan-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    mockSubscriptionPlans.push(newPlan)
+    return HttpResponse.json(newPlan, { status: 201 })
+  }),
+
+  // Admin subscription plans - Update
+  http.patch(`${API_URL}/admin/subscription-plans/:planId`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const planIndex = mockSubscriptionPlans.findIndex((p) => p.id === params.planId)
+    if (planIndex === -1) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    const body = (await request.json()) as Partial<(typeof mockSubscriptionPlans)[0]>
+    const plan = mockSubscriptionPlans[planIndex]!
+
+    // Update allowed fields
+    if (body.name !== undefined) plan.name = body.name
+    if (body.tier !== undefined) plan.tier = body.tier
+    if (body.description !== undefined) plan.description = body.description
+    if (body.maxApplications !== undefined) plan.maxApplications = body.maxApplications
+    if (body.price !== undefined) plan.price = body.price
+    if (body.currency !== undefined) plan.currency = body.currency
+    if (body.billingCycle !== undefined) plan.billingCycle = body.billingCycle
+    if (body.trialDays !== undefined) plan.trialDays = body.trialDays
+    if (body.discount !== undefined) plan.discount = body.discount
+    if (body.features !== undefined) plan.features = body.features
+    if (body.badge !== undefined) plan.badge = body.badge
+    if (body.displayOrder !== undefined) plan.displayOrder = body.displayOrder
+    if (body.resumeDownloadsPerMonth !== undefined) plan.resumeDownloadsPerMonth = body.resumeDownloadsPerMonth
+    if (body.videoViewsPerMonth !== undefined) plan.videoViewsPerMonth = body.videoViewsPerMonth
+    if (body.prioritySupport !== undefined) plan.prioritySupport = body.prioritySupport
+    if (body.profileBoost !== undefined) plan.profileBoost = body.profileBoost
+    if (body.applicationHighlight !== undefined) plan.applicationHighlight = body.applicationHighlight
+    if (body.isActive !== undefined) plan.isActive = body.isActive
+    plan.updatedAt = new Date().toISOString()
+
+    return HttpResponse.json(plan)
+  }),
+
+  // Admin subscription plans - Delete (soft delete by deactivating)
+  http.delete(`${API_URL}/admin/subscription-plans/:planId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const planIndex = mockSubscriptionPlans.findIndex((p) => p.id === params.planId)
+    if (planIndex === -1) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    // Soft delete by deactivating
+    mockSubscriptionPlans[planIndex]!.isActive = false
+    mockSubscriptionPlans[planIndex]!.updatedAt = new Date().toISOString()
+
+    return HttpResponse.json({ success: true })
+  }),
+
+  // Admin free tier configuration - Get
+  http.get(`${API_URL}/admin/config/free-tier`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    return HttpResponse.json(mockFreeTierConfig)
+  }),
+
+  // Admin free tier configuration - Update
+  http.patch(`${API_URL}/admin/config/free-tier`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as Partial<typeof mockFreeTierConfig>
+
+    if (body.free_tier_max_applications !== undefined) {
+      mockFreeTierConfig.free_tier_max_applications = body.free_tier_max_applications
+    }
+    if (body.free_tier_features !== undefined) {
+      mockFreeTierConfig.free_tier_features = body.free_tier_features
+    }
+    if (body.free_tier_resume_downloads !== undefined) {
+      mockFreeTierConfig.free_tier_resume_downloads = body.free_tier_resume_downloads
+    }
+    if (body.free_tier_video_views !== undefined) {
+      mockFreeTierConfig.free_tier_video_views = body.free_tier_video_views
+    }
+
+    return HttpResponse.json(mockFreeTierConfig)
   }),
 
   // ============ PUBLIC ============

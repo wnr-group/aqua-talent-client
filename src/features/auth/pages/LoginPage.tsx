@@ -422,12 +422,12 @@ export default function LoginPage() {
                 {isAdminLogin ? (
                   'Admin: admin / password123'
                 ) : isCompanyLogin ? (
-                  'Company: acme / password123'
+                  'Company: infosys / password123'
                 ) : (
                   <>
-                    Student: john / password123
+                    Student: rahul / password123
                     <br />
-                    Company: acme / password123
+                    Company: infosys / password123
                   </>
                 )}
               </span>

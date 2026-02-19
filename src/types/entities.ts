@@ -121,3 +121,61 @@ export interface InAppNotification {
   isRead: boolean
   createdAt: string
 }
+
+// Subscription Plans
+export type SubscriptionTier = 'free' | 'paid'
+export type SubscriptionCurrency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
+export type BillingCycle = 'monthly' | 'quarterly' | 'yearly' | 'one-time'
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled'
+
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  tier: SubscriptionTier
+  description: string
+  maxApplications: number | null // null = unlimited
+  price: number
+  currency: SubscriptionCurrency
+  billingCycle: BillingCycle
+  trialDays: number
+  discount: number // 0-100
+  features: string[]
+  badge: string | null // "Popular", "Best Value"
+  displayOrder: number
+  resumeDownloadsPerMonth: number | null
+  videoViewsPerMonth: number | null
+  prioritySupport: boolean
+  profileBoost: boolean
+  applicationHighlight: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FreeTierConfig {
+  maxApplications: number | null
+  features: string[]
+  resumeDownloadsPerMonth: number | null
+  videoViewsPerMonth: number | null
+}
+
+export interface StudentSubscription {
+  id: string
+  plan: {
+    id: string
+    name: string
+    tier: SubscriptionTier
+    maxApplications: number | null
+    features: string[]
+  }
+  status: SubscriptionStatus
+  startDate: string
+  endDate: string
+  autoRenew: boolean
+}
+
+export interface SubscriptionUsage {
+  applicationsUsed: number
+  applicationsLimit: number | null
+  applicationsRemaining: number | null
+}

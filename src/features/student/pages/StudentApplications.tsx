@@ -1,25 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuthContext } from '@/contexts/AuthContext'
+import { Link } from 'react-router-dom'
 import { useNotification } from '@/contexts/NotificationContext'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import StudentNavbar from '@/components/layout/StudentNavbar'
 import { Application, ApplicationStatus } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
 import {
-  LogOut,
   Briefcase,
   FileText,
-  User,
   ExternalLink,
   XCircle,
   CheckCircle,
   Clock,
   AlertCircle,
-  Gem
 } from 'lucide-react'
-import Logo from '@/components/common/Logo'
-import NotificationBell from '@/components/common/NotificationBell'
 
 const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border: string; icon: typeof Clock }> = {
   [ApplicationStatus.PENDING]: {
@@ -55,8 +50,6 @@ const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border
 }
 
 export default function StudentApplications() {
-  const { logout } = useAuthContext()
-  const navigate = useNavigate()
   const { success, error: showError } = useNotification()
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -96,11 +89,6 @@ export default function StudentApplications() {
     fetchApplications()
   }, [])
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
-
   const handleWithdraw = async (applicationId: string) => {
     try {
       await api.patch(`/student/applications/${applicationId}/withdraw`)
@@ -130,57 +118,9 @@ export default function StudentApplications() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-teal-600 shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-3">
-              <Logo size="md" />
-            </Link>
+      <StudentNavbar />
 
-            <div className="flex items-center gap-6">
-              <Link
-                to="/jobs"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Browse Jobs
-              </Link>
-              <Link
-                to="/my-applications"
-                className="text-white flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                My Applications
-              </Link>
-              <Link
-                to="/profile"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Profile
-              </Link>
-              <Link
-                to="/subscription"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <Gem className="w-4 h-4" />
-                Subscription
-              </Link>
-              <NotificationBell notificationsPath="/notifications" variant="dark" />
-              <button
-                onClick={handleLogout}
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">My Applications</h1>

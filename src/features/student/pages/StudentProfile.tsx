@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-  LogOut,
-  Briefcase,
-  FileText,
-  User,
   Save,
   X,
   Info,
@@ -16,11 +11,10 @@ import {
   Video,
   MapPin,
   CalendarClock,
-  Gem,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Badge from '@/components/common/Badge'
-import Logo from '@/components/common/Logo'
+import StudentNavbar from '@/components/layout/StudentNavbar'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
 import { api, fetchApi } from '@/services/api/client'
@@ -29,7 +23,6 @@ import SkillsSection from '@/features/student/components/SkillsSection'
 import EducationSection from '@/features/student/components/EducationSection'
 import ExperienceSection from '@/features/student/components/ExperienceSection'
 import ProfileCompleteness from '@/features/student/components/ProfileCompleteness'
-import NotificationBell from '@/components/common/NotificationBell'
 import type {
   StudentProfileFormValues,
   ProfileCompletenessData,
@@ -234,8 +227,7 @@ function mapFormValuesToPayload(values: StudentProfileFormValues) {
 }
 
 export default function StudentProfile() {
-  const { user, refreshUser, logout } = useAuthContext()
-  const navigate = useNavigate()
+  const { user, refreshUser } = useAuthContext()
   const { success, error: showError } = useNotification()
 
   const [isFetching, setIsFetching] = useState(true)
@@ -312,11 +304,6 @@ export default function StudentProfile() {
     fetchProfile()
     fetchCompleteness()
   }, [fetchProfile, fetchCompleteness])
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
 
   const handleResumeUpload = async (file?: File) => {
     if (!file) return
@@ -481,56 +468,9 @@ export default function StudentProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-teal-600 shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-3">
-              <Logo size="md" />
-            </Link>
+      <StudentNavbar />
 
-            <div className="flex items-center gap-6">
-              <Link
-                to="/jobs"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Browse Jobs
-              </Link>
-              <Link
-                to="/my-applications"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                My Applications
-              </Link>
-              <Link
-                to="/profile"
-                className="text-white flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Profile
-              </Link>
-              <Link
-                to="/subscription"
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <Gem className="w-4 h-4" />
-                Subscription
-              </Link>
-              <NotificationBell notificationsPath="/notifications" variant="dark" />
-              <button
-                onClick={handleLogout}
-                className="text-white/80 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
         <div className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>

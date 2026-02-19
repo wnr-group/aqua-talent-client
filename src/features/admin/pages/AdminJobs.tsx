@@ -3,13 +3,16 @@ import { PageContainer } from '@/components/layout'
 import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
+import Badge from '@/components/common/Badge'
+import Alert from '@/components/common/Alert'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Modal from '@/components/common/Modal'
+import MediaImage from '@/components/common/MediaImage'
 import { useNotification } from '@/contexts/NotificationContext'
-import { JobPosting, JobStatus, JOB_TYPES } from '@/types'
+import { JobPosting, JobStatus, JOB_TYPES, Company, CompanyStatus } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, MapPin, ChevronLeft, ChevronRight, Globe, Linkedin, Twitter } from 'lucide-react'
 
 const statusStyles: Record<JobStatus, { bg: string; text: string }> = {
   [JobStatus.DRAFT]: { bg: 'bg-gray-100', text: 'text-gray-600' },
@@ -41,6 +44,32 @@ export default function AdminJobs() {
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
+
+  // Company profile modal state
+  const [showCompanyModal, setShowCompanyModal] = useState(false)
+  const [companyProfile, setCompanyProfile] = useState<Company | null>(null)
+  const [companyLoading, setCompanyLoading] = useState(false)
+  const [companyError, setCompanyError] = useState<string | null>(null)
+
+  const openCompanyProfile = async (companyId: string) => {
+    setShowCompanyModal(true)
+    setCompanyLoading(true)
+    setCompanyError(null)
+    try {
+      const data = await api.get<Company>(`/admin/companies/${companyId}`)
+      setCompanyProfile(data)
+    } catch {
+      setCompanyError('Failed to load company profile')
+    } finally {
+      setCompanyLoading(false)
+    }
+  }
+
+  const closeCompanyModal = () => {
+    setShowCompanyModal(false)
+    setCompanyProfile(null)
+    setCompanyError(null)
+  }
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -210,13 +239,20 @@ export default function AdminJobs() {
                   <div className="flex-1">
                     <button
                       onClick={() => openDetailModal(job)}
-                      className="font-semibold text-gray-900 hover:text-blue-600 text-left"
+                      className="block font-semibold text-gray-900 hover:text-blue-600 text-left"
                     >
                       {job.title}
                     </button>
-                    <p className="text-sm text-blue-600">
-                      {job.company?.name ?? 'Unknown Company'}
-                    </p>
+                    {job.company?.id ? (
+                      <button
+                        onClick={() => openCompanyProfile(job.company!.id)}
+                        className="block text-sm text-blue-600 hover:text-blue-700 hover:underline text-left"
+                      >
+                        {job.company.name}
+                      </button>
+                    ) : (
+                      <p className="text-sm text-gray-500">Unknown Company</p>
+                    )}
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
                       <span>{job.location}</span>
                       <span>{job.jobType}</span>
@@ -371,35 +407,47 @@ export default function AdminJobs() {
         size="lg"
       >
         {selectedJob && (
-          <div className="space-y-4">
+          <div className="space-y-4 text-gray-900">
             <div>
               <p className="text-sm text-gray-500">Company</p>
-              <p className="font-medium">{selectedJob.company?.name ?? 'Unknown'}</p>
+              {selectedJob.company?.id ? (
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false)
+                    openCompanyProfile(selectedJob.company!.id)
+                  }}
+                  className="font-medium text-blue-600 hover:text-blue-700 hover:underline text-left"
+                >
+                  {selectedJob.company.name}
+                </button>
+              ) : (
+                <p className="font-medium text-gray-900">Unknown</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Location</p>
-                <p>{selectedJob.location}</p>
+                <p className="text-gray-900">{selectedJob.location}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Type</p>
-                <p>{selectedJob.jobType}</p>
+                <p className="text-gray-900">{selectedJob.jobType}</p>
               </div>
             </div>
             {selectedJob.salaryRange && (
               <div>
                 <p className="text-sm text-gray-500">Salary Range</p>
-                <p>{selectedJob.salaryRange}</p>
+                <p className="text-gray-900">{selectedJob.salaryRange}</p>
               </div>
             )}
             <div>
               <p className="text-sm text-gray-500">Description</p>
-              <p className="whitespace-pre-wrap">{selectedJob.description}</p>
+              <p className="whitespace-pre-wrap text-gray-800">{selectedJob.description}</p>
             </div>
             {selectedJob.requirements && (
               <div>
                 <p className="text-sm text-gray-500">Requirements</p>
-                <p className="whitespace-pre-wrap">{selectedJob.requirements}</p>
+                <p className="whitespace-pre-wrap text-gray-800">{selectedJob.requirements}</p>
               </div>
             )}
             {selectedJob.status === JobStatus.REJECTED && selectedJob.rejectionReason && (
@@ -451,6 +499,128 @@ export default function AdminJobs() {
               )}
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Company Profile Modal */}
+      <Modal
+        isOpen={showCompanyModal}
+        onClose={closeCompanyModal}
+        title={companyProfile?.name || 'Company Profile'}
+        size="lg"
+      >
+        {companyLoading ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : companyError ? (
+          <Alert variant="warning">{companyError}</Alert>
+        ) : companyProfile ? (
+          <div className="space-y-4 text-gray-900">
+            {companyProfile.logo && (
+              <div className="flex items-center gap-3">
+                <MediaImage
+                  src={companyProfile.logo}
+                  alt={`${companyProfile.name} logo`}
+                  className="h-14 w-14 rounded-lg border border-gray-200 object-cover"
+                />
+                <div>
+                  <p className="text-sm text-gray-500">Logo</p>
+                  <p className="font-medium text-gray-900">{companyProfile.name}</p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium text-gray-900">{companyProfile.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                <Badge variant={companyProfile.status === CompanyStatus.APPROVED ? 'success' : 'secondary'}>
+                  {companyProfile.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Industry</p>
+                <p className="font-medium text-gray-900">{companyProfile.industry || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Company Size</p>
+                <p className="font-medium text-gray-900">{companyProfile.size || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Founded</p>
+                <p className="font-medium text-gray-900">{companyProfile.foundedYear || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Website</p>
+                {companyProfile.website ? (
+                  <a
+                    href={companyProfile.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Globe className="w-3 h-3" />
+                    {companyProfile.website}
+                  </a>
+                ) : (
+                  <p className="font-medium text-gray-900">—</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Description</p>
+              <p className="mt-1 text-gray-800 whitespace-pre-line">
+                {companyProfile.description || 'No description provided.'}
+              </p>
+            </div>
+            <div className="text-sm text-gray-500">
+              <p className="font-medium text-gray-900 mb-1">Social Links</p>
+              <div className="flex gap-4">
+                {companyProfile.socialLinks?.linkedin ? (
+                  <a
+                    href={companyProfile.socialLinks.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                    LinkedIn
+                  </a>
+                ) : (
+                  <span className="text-gray-400 flex items-center gap-1">
+                    <Linkedin className="w-4 h-4" />
+                    —
+                  </span>
+                )}
+                {companyProfile.socialLinks?.twitter ? (
+                  <a
+                    href={companyProfile.socialLinks.twitter}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Twitter className="w-4 h-4" />
+                    Twitter
+                  </a>
+                ) : (
+                  <span className="text-gray-400 flex items-center gap-1">
+                    <Twitter className="w-4 h-4" />
+                    —
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <Button variant="outline" onClick={closeCompanyModal}>
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Alert variant="info">Select a company to view its profile.</Alert>
         )}
       </Modal>
     </PageContainer>

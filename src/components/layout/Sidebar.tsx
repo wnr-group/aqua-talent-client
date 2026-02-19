@@ -8,6 +8,8 @@ import {
   User,
   Building2,
   CheckSquare,
+  Crown,
+  Users,
 } from 'lucide-react'
 import { ReactNode } from 'react'
 
@@ -37,9 +39,10 @@ const studentNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Companies', path: '/companies', icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Students', path: '/students', icon: <Users className="w-5 h-5" /> },
   { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
   { label: 'Applications', path: '/applications', icon: <CheckSquare className="w-5 h-5" /> },
-  { label: 'Company Profiles', path: '/companies/profiles', icon: <User className="w-5 h-5" /> },
+  { label: 'Subscription Plans', path: '/subscription-plans', icon: <Crown className="w-5 h-5" /> },
 ]
 
 const navItemsByUserType: Record<UserType, NavItem[]> = {

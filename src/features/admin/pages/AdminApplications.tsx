@@ -7,7 +7,7 @@ import Badge from '@/components/common/Badge'
 import Input from '@/components/common/Input'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Modal from '@/components/common/Modal'
-import { Application, ApplicationStatus, JOB_TYPES } from '@/types'
+import { Application, ApplicationStatus, JOB_TYPES, JobPosting } from '@/types'
 import { api } from '@/services/api/client'
 import { useNotification } from '@/contexts/NotificationContext'
 import { format } from 'date-fns'
@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  DollarSign,
+  Clock,
 } from 'lucide-react'
 
 const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
@@ -66,10 +68,29 @@ export default function AdminApplications() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [selectedStudentName, setSelectedStudentName] = useState<string>('')
 
+  // Job detail modal
+  const [jobModalOpen, setJobModalOpen] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null)
+  const [isLoadingJob, setIsLoadingJob] = useState(false)
+
   const openStudentProfile = (studentId: string, studentName: string) => {
     setSelectedStudentId(studentId)
     setSelectedStudentName(studentName)
     setStudentProfileModalOpen(true)
+  }
+
+  const openJobDetail = async (jobId: string) => {
+    setJobModalOpen(true)
+    setIsLoadingJob(true)
+    try {
+      const job = await api.get<JobPosting>(`/admin/jobs/${jobId}`)
+      setSelectedJob(job)
+    } catch {
+      showError('Failed to load job details')
+      setJobModalOpen(false)
+    } finally {
+      setIsLoadingJob(false)
+    }
   }
 
   useEffect(() => {
@@ -312,10 +333,13 @@ export default function AdminApplications() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => app.jobPosting?.id && openJobDetail(app.jobPosting.id)}
+                              className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                            >
                               <Briefcase className="w-4 h-4" />
-                              {app.jobPosting?.title ?? 'Unknown Job'}
-                            </div>
+                              <span className="underline">{app.jobPosting?.title ?? 'Unknown Job'}</span>
+                            </button>
                             <div className="flex items-center gap-1.5">
                               <Building2 className="w-4 h-4" />
                               {app.jobPosting?.company?.name ?? 'Unknown Company'}
@@ -496,6 +520,115 @@ export default function AdminApplications() {
         studentId={selectedStudentId}
         studentName={selectedStudentName}
       />
+
+      {/* Job Detail Modal */}
+      <Modal
+        isOpen={jobModalOpen}
+        onClose={() => {
+          setJobModalOpen(false)
+          setSelectedJob(null)
+        }}
+        title="Job Details"
+        size="lg"
+      >
+        {isLoadingJob ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : selectedJob ? (
+          <div className="space-y-6">
+            {/* Header */}
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">{selectedJob.title}</h3>
+              <p className="text-gray-500 mt-1">{selectedJob.company?.name}</p>
+            </div>
+
+            {/* Key Info Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-600">{selectedJob.location}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Briefcase className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-600">{selectedJob.jobType}</span>
+              </div>
+              {selectedJob.salaryRange && (
+                <div className="flex items-center gap-2 text-sm">
+                  <DollarSign className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">{selectedJob.salaryRange}</span>
+                </div>
+              )}
+              {selectedJob.deadline && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">Deadline: {format(new Date(selectedJob.deadline), 'MMM d, yyyy')}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedJob.description}</p>
+            </div>
+
+            {/* Requirements */}
+            {selectedJob.requirements && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Requirements</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedJob.requirements}</p>
+              </div>
+            )}
+
+            {/* Company Info */}
+            {selectedJob.company && (
+              <div className="pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">About the Company</h4>
+                <div className="space-y-2">
+                  {selectedJob.company.industry && (
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Industry:</span> {selectedJob.company.industry}
+                    </p>
+                  )}
+                  {selectedJob.company.size && (
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Size:</span> {selectedJob.company.size}
+                    </p>
+                  )}
+                  {selectedJob.company.website && (
+                    <a
+                      href={selectedJob.company.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Visit Website
+                    </a>
+                  )}
+                  {selectedJob.company.description && (
+                    <p className="text-sm text-gray-600 mt-2">{selectedJob.company.description}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setJobModalOpen(false)
+                  setSelectedJob(null)
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </PageContainer>
   )
 }

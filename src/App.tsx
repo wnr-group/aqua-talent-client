@@ -38,7 +38,9 @@ import AdminDashboard from '@/features/admin/pages/AdminDashboard'
 import AdminCompanies from '@/features/admin/pages/AdminCompanies'
 import AdminJobs from '@/features/admin/pages/AdminJobs'
 import AdminApplications from '@/features/admin/pages/AdminApplications'
-import AdminCompanyProfile from '@/features/admin/pages/AdminCompanyProfile'
+import AdminSubscriptionPlans from '@/features/admin/pages/AdminSubscriptionPlans'
+import AdminStudents from '@/features/admin/pages/AdminStudents'
+import AdminStudentDetail from '@/features/admin/pages/AdminStudentDetail'
 
 // Portal-specific notification pages
 import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
@@ -213,23 +215,6 @@ function AdminPortalRoutes() {
       />
 
       <Route
-        path="/companies/profiles"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-            <AdminCompanyProfile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/companies/profiles/:companyId"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
-            <AdminCompanyProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/jobs"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
@@ -242,6 +227,30 @@ function AdminPortalRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
             <AdminApplications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription-plans"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminSubscriptionPlans />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/students"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminStudents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/students/:studentId"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminStudentDetail />
           </ProtectedRoute>
         }
       />

@@ -3,8 +3,8 @@ import { CompanyStatus, JobStatus, ApplicationStatus, UserType } from '@/types/e
 
 // Test credentials:
 // Admin:   username: admin,   password: password123
-// Company: username: acme,    password: password123
-// Student: username: john,    password: password123
+// Company: username: infosys, password: password123
+// Student: username: rahul,   password: password123
 
 export const mockAdmin: Admin = {
   id: 'admin-1',
@@ -17,41 +17,43 @@ export const mockAdmin: Admin = {
 export const mockCompanies: Company[] = [
   {
     id: 'company-1',
-    username: 'acme',
-    name: 'Acme Corporation',
-    email: 'hr@acme.com',
+    username: 'infosys',
+    name: 'Infosys Technologies',
+    email: 'careers@infosys.com',
     status: CompanyStatus.APPROVED,
     createdAt: '2024-01-15T00:00:00Z',
     approvedAt: '2024-01-16T00:00:00Z',
-    description: 'Acme builds innovative tooling and infrastructure for modern product teams.',
-    website: 'https://acme.com',
-    industry: 'Technology',
-    size: '201-500',
+    description: 'Infosys is a global leader in next-generation digital services and consulting.',
+    website: 'https://infosys.com',
+    industry: 'Information Technology',
+    size: '1000+',
     socialLinks: {
-      linkedin: 'https://linkedin.com/company/acme',
-      twitter: 'https://twitter.com/acme',
+      linkedin: 'https://linkedin.com/company/infosys',
+      twitter: 'https://twitter.com/infosys',
     },
-    foundedYear: 1998,
+    foundedYear: 1981,
   },
   {
     id: 'company-2',
-    username: 'techstart',
-    name: 'TechStart Inc',
-    email: 'jobs@techstart.io',
+    username: 'tcs',
+    name: 'Tata Consultancy Services',
+    email: 'careers@tcs.com',
     status: CompanyStatus.PENDING,
     createdAt: '2024-02-01T00:00:00Z',
-    industry: 'Technology',
-    size: '51-200',
+    description: 'TCS is an IT services, consulting and business solutions organization.',
+    website: 'https://tcs.com',
+    industry: 'Information Technology',
+    size: '1000+',
   },
   {
     id: 'company-3',
-    username: 'globalco',
-    name: 'Global Co',
-    email: 'careers@globalco.com',
+    username: 'wipro',
+    name: 'Wipro Limited',
+    email: 'careers@wipro.com',
     status: CompanyStatus.REJECTED,
     createdAt: '2024-01-20T00:00:00Z',
     rejectionReason: 'Incomplete registration information',
-    industry: 'Manufacturing',
+    industry: 'Information Technology',
     size: '1000+',
   },
 ]
@@ -59,27 +61,27 @@ export const mockCompanies: Company[] = [
 export const mockStudents: Student[] = [
   {
     id: 'student-1',
-    username: 'john',
-    fullName: 'John Doe',
-    email: 'john.doe@email.com',
-    profileLink: 'https://linkedin.com/in/johndoe',
+    username: 'rahul',
+    fullName: 'Rahul Sharma',
+    email: 'rahul.sharma@email.com',
+    profileLink: 'https://linkedin.com/in/rahulsharma',
     isHired: false,
     createdAt: '2024-01-10T00:00:00Z',
   },
   {
     id: 'student-2',
-    username: 'jane',
-    fullName: 'Jane Smith',
-    email: 'jane.smith@email.com',
-    profileLink: 'https://linkedin.com/in/janesmith',
+    username: 'priya',
+    fullName: 'Priya Patel',
+    email: 'priya.patel@email.com',
+    profileLink: 'https://linkedin.com/in/priyapatel',
     isHired: false,
     createdAt: '2024-01-12T00:00:00Z',
   },
   {
     id: 'student-3',
-    username: 'bob',
-    fullName: 'Bob Wilson',
-    email: 'bob.wilson@email.com',
+    username: 'amit',
+    fullName: 'Amit Kumar',
+    email: 'amit.kumar@email.com',
     profileLink: null,
     isHired: true,
     createdAt: '2024-01-08T00:00:00Z',
@@ -203,29 +205,172 @@ export const mockApplications: Application[] = [
   },
 ]
 
-export interface MockServicePlan {
-  _id: string
+export interface MockSubscriptionPlan {
+  id: string
+  _id: string // For backwards compatibility
   name: string
-  price: number
+  tier: 'free' | 'paid'
   description: string
+  maxApplications: number | null
+  price: number
+  currency: 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
+  billingCycle: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
+  trialDays: number
+  discount: number
   features: string[]
-  maxApplications?: number
+  badge: string | null
+  displayOrder: number
+  resumeDownloadsPerMonth: number | null
+  videoViewsPerMonth: number | null
+  prioritySupport: boolean
+  profileBoost: boolean
+  applicationHighlight: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
-export const mockServices: MockServicePlan[] = [
+export interface MockFreeTierConfig {
+  free_tier_max_applications: number
+  free_tier_features: string[]
+  free_tier_resume_downloads: number | null
+  free_tier_video_views: number | null
+}
+
+export const mockFreeTierConfig: MockFreeTierConfig = {
+  free_tier_max_applications: 2,
+  free_tier_features: [
+    'Up to 2 active applications',
+    'Basic profile visibility',
+    'Standard email notifications',
+  ],
+  free_tier_resume_downloads: 5,
+  free_tier_video_views: 10,
+}
+
+export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
   {
-    _id: 'service-pro-monthly',
-    name: 'Pro',
+    id: 'plan-free',
+    _id: 'plan-free',
+    name: 'Free',
+    tier: 'free',
+    description: 'Great for getting started with your job search.',
+    maxApplications: 2,
+    price: 0,
+    currency: 'INR',
+    billingCycle: 'monthly',
+    trialDays: 0,
+    discount: 0,
+    features: [
+      'Up to 2 active applications',
+      'Basic profile visibility',
+      'Standard email notifications',
+    ],
+    badge: null,
+    displayOrder: 1,
+    resumeDownloadsPerMonth: 5,
+    videoViewsPerMonth: 10,
+    prioritySupport: false,
+    profileBoost: false,
+    applicationHighlight: false,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'plan-pro-monthly',
+    _id: 'service-pro-monthly', // Keep old ID for backwards compatibility
+    name: 'Pro Monthly',
+    tier: 'paid',
+    description: 'For serious job seekers who want unlimited applications.',
+    maxApplications: null,
     price: 499,
-    description: 'For serious job seekers who want more applications and priority support.',
+    currency: 'INR',
+    billingCycle: 'monthly',
+    trialDays: 7,
+    discount: 0,
     features: [
       'Unlimited active applications',
       'Priority support',
       'Featured profile visibility',
       'Early access to premium jobs',
     ],
+    badge: 'Popular',
+    displayOrder: 2,
+    resumeDownloadsPerMonth: null,
+    videoViewsPerMonth: null,
+    prioritySupport: true,
+    profileBoost: true,
+    applicationHighlight: true,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'plan-pro-yearly',
+    _id: 'plan-pro-yearly',
+    name: 'Pro Yearly',
+    tier: 'paid',
+    description: 'Best value for committed job seekers. Save 20%!',
+    maxApplications: null,
+    price: 4790,
+    currency: 'INR',
+    billingCycle: 'yearly',
+    trialDays: 14,
+    discount: 20,
+    features: [
+      'Unlimited active applications',
+      'Priority support',
+      'Featured profile visibility',
+      'Early access to premium jobs',
+      'Resume review by experts',
+    ],
+    badge: 'Best Value',
+    displayOrder: 3,
+    resumeDownloadsPerMonth: null,
+    videoViewsPerMonth: null,
+    prioritySupport: true,
+    profileBoost: true,
+    applicationHighlight: true,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'plan-lifetime',
+    _id: 'plan-lifetime',
+    name: 'Lifetime',
+    tier: 'paid',
+    description: 'One-time payment for lifetime access. Never pay again!',
+    maxApplications: null,
+    price: 9999,
+    currency: 'INR',
+    billingCycle: 'one-time',
+    trialDays: 0,
+    discount: 0,
+    features: [
+      'Unlimited active applications',
+      'Priority support',
+      'Featured profile visibility',
+      'Early access to premium jobs',
+      'Resume review by experts',
+      'Lifetime access - never expires',
+    ],
+    badge: 'Lifetime',
+    displayOrder: 4,
+    resumeDownloadsPerMonth: null,
+    videoViewsPerMonth: null,
+    prioritySupport: true,
+    profileBoost: true,
+    applicationHighlight: true,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   },
 ]
+
+// Legacy alias for backwards compatibility
+export const mockServices = mockSubscriptionPlans
 
 type StudentSubscription = {
   subscriptionTier: 'free' | 'paid'
