@@ -50,11 +50,24 @@ export function InAppNotificationProvider({ children }: { children: ReactNode })
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return
     try {
-      const data = await api.get<{ notifications: InAppNotification[] }>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await api.get<{ notifications: any[] }>(
         '/notifications',
         { limit: 100 }
       )
-      setAllNotifications(data.notifications ?? [])
+      // Normalize backend response (_id -> id)
+      const normalized: InAppNotification[] = (data.notifications ?? []).map((n) => ({
+        id: n.id || n._id,
+        recipientId: n.recipientId,
+        recipientType: n.recipientType,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        link: n.link,
+        isRead: n.isRead,
+        createdAt: n.createdAt,
+      }))
+      setAllNotifications(normalized)
     } catch {
       // silently ignore — non-critical feature
     }
