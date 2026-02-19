@@ -375,6 +375,25 @@ export default function StudentProfile() {
     }
   }
 
+  const [isDeletingVideo, setIsDeletingVideo] = useState(false)
+
+  const handleVideoDelete = async () => {
+    setVideoError(null)
+    setIsDeletingVideo(true)
+    try {
+      await api.delete('/student/profile/video')
+      setValue('introVideoUrl', '', { shouldDirty: false, shouldValidate: true })
+      success('Intro video deleted successfully')
+      await fetchCompleteness()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete video'
+      setVideoError(message)
+      showError(message)
+    } finally {
+      setIsDeletingVideo(false)
+    }
+  }
+
   const onSubmit = async (values: StudentProfileFormValues) => {
     setIsSaving(true)
     try {
@@ -680,12 +699,11 @@ export default function StudentProfile() {
                           </a>
                           <button
                             type="button"
-                            onClick={() =>
-                              setValue('introVideoUrl', '', { shouldDirty: true, shouldValidate: true })
-                            }
-                            className="text-red-600 hover:underline"
+                            onClick={handleVideoDelete}
+                            disabled={isDeletingVideo}
+                            className="text-red-600 hover:underline disabled:opacity-50"
                           >
-                            Remove video
+                            {isDeletingVideo ? 'Deleting...' : 'Delete video'}
                           </button>
                         </div>
                       </div>
