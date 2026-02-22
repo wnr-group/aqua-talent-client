@@ -21,6 +21,7 @@ import { Globe, Linkedin, Twitter } from "lucide-react";
 
 interface CompanyProfileFormValues {
   name: string;
+  email: string;
   description: string;
   industry: string;
   size: string;
@@ -115,6 +116,7 @@ function mapProfileToFormValues(
 ): CompanyProfileFormValues {
   return {
     name: profile?.name ?? "",
+    email: profile?.email ?? "",
     description: profile?.description ?? "",
     industry: profile?.industry ?? "",
     size: profile?.size ?? "",
@@ -256,6 +258,7 @@ setProfile(data);
       const normalizedName = values.name?.trim?.() || "";
       const payload = {
         ...(isNameReadOnly ? {} : { name: normalizedName }),
+        email: values.email.trim() || null,
         description: values.description.trim() || null,
         industry: values.industry || null,
         size: values.size || null,
@@ -280,9 +283,16 @@ setProfile(data);
 
       success("Company profile updated successfully");
       await loadProfile();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to update profile.";
+    } catch (error: unknown) {
+      let message = "Failed to update profile.";
+      if (error instanceof Error) {
+        // Handle 409 conflict for duplicate email
+        if (error.message.includes("already registered") || error.message.includes("already in use")) {
+          message = "This email is already in use by another account";
+        } else {
+          message = error.message;
+        }
+      }
       setSubmitError(message);
       showError(message);
     } finally {
@@ -387,6 +397,24 @@ setProfile(data);
                         className={COMPANY_INPUT_STYLES}
                       />
                     )}
+                    <div>
+                      <Input
+                        label="Email Address"
+                        type="email"
+                        {...register("email", {
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: "Invalid email format",
+                          },
+                        })}
+                        error={errors.email?.message}
+                        placeholder="company@example.com"
+                        className={COMPANY_INPUT_STYLES}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        This email will be used for password reset and important notifications
+                      </p>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Description

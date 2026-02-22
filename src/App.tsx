@@ -16,6 +16,8 @@ import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import CompanyRegisterPage from '@/features/auth/pages/CompanyRegisterPage'
 import StudentRegisterPage from '@/features/auth/pages/StudentRegisterPage'
+import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage'
 
 // Company portal pages
 import CompanyDashboard from '@/features/company/pages/CompanyDashboard'
@@ -62,6 +64,8 @@ function PublicRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register/company" element={<CompanyRegisterPage />} />
       <Route path="/register/student" element={<StudentRegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Student portal routes (on main domain) */}
       <Route
@@ -124,6 +128,8 @@ function CompanyPortalRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<CompanyRegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={
@@ -197,6 +203,8 @@ function AdminPortalRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={

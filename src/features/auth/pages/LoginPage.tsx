@@ -390,24 +390,54 @@ export default function LoginPage() {
             </form>
 
             {!isDedicatedPortal && (
-              <div className="mt-6 text-center text-sm text-gray-500">
-                Don't have an account?{' '}
-                <Link
-                  to={userType === UserType.COMPANY ? '/register/company' : '/register/student'}
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                >
-                  Register here
-                </Link>
+              <div className="mt-6 text-center text-sm text-gray-500 space-y-2">
+                <div>
+                  Don't have an account?{' '}
+                  <Link
+                    to={userType === UserType.COMPANY ? '/register/company' : '/register/student'}
+                    className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
+                    Register here
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    to="/forgot-password"
+                    className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
               </div>
             )}
             {isCompanyLogin && (
+              <div className="mt-6 text-center text-sm text-gray-500 space-y-2">
+                <div>
+                  Don't have an account?{' '}
+                  <Link
+                    to="/register"
+                    className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                  >
+                    Register your company
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    to="/forgot-password"
+                    className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+              </div>
+            )}
+            {isAdminLogin && (
               <div className="mt-6 text-center text-sm text-gray-500">
-                Don't have an account?{' '}
                 <Link
-                  to="/register"
-                  className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                  to="/forgot-password"
+                  className="text-orange-500 hover:text-orange-600 font-medium transition-colors"
                 >
-                  Register your company
+                  Forgot Password?
                 </Link>
               </div>
             )}
