@@ -382,7 +382,16 @@ export interface AppNotification {
   id: string
   recipientId: string
   recipientType: 'student' | 'company' | 'admin'
-  type: 'application_status' | 'company_status' | 'new_application' | 'system'
+  type:
+    | 'application_status'
+    | 'company_status'
+    | 'new_application'
+    | 'COMPANY_REGISTRATION_APPROVED'
+    | 'COMPANY_REGISTRATION_REJECTED'
+    | 'admin_new_company_pending'
+    | 'admin_new_job_pending'
+    | 'admin_company_reverify_required'
+    | 'system'
   title: string
   message: string
   link?: string | null

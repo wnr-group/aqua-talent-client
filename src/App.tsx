@@ -139,6 +139,14 @@ function CompanyPortalRoutes() {
         }
       />
       <Route
+        path="/company/dashboard"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/jobs"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
@@ -187,6 +195,14 @@ function CompanyPortalRoutes() {
         }
       />
       <Route
+        path="/company/profile"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
+            <CompanyProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/notifications"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.COMPANY]}>
@@ -221,9 +237,25 @@ function AdminPortalRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/companies/:id"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminCompanies />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/jobs"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/jobs/:id"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
             <AdminJobs />

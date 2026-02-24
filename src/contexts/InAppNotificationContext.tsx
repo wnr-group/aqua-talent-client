@@ -11,6 +11,7 @@ import {
 import { api } from '@/services/api/client'
 import type { InAppNotification } from '@/types/entities'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { UserType } from '@/types'
 
 const POLL_INTERVAL_MS = 30_000
 const DROPDOWN_LIMIT = 7
@@ -27,7 +28,7 @@ interface InAppNotificationContextType {
 const InAppNotificationContext = createContext<InAppNotificationContextType | undefined>(undefined)
 
 export function InAppNotificationProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuthContext()
+  const { isAuthenticated, user } = useAuthContext()
   // Single source of truth — all fetched notifications live here
   const [allNotifications, setAllNotifications] = useState<InAppNotification[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -55,11 +56,19 @@ export function InAppNotificationProvider({ children }: { children: ReactNode })
         '/notifications',
         { limit: 100 }
       )
+      const normalizeRecipientType = (recipientType: unknown): InAppNotification['recipientType'] => {
+        const value = String(recipientType || '').toLowerCase()
+        if (value === 'student' || value === 'company' || value === 'admin') {
+          return value
+        }
+        return 'student'
+      }
+
       // Normalize backend response (_id -> id)
       const normalized: InAppNotification[] = (data.notifications ?? []).map((n) => ({
         id: n.id || n._id,
         recipientId: n.recipientId,
-        recipientType: n.recipientType,
+        recipientType: normalizeRecipientType(n.recipientType),
         type: n.type,
         title: n.title,
         message: n.message,
@@ -67,11 +76,17 @@ export function InAppNotificationProvider({ children }: { children: ReactNode })
         isRead: n.isRead,
         createdAt: n.createdAt,
       }))
-      setAllNotifications(normalized)
+
+      const adminSafeList =
+        user?.userType === UserType.ADMIN
+          ? normalized.filter((notification) => notification.recipientType === 'admin')
+          : normalized
+
+      setAllNotifications(adminSafeList)
     } catch {
       // silently ignore — non-critical feature
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, user?.userType])
 
   const refresh = useCallback(() => {
     setIsLoading(true)

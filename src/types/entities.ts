@@ -108,6 +108,11 @@ export type InAppNotificationType =
   | 'application_status'
   | 'company_status'
   | 'new_application'
+  | 'COMPANY_REGISTRATION_APPROVED'
+  | 'COMPANY_REGISTRATION_REJECTED'
+  | 'admin_new_company_pending'
+  | 'admin_new_job_pending'
+  | 'admin_company_reverify_required'
   | 'system'
 
 export interface InAppNotification {
