@@ -32,6 +32,8 @@ import {
 const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
   [ApplicationStatus.PENDING]: { variant: 'warning', label: 'Pending Review' },
   [ApplicationStatus.REVIEWED]: { variant: 'primary', label: 'Approved' },
+  [ApplicationStatus.INTERVIEW_SCHEDULED]: { variant: 'primary', label: 'Interview Scheduled' },
+  [ApplicationStatus.OFFER_EXTENDED]: { variant: 'warning', label: 'Offer Extended' },
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },

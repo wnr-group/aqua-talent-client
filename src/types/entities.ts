@@ -100,6 +100,9 @@ export interface Application {
   createdAt: string
   reviewedAt?: string | null
   rejectionReason?: string | null
+  interviewDate?: string | null
+  interviewNotes?: string | null
+  offerDetails?: string | null
   student?: Student | null
   jobPosting?: JobPosting | null
 }
