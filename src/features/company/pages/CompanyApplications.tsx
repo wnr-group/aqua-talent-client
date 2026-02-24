@@ -6,12 +6,12 @@ import {
   COMPANY_SELECT_STYLES,
 } from '@/features/company/components/companyFormStyles'
 import StudentProfileModal from '@/features/company/components/StudentProfileModal'
+import InterviewScheduleModal from '@/features/company/components/InterviewScheduleModal'
 import Card, { CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
 import Input from '@/components/common/Input'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
-import Modal from '@/components/common/Modal'
 import { useNotification } from '@/contexts/NotificationContext'
 import { Application, ApplicationStatus, JOB_TYPES } from '@/types'
 import { api } from '@/services/api/client'
@@ -22,25 +22,33 @@ import {
   Calendar,
   ExternalLink,
   UserCheck,
-  UserX,
   FileText,
   Search,
   MapPin,
   ChevronLeft,
   ChevronRight,
   Eye,
+  Check,
 } from 'lucide-react'
 
 const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
   [ApplicationStatus.PENDING]: { variant: 'warning', label: 'Pending' },
   [ApplicationStatus.REVIEWED]: { variant: 'primary', label: 'New Applicant' },
+  [ApplicationStatus.INTERVIEW_SCHEDULED]: { variant: 'primary', label: 'Interview Scheduled' },
+  [ApplicationStatus.OFFER_EXTENDED]: { variant: 'warning', label: 'Offer Extended' },
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
 }
 
 const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
-type FilterStatus = 'all' | ApplicationStatus.REVIEWED | ApplicationStatus.HIRED | ApplicationStatus.REJECTED
+type FilterStatus =
+  | 'all'
+  | ApplicationStatus.REVIEWED
+  | ApplicationStatus.INTERVIEW_SCHEDULED
+  | ApplicationStatus.OFFER_EXTENDED
+  | ApplicationStatus.HIRED
+  | ApplicationStatus.REJECTED
 
 interface Pagination {
   page: number
@@ -60,8 +68,10 @@ export default function CompanyApplications() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
-  const [rejectModalOpen, setRejectModalOpen] = useState(false)
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<Record<string, ApplicationStatus>>({})
+  const [rejectionMessages, setRejectionMessages] = useState<Record<string, string>>({})
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false)
+  const [interviewApplication, setInterviewApplication] = useState<Application | null>(null)
 
   // Student profile modal
   const [studentProfileModalOpen, setStudentProfileModalOpen] = useState(false)
@@ -135,18 +145,48 @@ export default function CompanyApplications() {
     setPage(1)
   }, [filter, search, location, jobType])
 
-  const handleHire = async (applicationId: string) => {
-    setProcessingId(applicationId)
+  const updateApplicationStatus = async (
+    application: Application,
+    nextStatus: ApplicationStatus,
+    payload?: {
+      interviewDate?: string
+      interviewNotes?: string
+      offerDetails?: string
+      rejectionReason?: string | null
+    }
+  ) => {
+    setProcessingId(application.id)
     try {
-      await api.patch(`/company/applications/${applicationId}`, {
-        status: ApplicationStatus.HIRED,
+      await api.patch(`/company/applications/${application.id}`, {
+        status: nextStatus,
+        ...payload,
       })
       setApplications((prev) =>
         prev.map((app) =>
-          app.id === applicationId ? { ...app, status: ApplicationStatus.HIRED } : app
+          app.id === application.id
+            ? {
+                ...app,
+                status: nextStatus,
+                interviewDate: payload?.interviewDate ?? app.interviewDate,
+                interviewNotes: payload?.interviewNotes ?? app.interviewNotes,
+                offerDetails: payload?.offerDetails ?? app.offerDetails,
+              }
+            : app
         )
       )
-      success('Applicant has been hired!')
+      setSelectedStatus((prev) => ({ ...prev, [application.id]: nextStatus }))
+
+      if (nextStatus === ApplicationStatus.INTERVIEW_SCHEDULED) {
+        success('Interview scheduled successfully')
+      } else if (nextStatus === ApplicationStatus.OFFER_EXTENDED) {
+        success('Offer extended successfully')
+      } else if (nextStatus === ApplicationStatus.HIRED) {
+        success('Applicant has been hired!')
+      } else if (nextStatus === ApplicationStatus.REJECTED) {
+        success('Application has been rejected')
+      } else {
+        success('Application status updated')
+      }
     } catch {
       showError('Failed to update application')
     } finally {
@@ -154,31 +194,63 @@ export default function CompanyApplications() {
     }
   }
 
-  const openRejectModal = (application: Application) => {
-    setSelectedApplication(application)
-    setRejectModalOpen(true)
+  const getTransitionOptions = (status: ApplicationStatus): ApplicationStatus[] => {
+    if (status === ApplicationStatus.REVIEWED) {
+      return [
+        ApplicationStatus.INTERVIEW_SCHEDULED,
+        ApplicationStatus.OFFER_EXTENDED,
+        ApplicationStatus.HIRED,
+        ApplicationStatus.REJECTED,
+      ]
+    }
+    if (status === ApplicationStatus.INTERVIEW_SCHEDULED) {
+      return [
+        ApplicationStatus.OFFER_EXTENDED,
+        ApplicationStatus.HIRED,
+        ApplicationStatus.REJECTED,
+      ]
+    }
+    if (status === ApplicationStatus.OFFER_EXTENDED) {
+      return [
+        ApplicationStatus.HIRED,
+        ApplicationStatus.REJECTED,
+      ]
+    }
+    return []
   }
 
-  const handleReject = async () => {
-    if (!selectedApplication) return
-    setProcessingId(selectedApplication.id)
-    try {
-      await api.patch(`/company/applications/${selectedApplication.id}`, {
-        status: ApplicationStatus.REJECTED,
-      })
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === selectedApplication.id ? { ...app, status: ApplicationStatus.REJECTED } : app
-        )
-      )
-      success('Application has been rejected')
-      setRejectModalOpen(false)
-      setSelectedApplication(null)
-    } catch {
-      showError('Failed to reject application')
-    } finally {
-      setProcessingId(null)
+  const handleStatusUpdate = async (application: Application) => {
+    const nextStatus = selectedStatus[application.id]
+    if (!nextStatus) {
+      showError('Please select a status to update')
+      return
     }
+
+    if (nextStatus === ApplicationStatus.INTERVIEW_SCHEDULED) {
+      setInterviewApplication(application)
+      setInterviewModalOpen(true)
+      return
+    }
+
+    if (nextStatus === ApplicationStatus.REJECTED) {
+      const rejectionMessage = (rejectionMessages[application.id] || '').trim()
+      await updateApplicationStatus(application, nextStatus, {
+        rejectionReason: rejectionMessage.length > 0 ? rejectionMessage : null,
+      })
+      return
+    }
+
+    await updateApplicationStatus(application, nextStatus)
+  }
+
+  const handleConfirmInterview = async (interviewDate: string, interviewNotes: string) => {
+    if (!interviewApplication) return
+    await updateApplicationStatus(interviewApplication, ApplicationStatus.INTERVIEW_SCHEDULED, {
+      interviewDate,
+      interviewNotes,
+    })
+    setInterviewModalOpen(false)
+    setInterviewApplication(null)
   }
 
   const newApplicantsCount = applications.filter((a) => a.status === ApplicationStatus.REVIEWED).length
@@ -192,7 +264,14 @@ export default function CompanyApplications() {
       <div className="mb-6 space-y-4">
         {/* Filter Tabs */}
         <div className="flex gap-2 flex-wrap">
-          {(['all', ApplicationStatus.REVIEWED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED] as const).map((status) => (
+          {([
+            'all',
+            ApplicationStatus.REVIEWED,
+            ApplicationStatus.INTERVIEW_SCHEDULED,
+            ApplicationStatus.OFFER_EXTENDED,
+            ApplicationStatus.HIRED,
+            ApplicationStatus.REJECTED,
+          ] as const).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -339,29 +418,59 @@ export default function CompanyApplications() {
                       </div>
                     </div>
 
-                    {app.status === ApplicationStatus.REVIEWED && (
+                    {(app.status === ApplicationStatus.REVIEWED ||
+                      app.status === ApplicationStatus.INTERVIEW_SCHEDULED ||
+                      app.status === ApplicationStatus.OFFER_EXTENDED) && (
                       <div className="flex-shrink-0 flex gap-2">
+                        <select
+                          value={selectedStatus[app.id] || ''}
+                          onChange={(event) =>
+                            setSelectedStatus((prev) => ({
+                              ...prev,
+                              [app.id]: event.target.value as ApplicationStatus,
+                            }))
+                          }
+                          className={COMPANY_SELECT_STYLES}
+                        >
+                          <option value="">Update status...</option>
+                          {getTransitionOptions(app.status).map((statusOption) => (
+                            <option key={statusOption} value={statusOption}>
+                              {statusConfig[statusOption].label}
+                            </option>
+                          ))}
+                        </select>
                         <Button
                           size="sm"
-                          onClick={() => handleHire(app.id)}
-                          disabled={processingId === app.id}
+                          onClick={() => handleStatusUpdate(app)}
+                          disabled={processingId === app.id || !selectedStatus[app.id]}
                           isLoading={processingId === app.id}
-                          leftIcon={<UserCheck className="w-4 h-4" />}
+                          leftIcon={<Check className="w-4 h-4" />}
                         >
-                          Mark as Hired
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openRejectModal(app)}
-                          disabled={processingId === app.id}
-                          leftIcon={<UserX className="w-4 h-4" />}
-                        >
-                          Reject
+                          Apply
                         </Button>
                       </div>
                     )}
                   </div>
+
+                  {selectedStatus[app.id] === ApplicationStatus.REJECTED && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Rejection Message (Optional)
+                      </label>
+                      <textarea
+                        value={rejectionMessages[app.id] || ''}
+                        onChange={(event) =>
+                          setRejectionMessages((prev) => ({
+                            ...prev,
+                            [app.id]: event.target.value,
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Add an optional message for the candidate"
+                        className="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:outline-none transition-colors duration-150 resize-y"
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -401,47 +510,17 @@ export default function CompanyApplications() {
         </>
       )}
 
-      {/* Reject Confirmation Modal */}
-      <Modal
-        isOpen={rejectModalOpen}
+      <InterviewScheduleModal
+        isOpen={interviewModalOpen}
         onClose={() => {
-          setRejectModalOpen(false)
-          setSelectedApplication(null)
+          setInterviewModalOpen(false)
+          setInterviewApplication(null)
         }}
-        title="Reject Application"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Are you sure you want to reject the application from{' '}
-            <span className="font-medium text-gray-900">
-              {selectedApplication?.student?.fullName ?? 'this applicant'}
-            </span>
-            ?
-          </p>
-          <p className="text-sm text-gray-500">
-            This action will notify the applicant that their application has been rejected.
-          </p>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejectModalOpen(false)
-                setSelectedApplication(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              isLoading={processingId === selectedApplication?.id}
-              leftIcon={<UserX className="w-4 h-4" />}
-            >
-              Reject Application
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={handleConfirmInterview}
+        applicantName={interviewApplication?.student?.fullName}
+        jobTitle={interviewApplication?.jobPosting?.title}
+        isSubmitting={processingId === interviewApplication?.id}
+      />
 
       {/* Student Profile Modal */}
       <StudentProfileModal

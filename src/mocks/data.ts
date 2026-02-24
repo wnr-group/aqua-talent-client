@@ -181,6 +181,9 @@ export const mockApplications: Application[] = [
     jobPostingId: 'job-1',
     status: ApplicationStatus.PENDING,
     createdAt: '2024-02-15T00:00:00Z',
+    interviewDate: null,
+    interviewNotes: null,
+    offerDetails: null,
     student: mockStudents[0],
     jobPosting: mockJobs[0],
   },
@@ -191,6 +194,9 @@ export const mockApplications: Application[] = [
     status: ApplicationStatus.HIRED,
     createdAt: '2024-02-14T00:00:00Z',
     reviewedAt: '2024-02-20T00:00:00Z',
+    interviewDate: null,
+    interviewNotes: null,
+    offerDetails: null,
     student: mockStudents[1],
     jobPosting: mockJobs[0],
   },
@@ -200,6 +206,9 @@ export const mockApplications: Application[] = [
     jobPostingId: 'job-2',
     status: ApplicationStatus.PENDING,
     createdAt: '2024-02-16T00:00:00Z',
+    interviewDate: null,
+    interviewNotes: null,
+    offerDetails: null,
     student: mockStudents[1],
     jobPosting: mockJobs[1],
   },
@@ -382,7 +391,16 @@ export interface AppNotification {
   id: string
   recipientId: string
   recipientType: 'student' | 'company' | 'admin'
-  type: 'application_status' | 'company_status' | 'new_application' | 'system'
+  type:
+    | 'application_status'
+    | 'company_status'
+    | 'new_application'
+    | 'COMPANY_REGISTRATION_APPROVED'
+    | 'COMPANY_REGISTRATION_REJECTED'
+    | 'admin_new_company_pending'
+    | 'admin_new_job_pending'
+    | 'admin_company_reverify_required'
+    | 'system'
   title: string
   message: string
   link?: string | null

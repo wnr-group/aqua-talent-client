@@ -7,6 +7,11 @@ const TYPE_ICON_OCEAN: Record<InAppNotificationType, React.ReactNode> = {
   application_status: <CheckCircle className="w-4 h-4 text-glow-cyan" />,
   new_application: <Briefcase className="w-4 h-4 text-glow-teal" />,
   company_status: <Building2 className="w-4 h-4 text-glow-purple" />,
+  COMPANY_REGISTRATION_APPROVED: <CheckCircle className="w-4 h-4 text-glow-cyan" />,
+  COMPANY_REGISTRATION_REJECTED: <Building2 className="w-4 h-4 text-yellow-400" />,
+  admin_new_company_pending: <Building2 className="w-4 h-4 text-glow-cyan" />,
+  admin_new_job_pending: <Briefcase className="w-4 h-4 text-glow-teal" />,
+  admin_company_reverify_required: <Building2 className="w-4 h-4 text-yellow-400" />,
   system: <Info className="w-4 h-4 text-yellow-400" />,
 }
 
@@ -14,6 +19,11 @@ const TYPE_ICON_LIGHT: Record<InAppNotificationType, React.ReactNode> = {
   application_status: <CheckCircle className="w-4 h-4 text-green-600" />,
   new_application: <Briefcase className="w-4 h-4 text-blue-600" />,
   company_status: <Building2 className="w-4 h-4 text-purple-600" />,
+  COMPANY_REGISTRATION_APPROVED: <CheckCircle className="w-4 h-4 text-green-600" />,
+  COMPANY_REGISTRATION_REJECTED: <Building2 className="w-4 h-4 text-yellow-600" />,
+  admin_new_company_pending: <Building2 className="w-4 h-4 text-blue-600" />,
+  admin_new_job_pending: <Briefcase className="w-4 h-4 text-blue-600" />,
+  admin_company_reverify_required: <Building2 className="w-4 h-4 text-yellow-600" />,
   system: <Info className="w-4 h-4 text-yellow-600" />,
 }
 

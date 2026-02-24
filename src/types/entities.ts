@@ -100,6 +100,9 @@ export interface Application {
   createdAt: string
   reviewedAt?: string | null
   rejectionReason?: string | null
+  interviewDate?: string | null
+  interviewNotes?: string | null
+  offerDetails?: string | null
   student?: Student | null
   jobPosting?: JobPosting | null
 }
@@ -108,6 +111,11 @@ export type InAppNotificationType =
   | 'application_status'
   | 'company_status'
   | 'new_application'
+  | 'COMPANY_REGISTRATION_APPROVED'
+  | 'COMPANY_REGISTRATION_REJECTED'
+  | 'admin_new_company_pending'
+  | 'admin_new_job_pending'
+  | 'admin_company_reverify_required'
   | 'system'
 
 export interface InAppNotification {

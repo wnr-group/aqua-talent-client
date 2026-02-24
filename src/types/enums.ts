@@ -22,6 +22,8 @@ export enum JobStatus {
 export enum ApplicationStatus {
   PENDING = 'pending',
   REVIEWED = 'reviewed',
+  INTERVIEW_SCHEDULED = 'interview_scheduled',
+  OFFER_EXTENDED = 'offer_extended',
   HIRED = 'hired',
   REJECTED = 'rejected',
   WITHDRAWN = 'withdrawn',

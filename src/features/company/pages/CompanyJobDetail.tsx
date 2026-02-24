@@ -56,6 +56,8 @@ const statusLabels: Record<JobStatus, string> = {
 const appStatusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' | 'success' | 'warning' | 'destructive'; label: string }> = {
   [ApplicationStatus.PENDING]: { variant: 'warning', label: 'Pending' },
   [ApplicationStatus.REVIEWED]: { variant: 'primary', label: 'New Applicant' },
+  [ApplicationStatus.INTERVIEW_SCHEDULED]: { variant: 'primary', label: 'Interview Scheduled' },
+  [ApplicationStatus.OFFER_EXTENDED]: { variant: 'warning', label: 'Offer Extended' },
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },

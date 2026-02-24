@@ -145,10 +145,10 @@ export const handlers = [
       id: `notif-${Date.now()}-admin-reg`,
       recipientId: 'admin-1',
       recipientType: 'admin',
-      type: 'company_status',
+      type: 'admin_new_company_pending',
       title: 'New company registration',
       message: `${newCompany.name} has registered and is pending approval.`,
-      link: '/companies',
+      link: `/admin/companies/${newCompany.id}`,
       isRead: false,
       createdAt: new Date().toISOString(),
     })
@@ -338,10 +338,10 @@ export const handlers = [
         id: `notif-${Date.now()}-admin-job`,
         recipientId: 'admin-1',
         recipientType: 'admin',
-        type: 'new_application',
+        type: 'admin_new_job_pending',
         title: 'New job posting pending review',
         message: `${company.name} submitted a new job posting: ${newJob.title}.`,
-        link: '/jobs',
+        link: `/admin/jobs/${newJob.id}`,
         isRead: false,
         createdAt: new Date().toISOString(),
       })
@@ -408,29 +408,88 @@ export const handlers = [
     return HttpResponse.json({ applications })
   }),
 
-  // Company all applications (only show admin-approved applications per FR-004)
-  http.get(`${API_URL}/company/applications`, async () => {
+  // Company all applications (only show admin-approved and progressed applications)
+  http.get(`${API_URL}/company/applications`, async ({ request }) => {
     await delay(DELAY_MS)
     const user = auth.getCurrentUser()
     if (!user || user.userType !== UserType.COMPANY) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
+    const url = new URL(request.url)
+    const status = (url.searchParams.get('status') || '').toLowerCase()
+    const search = (url.searchParams.get('search') || '').toLowerCase()
+    const location = (url.searchParams.get('location') || '').toLowerCase()
+    const jobType = (url.searchParams.get('jobType') || '').toLowerCase()
+    const page = Math.max(parseInt(url.searchParams.get('page') || '1', 10), 1)
+    const limit = Math.max(parseInt(url.searchParams.get('limit') || '15', 10), 1)
+
     const companyJobs = mockJobs.filter((j) => j.companyId === user.id)
     const jobIds = companyJobs.map((j) => j.id)
-    // Only return admin-approved applications (REVIEWED, HIRED, REJECTED by company)
-    const applications = mockApplications.filter(
+    // Only return admin-approved applications and company pipeline statuses
+    let applications = mockApplications.filter(
       (a) =>
         jobIds.includes(a.jobPostingId) &&
-        [ApplicationStatus.REVIEWED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED].includes(a.status)
+        [
+          ApplicationStatus.REVIEWED,
+          ApplicationStatus.INTERVIEW_SCHEDULED,
+          ApplicationStatus.OFFER_EXTENDED,
+          ApplicationStatus.HIRED,
+          ApplicationStatus.REJECTED,
+        ].includes(a.status)
     )
-    return HttpResponse.json({ applications })
+
+    if (status && status !== 'all') {
+      applications = applications.filter((a) => String(a.status).toLowerCase() === status)
+    }
+
+    if (search) {
+      applications = applications.filter((a) => {
+        const studentName = a.student?.fullName?.toLowerCase() || ''
+        const studentEmail = a.student?.email?.toLowerCase() || ''
+        const jobTitle = a.jobPosting?.title?.toLowerCase() || ''
+        return (
+          studentName.includes(search) ||
+          studentEmail.includes(search) ||
+          jobTitle.includes(search)
+        )
+      })
+    }
+
+    if (location) {
+      applications = applications.filter((a) => (a.jobPosting?.location || '').toLowerCase().includes(location))
+    }
+
+    if (jobType) {
+      applications = applications.filter((a) => (a.jobPosting?.jobType || '').toLowerCase() === jobType)
+    }
+
+    const total = applications.length
+    const totalPages = Math.max(Math.ceil(total / limit), 1)
+    const start = (page - 1) * limit
+    const paginated = applications.slice(start, start + limit)
+
+    return HttpResponse.json({
+      applications: paginated,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    })
   }),
 
-  // Update application (hire/reject)
+  // Update application status (reviewed/interview/offer/hire/reject)
   http.patch(`${API_URL}/company/applications/:appId`, async ({ params, request }) => {
     await delay(DELAY_MS)
-    const body = (await request.json()) as { status: ApplicationStatus }
+    const body = (await request.json()) as {
+      status: ApplicationStatus
+      interviewDate?: string
+      interviewNotes?: string
+      offerDetails?: string
+      rejectionReason?: string | null
+    }
     const appIndex = mockApplications.findIndex((a) => a.id === params.appId)
     if (appIndex === -1) {
       return HttpResponse.json({ message: 'Application not found' }, { status: 404 })
@@ -438,6 +497,48 @@ export const handlers = [
 
     const app = mockApplications[appIndex]!
     app.status = body.status
+    if (body.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
+      app.interviewDate = body.interviewDate || null
+      app.interviewNotes = body.interviewNotes || null
+    }
+    if (body.status === ApplicationStatus.OFFER_EXTENDED) {
+      app.offerDetails = body.offerDetails || null
+    }
+    if (body.status === ApplicationStatus.REJECTED) {
+      app.rejectionReason = body.rejectionReason ?? null
+    }
+
+    const jobTitle = app.jobPosting?.title ?? 'a position'
+    const companyName = app.jobPosting?.company?.name ?? 'a company'
+
+    if (body.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-interview`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Interview scheduled',
+        message: `${companyName} scheduled an interview for ${jobTitle}.${app.interviewDate ? ` Date: ${new Date(app.interviewDate).toLocaleString()}` : ''}`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    if (body.status === ApplicationStatus.OFFER_EXTENDED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-offer`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Offer extended',
+        message: `${companyName} has extended an offer for ${jobTitle}.`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
     if (body.status === ApplicationStatus.HIRED) {
       app.reviewedAt = new Date().toISOString()
       // Mark student as hired
@@ -447,8 +548,6 @@ export const handlers = [
       }
 
       // ── Notify student: hired ──────────────────────────────────────────
-      const jobTitle = app.jobPosting?.title ?? 'a position'
-      const companyName = app.jobPosting?.company?.name ?? 'a company'
       mockNotifications.unshift({
         id: `notif-${Date.now()}-hired`,
         recipientId: app.studentId,
@@ -456,6 +555,20 @@ export const handlers = [
         type: 'application_status',
         title: 'Congratulations — you have been hired!',
         message: `${companyName} has selected you for the ${jobTitle} role. Check your applications for next steps.`,
+        link: '/my-applications',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    if (body.status === ApplicationStatus.REJECTED) {
+      mockNotifications.unshift({
+        id: `notif-${Date.now()}-rejected`,
+        recipientId: app.studentId,
+        recipientType: 'student',
+        type: 'application_status',
+        title: 'Application update',
+        message: `${companyName} has updated your application for ${jobTitle}.${app.rejectionReason ? ` Message: ${app.rejectionReason}` : ''}`,
         link: '/my-applications',
         isRead: false,
         createdAt: new Date().toISOString(),
@@ -731,7 +844,75 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const applications = mockApplications.filter((a) => a.studentId === user.id)
+    const mapStudentFacingStatus = (application: Application): {
+      studentFacingStatus: string
+      statusMessage: string
+    } => {
+      const normalizedStatus = String(application.status).toUpperCase()
+
+      switch (normalizedStatus) {
+        case 'PENDING':
+          return {
+            studentFacingStatus: 'Shortlisted',
+            statusMessage: "Your application is shortlisted. We'll notify you of any updates.",
+          }
+        case 'REVIEWED':
+          return {
+            studentFacingStatus: 'Shortlisted',
+            statusMessage: "Your application is shortlisted. We'll notify you of any updates.",
+          }
+        case 'INTERVIEW_SCHEDULED':
+          return {
+            studentFacingStatus: 'Interview Scheduled',
+            statusMessage: application.interviewDate
+              ? `Great news! Your interview is scheduled for ${new Date(application.interviewDate).toLocaleString()}.`
+              : 'Great news! Check your email for interview details.',
+          }
+        case 'OFFER_EXTENDED':
+          return {
+            studentFacingStatus: 'Offer Extended',
+            statusMessage: 'Exciting update! You have received an offer. Review the next steps carefully.',
+          }
+        case 'HIRED':
+          return {
+            studentFacingStatus: 'Hired! Congratulations!',
+            statusMessage: "Amazing news — you've been selected for this role.",
+          }
+        case 'REJECTED':
+          return application.rejectionReason
+            ? {
+                studentFacingStatus: 'Application Closed',
+                statusMessage: `This application has been closed. Message from company: ${application.rejectionReason}`,
+              }
+            : {
+                studentFacingStatus: 'Position Filled',
+                statusMessage: 'This position has been filled. Keep applying!',
+              }
+        case 'WITHDRAWN':
+          return {
+            studentFacingStatus: 'Withdrawn',
+            statusMessage: 'You withdrew this application.',
+          }
+        default:
+          return {
+            studentFacingStatus: 'Shortlisted',
+            statusMessage: "Your application is shortlisted. We'll notify you of any updates.",
+          }
+      }
+    }
+
+    const applications = mockApplications
+      .filter((a) => a.studentId === user.id)
+      .map((application) => {
+        const studentFacing = mapStudentFacingStatus(application)
+        return {
+          ...application,
+          studentFacingStatus: studentFacing.studentFacingStatus,
+          statusMessage: studentFacing.statusMessage,
+          rejectionReason: undefined,
+        }
+      })
+
     return HttpResponse.json({ applications })
   }),
 
@@ -982,10 +1163,10 @@ export const handlers = [
         id: `notif-${Date.now()}-company-approved`,
         recipientId: company.id,
         recipientType: 'company',
-        type: 'company_status',
+        type: 'COMPANY_REGISTRATION_APPROVED',
         title: 'Company profile approved',
         message: 'Your company profile has been approved. You can now post jobs.',
-        link: '/jobs',
+        link: '/company/dashboard',
         isRead: false,
         createdAt: new Date().toISOString(),
       })
@@ -994,10 +1175,10 @@ export const handlers = [
         id: `notif-${Date.now()}-company-rejected`,
         recipientId: company.id,
         recipientType: 'company',
-        type: 'company_status',
+        type: 'COMPANY_REGISTRATION_REJECTED',
         title: 'Company profile not approved',
         message: `Your company profile was not approved.${body.rejectionReason ? ' Reason: ' + body.rejectionReason : ''}`,
-        link: '/profile',
+        link: '/company/profile',
         isRead: false,
         createdAt: new Date().toISOString(),
       })

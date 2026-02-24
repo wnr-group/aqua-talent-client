@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useNotification } from '@/contexts/NotificationContext'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
+import ApplicationStatusTimeline from '@/features/student/components/ApplicationStatusTimeline'
 import { Application, ApplicationStatus } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
@@ -14,31 +15,49 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  PartyPopper,
 } from 'lucide-react'
+
+interface StudentApplication extends Application {
+  studentFacingStatus?: string
+  statusMessage?: string
+}
 
 const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border: string; icon: typeof Clock }> = {
   [ApplicationStatus.PENDING]: {
-    bg: 'bg-yellow-50',
-    text: 'text-yellow-700',
-    border: 'border-yellow-200',
+    bg: 'bg-teal-50',
+    text: 'text-teal-700',
+    border: 'border-teal-200',
     icon: Clock
   },
   [ApplicationStatus.REVIEWED]: {
+    bg: 'bg-teal-50',
+    text: 'text-teal-700',
+    border: 'border-teal-200',
+    icon: Clock
+  },
+  [ApplicationStatus.INTERVIEW_SCHEDULED]: {
     bg: 'bg-blue-50',
     text: 'text-blue-700',
     border: 'border-blue-200',
+    icon: AlertCircle
+  },
+  [ApplicationStatus.OFFER_EXTENDED]: {
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    border: 'border-yellow-200',
     icon: AlertCircle
   },
   [ApplicationStatus.HIRED]: {
     bg: 'bg-green-50',
     text: 'text-green-700',
     border: 'border-green-200',
-    icon: CheckCircle
+    icon: PartyPopper
   },
   [ApplicationStatus.REJECTED]: {
-    bg: 'bg-red-50',
-    text: 'text-red-700',
-    border: 'border-red-200',
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-200',
     icon: XCircle
   },
   [ApplicationStatus.WITHDRAWN]: {
@@ -51,8 +70,98 @@ const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border
 
 export default function StudentApplications() {
   const { success, error: showError } = useNotification()
-  const [applications, setApplications] = useState<Application[]>([])
+  const [applications, setApplications] = useState<StudentApplication[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const formatInterviewDateLocal = (interviewDate?: string | null): string | null => {
+    if (!interviewDate || typeof interviewDate !== 'string') {
+      return null
+    }
+
+    const parsedDate = new Date(interviewDate)
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null
+    }
+
+    const userLocale = typeof navigator !== 'undefined' ? navigator.language : undefined
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+    try {
+      return new Intl.DateTimeFormat(userLocale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: userTimeZone,
+      }).format(parsedDate)
+    } catch {
+      return new Intl.DateTimeFormat(userLocale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(parsedDate)
+    }
+  }
+
+  const getStudentFacingFallback = (status: string, interviewDate?: string | null): { label: string; message: string } => {
+    const normalized = String(status).toUpperCase()
+
+    switch (normalized) {
+      case 'PENDING':
+        return {
+          label: 'Shortlisted',
+          message: "Your application is shortlisted. We'll notify you of any updates.",
+        }
+      case 'REVIEWED':
+        return {
+          label: 'Shortlisted',
+          message: "Your application is shortlisted. We'll notify you of any updates.",
+        }
+      case 'INTERVIEW_SCHEDULED':
+        {
+          const localInterviewDate = formatInterviewDateLocal(interviewDate)
+          if (localInterviewDate) {
+            return {
+              label: 'Interview Scheduled',
+              message: `Great news! Your interview is scheduled for ${localInterviewDate}.`,
+            }
+          }
+        }
+
+        return {
+          label: 'Interview Scheduled',
+          message: 'Great news! Check your email for interview details.',
+        }
+      case 'OFFER_EXTENDED':
+        return {
+          label: 'Offer Extended',
+          message: 'Exciting update! You have received an offer. Review the next steps carefully.',
+        }
+      case 'HIRED':
+        return {
+          label: 'Hired! Congratulations!',
+          message: "Amazing news — you've been selected for this role.",
+        }
+      case 'REJECTED':
+        return {
+          label: 'Application Closed',
+          message: 'This position has been filled. Keep applying!',
+        }
+      case 'WITHDRAWN':
+        return {
+          label: 'Withdrawn',
+          message: 'You withdrew this application.',
+        }
+      default:
+        return {
+          label: 'Shortlisted',
+          message: "Your application is shortlisted. We'll notify you of any updates.",
+        }
+    }
+  }
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -60,13 +169,18 @@ export default function StudentApplications() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = await api.get<{ applications: any[] }>('/student/applications')
         // Normalize backend response to match frontend types
-        const normalizedApps: Application[] = data.applications.map(app => ({
+        const normalizedApps: StudentApplication[] = data.applications.map(app => ({
           id: app.id || app._id || '',
           studentId: app.studentId,
           jobPostingId: typeof app.jobPostingId === 'object' ? (app.jobPostingId._id || app.jobPostingId.id) : app.jobPostingId,
           status: app.status,
           createdAt: app.createdAt,
-          rejectionReason: app.rejectionReason,
+          rejectionReason: undefined,
+          interviewDate: app.interviewDate,
+          interviewNotes: app.interviewNotes,
+          offerDetails: app.offerDetails,
+          studentFacingStatus: app.studentFacingStatus,
+          statusMessage: app.statusMessage,
           // Map populated jobPostingId to jobPosting
           jobPosting: app.jobPostingId && typeof app.jobPostingId === 'object' ? {
             id: app.jobPostingId._id || app.jobPostingId.id || '',
@@ -95,7 +209,12 @@ export default function StudentApplications() {
       setApplications((prev) =>
         prev.map((app) =>
           app.id === applicationId
-            ? { ...app, status: ApplicationStatus.WITHDRAWN }
+            ? {
+                ...app,
+                status: ApplicationStatus.WITHDRAWN,
+                studentFacingStatus: 'Withdrawn',
+                statusMessage: 'You withdrew this application.',
+              }
             : app
         )
       )
@@ -110,11 +229,9 @@ export default function StudentApplications() {
     (app) => app.status !== ApplicationStatus.WITHDRAWN
   )
 
-  // Can withdraw if not already withdrawn, hired, or rejected
-  const canWithdraw = (status: ApplicationStatus) =>
-    status !== ApplicationStatus.WITHDRAWN &&
-    status !== ApplicationStatus.HIRED &&
-    status !== ApplicationStatus.REJECTED
+  // Withdraw is permanently disabled — students cannot withdraw once applied
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const canWithdraw = (_status: ApplicationStatus) => false
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -152,6 +269,11 @@ export default function StudentApplications() {
             {applications.map((app) => {
               const config = statusConfig[app.status]
               const StatusIcon = config.icon
+              const fallback = getStudentFacingFallback(app.status, app.interviewDate)
+              const statusLabel = app.studentFacingStatus || fallback.label
+              const statusMessage = app.status === ApplicationStatus.INTERVIEW_SCHEDULED
+                ? fallback.message
+                : app.statusMessage || fallback.message
 
               return (
                 <div key={app.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -176,7 +298,7 @@ export default function StudentApplications() {
                         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${config.bg} ${config.text} border ${config.border}`}
                       >
                         <StatusIcon className="w-4 h-4" />
-                        {app.status}
+                        {statusLabel}
                       </span>
                       {canWithdraw(app.status) && (
                         <button
@@ -189,22 +311,14 @@ export default function StudentApplications() {
                     </div>
                   </div>
 
-                  {app.status === ApplicationStatus.HIRED && (
-                    <div className="mt-4 p-4 rounded-xl bg-green-50 border border-green-200">
-                      <p className="text-green-700 text-sm font-medium flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        Congratulations! You've been hired for this position.
-                      </p>
-                    </div>
-                  )}
+                  <div className={`mt-4 p-4 rounded-xl border ${config.bg} ${config.border}`}>
+                    <p className={`text-sm font-medium flex items-center gap-2 ${config.text}`}>
+                      {app.status === ApplicationStatus.HIRED ? <CheckCircle className="w-5 h-5" /> : null}
+                      {statusMessage}
+                    </p>
+                  </div>
 
-                  {app.status === ApplicationStatus.REJECTED && (
-                    <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <p className="text-gray-500 text-sm">
-                        This application was not successful. Keep searching!
-                      </p>
-                    </div>
-                  )}
+                  <ApplicationStatusTimeline status={app.status} />
                 </div>
               )
             })}
