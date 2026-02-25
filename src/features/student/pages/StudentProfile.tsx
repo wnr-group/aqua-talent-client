@@ -140,8 +140,8 @@ const DEFAULT_FORM_VALUES: StudentProfileFormValues = {
 
 const inputClasses = `
   w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
-  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
-  border-gray-200 hover:border-teal-300
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
+  border-gray-200 hover:border-blue-300
 `
 
 const textareaClasses = `${inputClasses} min-h-[140px] resize-none`
@@ -448,7 +448,7 @@ export default function StudentProfile() {
       return { label: 'Excellent', colorClass: 'text-green-600' }
     }
     if (percent >= 71) {
-      return { label: 'Good', colorClass: 'text-teal-600' }
+      return { label: 'Good', colorClass: 'text-blue-600' }
     }
     if (percent >= 41) {
       return { label: 'Average', colorClass: 'text-yellow-600' }
@@ -486,7 +486,7 @@ export default function StudentProfile() {
                   variant={subscriptionTier === 'paid' ? 'primary' : 'secondary'}
                   className={
                     subscriptionTier === 'paid'
-                      ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
                       : ''
                   }
                 >
@@ -521,8 +521,8 @@ export default function StudentProfile() {
               className="space-y-6"
             >
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-teal-50 border border-teal-200">
-                  <Info className="w-5 h-5 text-teal-600 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
                   <p className="text-sm text-gray-600">
                     Keep your profile up to date. Recruiters see this information before inviting you to interviews.
                   </p>
@@ -605,7 +605,7 @@ export default function StudentProfile() {
                     <p className="text-sm text-gray-500 mb-3">
                       Upload a short intro video (MP4, WebM, MOV up to 30MB).
                     </p>
-                    <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold cursor-pointer hover:bg-teal-700 transition-colors">
+                    <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold cursor-pointer hover:bg-blue-700 transition-colors">
                       Upload video
                       <input
                         type="file"
@@ -633,7 +633,7 @@ export default function StudentProfile() {
                             href={introVideoUrlValue}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-teal-600 underline"
+                            className="text-blue-600 underline"
                           >
                             Open in new tab
                           </a>
@@ -673,18 +673,18 @@ export default function StudentProfile() {
                 <div
                   className={`rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
                     dragActive
-                      ? 'border-teal-500 bg-teal-50'
+                      ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-300 bg-gray-50'
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <UploadCloud className="w-10 h-10 mx-auto text-teal-600 mb-3" />
+                  <UploadCloud className="w-10 h-10 mx-auto text-blue-600 mb-3" />
                   <p className="text-sm text-gray-500 mb-3">
                     Drag and drop your PDF here, or
                   </p>
-                  <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold cursor-pointer hover:bg-teal-700 transition-colors">
+                  <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold cursor-pointer hover:bg-blue-700 transition-colors">
                     Browse files
                     <input
                       type="file"
@@ -704,7 +704,7 @@ export default function StudentProfile() {
                       href={resumeUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-sm text-teal-600 underline mt-2 inline-flex items-center gap-2"
+                      className="text-sm text-blue-600 underline mt-2 inline-flex items-center gap-2"
                     >
                       Download current resume
                     </a>
@@ -720,7 +720,7 @@ export default function StudentProfile() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition disabled:opacity-50 shadow-sm"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50 shadow-sm"
                 >
                   {isSaving ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -755,7 +755,7 @@ export default function StudentProfile() {
                     <button
                       type="button"
                       onClick={scrollToForm}
-                      className="w-full px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors"
+                      className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
                     >
                       Complete Profile
                     </button>

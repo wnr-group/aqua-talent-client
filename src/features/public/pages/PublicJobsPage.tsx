@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
-import Logo from '@/components/common/Logo'
+import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 
@@ -100,47 +100,14 @@ export default function PublicJobsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation - Use StudentNavbar for logged-in students */}
-      {isStudent ? (
-        <StudentNavbar />
-      ) : (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-teal-600 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Link to="/">
-                <Logo size="md" />
-              </Link>
-
-              <div className="flex items-center gap-4">
-                <Link
-                  to="/jobs"
-                  className="text-white font-medium"
-                >
-                  Browse Jobs
-                </Link>
-                <Link
-                  to="/login"
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register/student"
-                  className="px-5 py-2.5 rounded-xl bg-white text-teal-600 font-semibold hover:bg-gray-100 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-      )}
+      {isStudent ? <StudentNavbar /> : <PublicNavbar />}
 
       <div className="pt-24 pb-12 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-display font-bold mb-3 text-gray-900">
-              Find Your <span className="text-teal-600">Perfect Role</span>
+              Find Your <span className="text-blue-600">Perfect Role</span>
             </h1>
             <p className="text-gray-500 text-lg">
               {total} opportunities waiting for you
@@ -191,7 +158,7 @@ export default function PublicJobsPage() {
 
                 <button
                   type="submit"
-                  className="px-8 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all shadow-sm"
+                  className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-sm"
                 >
                   Search Jobs
                 </button>
@@ -202,7 +169,7 @@ export default function PublicJobsPage() {
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 flex-wrap">
                   <span className="text-sm text-gray-500">Active filters:</span>
                   {search && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 text-sm border border-teal-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm border border-blue-200">
                       {search}
                       <button
                         type="button"
@@ -213,14 +180,14 @@ export default function PublicJobsPage() {
                           params.set('page', '1')
                           setSearchParams(params)
                         }}
-                        className="hover:text-teal-900"
+                        className="hover:text-blue-900"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
                   )}
                   {location && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 text-teal-600 text-sm border border-teal-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-sm border border-blue-200">
                       {location}
                       <button
                         type="button"
@@ -231,7 +198,7 @@ export default function PublicJobsPage() {
                           params.set('page', '1')
                           setSearchParams(params)
                         }}
-                        className="hover:text-teal-800"
+                        className="hover:text-blue-800"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -303,12 +270,12 @@ export default function PublicJobsPage() {
                           )}
                         </div>
                       </div>
-                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         {job.jobType}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
                       {job.title}
                     </h3>
 
@@ -328,7 +295,7 @@ export default function PublicJobsPage() {
                         {job.location}
                       </div>
                       {job.salaryRange && (
-                        <div className="text-teal-600 font-medium">
+                        <div className="text-blue-600 font-medium">
                           {job.salaryRange}
                         </div>
                       )}
@@ -350,7 +317,7 @@ export default function PublicJobsPage() {
                   <button
                     onClick={() => goToPage(page - 1)}
                     disabled={page <= 1}
-                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-teal-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronLeft className="w-5 h-5 text-gray-600" />
                   </button>
@@ -366,8 +333,8 @@ export default function PublicJobsPage() {
                           onClick={() => goToPage(p)}
                           className={`w-10 h-10 rounded-xl font-medium transition-all ${
                             p === page
-                              ? 'bg-teal-600 text-white shadow-sm'
-                              : 'bg-white shadow-sm border border-gray-200 hover:border-teal-300 text-gray-900'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-white shadow-sm border border-gray-200 hover:border-blue-300 text-gray-900'
                           }`}
                         >
                           {p}
@@ -378,7 +345,7 @@ export default function PublicJobsPage() {
                   <button
                     onClick={() => goToPage(page + 1)}
                     disabled={page >= totalPages}
-                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-teal-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronRight className="w-5 h-5 text-gray-600" />
                   </button>
@@ -397,7 +364,7 @@ export default function PublicJobsPage() {
               {(search || location) && (
                 <button
                   onClick={clearFilters}
-                  className="px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all"
+                  className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all"
                 >
                   Clear Filters
                 </button>
@@ -422,7 +389,7 @@ export default function PublicJobsPage() {
               </div>
               <Link
                 to="/register/student"
-                className="px-8 py-4 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all whitespace-nowrap shadow-sm"
+                className="px-8 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all whitespace-nowrap shadow-sm"
               >
                 Create Account
               </Link>

@@ -26,15 +26,15 @@ interface StudentApplication extends Application {
 
 const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border: string; icon: typeof Clock }> = {
   [ApplicationStatus.PENDING]: {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
     icon: Clock
   },
   [ApplicationStatus.REVIEWED]: {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
     icon: Clock
   },
   [ApplicationStatus.INTERVIEW_SCHEDULED]: {
@@ -75,9 +75,15 @@ const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border
   },
 }
 
+interface DashboardStats {
+  applicationLimit?: number | null
+  applicationsUsed?: number
+}
+
 export default function StudentApplications() {
   const { success, error: showError } = useNotification()
   const [applications, setApplications] = useState<StudentApplication[]>([])
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const formatInterviewDateLocal = (interviewDate?: string | null): string | null => {
@@ -171,12 +177,17 @@ export default function StudentApplications() {
   }
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const fetchData = async () => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await api.get<{ applications: any[] }>('/student/applications')
+        // Fetch applications and dashboard stats in parallel
+        const [applicationsData, statsData] = await Promise.all([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          api.get<{ applications: any[] }>('/student/applications'),
+          api.get<DashboardStats>('/student/dashboard'),
+        ])
+
         // Normalize backend response to match frontend types
-        const normalizedApps: StudentApplication[] = data.applications.map(app => ({
+        const normalizedApps: StudentApplication[] = applicationsData.applications.map(app => ({
           id: app.id || app._id || '',
           studentId: app.studentId,
           jobPostingId: typeof app.jobPostingId === 'object' ? (app.jobPostingId._id || app.jobPostingId.id) : app.jobPostingId,
@@ -201,13 +212,14 @@ export default function StudentApplications() {
           } : app.jobPosting,
         }))
         setApplications(normalizedApps)
+        setDashboardStats(statsData)
       } catch {
         // Applications will remain empty
       } finally {
         setIsLoading(false)
       }
     }
-    fetchApplications()
+    fetchData()
   }, [])
 
  const handleWithdraw = async (applicationId: string) => {
@@ -236,21 +248,23 @@ export default function StudentApplications() {
   }
 }
 
-  // Active = NOT withdrawn (per WTD-8 requirements)
-  const activeApplications = applications.filter(
-    (app) => app.status !== ApplicationStatus.WITHDRAWN
-  )
+  // Get application limit from dashboard API
+  const applicationLimit = dashboardStats?.applicationLimit
+  const applicationsUsed = dashboardStats?.applicationsUsed ?? 0
+  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === undefined
 
   return (
     <div className="min-h-screen bg-gray-50">
       <StudentNavbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-8 sm:pb-12">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">My Applications</h1>
-          <p className="text-gray-500">
-            Active applications: {activeApplications.length} / 2
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-2">My Applications</h1>
+          <p className="text-sm sm:text-base text-gray-500">
+            Active applications: {hasUnlimitedApplications
+              ? `${applicationsUsed} (Unlimited)`
+              : `${applicationsUsed} / ${applicationLimit}`}
           </p>
         </div>
 
@@ -259,16 +273,16 @@ export default function StudentApplications() {
             <LoadingSpinner size="lg" />
           </div>
         ) : applications.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-teal-50 flex items-center justify-center border border-teal-200">
-              <FileText className="w-8 h-8 text-teal-600" />
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-200">
+              <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
             </div>
-            <p className="text-gray-500 mb-6">You haven't applied to any jobs yet.</p>
+            <p className="text-sm sm:text-base text-gray-500 mb-6">You haven't applied to any jobs yet.</p>
             <Link
               to="/jobs"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 text-white text-sm sm:text-base font-semibold hover:bg-blue-700 transition-all shadow-sm"
             >
-              <Briefcase className="w-5 h-5" />
+              <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
               Browse Jobs
             </Link>
           </div>
@@ -285,49 +299,55 @@ export default function StudentApplications() {
               const canWithdraw = app.status === 'pending'
 
               return (
-                <div key={app.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                <div key={app.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                  {/* Mobile layout: stack vertically */}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
                       <Link
                         to={`/jobs/${app.jobPostingId}`}
-                        className="text-lg font-display font-semibold text-gray-900 hover:text-teal-600 transition-colors flex items-center gap-2"
+                        className="text-base sm:text-lg font-display font-semibold text-gray-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2"
                       >
-                        {app.jobPosting?.title ?? 'Unknown Job'}
-                        <ExternalLink className="w-4 h-4" />
+                        <span className="break-words">{app.jobPosting?.title ?? 'Unknown Job'}</span>
+                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
                       </Link>
-                      <p className="text-teal-600 mt-1">
+                      <p className="text-sm sm:text-base text-blue-600 mt-1">
                         {app.jobPosting?.company?.name ?? 'Unknown Company'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-xs sm:text-sm text-gray-500 mt-2">
                         Applied {format(new Date(app.createdAt), 'MMM d, yyyy')}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:flex-nowrap">
                       <span
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${config.bg} ${config.text} border ${config.border}`}
+                        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium ${config.bg} ${config.text} border ${config.border}`}
                       >
-                        <StatusIcon className="w-4 h-4" />
-                        {statusLabel}
+                        <StatusIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{statusLabel}</span>
                       </span>
                       {canWithdraw && (
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleWithdraw(app.id)}
-                          >
-                            Withdraw
-                          </Button>
-                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleWithdraw(app.id)}
+                          className="text-xs sm:text-sm"
+                        >
+                          Withdraw
+                        </Button>
+                      )}
                     </div>
                   </div>
 
-                  <div className={`mt-4 p-4 rounded-xl border ${config.bg} ${config.border}`}>
-                    <p className={`text-sm font-medium flex items-center gap-2 ${config.text}`}>
-                      {app.status === ApplicationStatus.HIRED ? <CheckCircle className="w-5 h-5" /> : null}
-                      {statusMessage}
+                  <div className={`mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl border ${config.bg} ${config.border}`}>
+                    <p className={`text-xs sm:text-sm font-medium flex items-start sm:items-center gap-2 ${config.text}`}>
+                      {app.status === ApplicationStatus.HIRED ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5 sm:mt-0" /> : null}
+                      <span>{statusMessage}</span>
                     </p>
                   </div>
 
-                  <ApplicationStatusTimeline status={app.status} />
+                  {/* Timeline - hidden on small screens */}
+                  <div className="hidden sm:block">
+                    <ApplicationStatusTimeline status={app.status} />
+                  </div>
                 </div>
               )
             })}

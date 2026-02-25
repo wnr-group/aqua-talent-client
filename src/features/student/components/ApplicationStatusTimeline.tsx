@@ -57,7 +57,7 @@ export default function ApplicationStatusTimeline({ status }: ApplicationStatusT
                 <div
                   className={`w-7 h-7 rounded-full border flex items-center justify-center text-[11px] font-semibold ${
                     isCompleted || isCurrent
-                      ? 'bg-teal-600 border-teal-600 text-white'
+                      ? 'bg-blue-600 border-blue-600 text-white'
                       : 'bg-gray-50 border-gray-200 text-gray-400'
                   }`}
                 >
@@ -74,7 +74,7 @@ export default function ApplicationStatusTimeline({ status }: ApplicationStatusT
               {index < STEPS.length - 1 && (
                 <div
                   className={`h-[2px] flex-1 mx-2 mb-5 ${
-                    stepNumber < currentStep ? 'bg-teal-400' : 'bg-gray-200'
+                    stepNumber < currentStep ? 'bg-blue-400' : 'bg-gray-200'
                   }`}
                 />
               )}

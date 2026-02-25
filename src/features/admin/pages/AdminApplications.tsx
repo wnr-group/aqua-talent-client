@@ -266,7 +266,7 @@ export default function AdminApplications() {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filter === status
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-orange-500 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               }`}
             >
@@ -302,7 +302,7 @@ export default function AdminApplications() {
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
             <option value="">All Job Types</option>
             {JOB_TYPES.map((type) => (
@@ -341,8 +341,8 @@ export default function AdminApplications() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-6 h-6 text-orange-600" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-1">
@@ -360,7 +360,7 @@ export default function AdminApplications() {
                           <div className="flex items-center gap-3 mb-3">
                             <button
                               onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
-                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                              className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               View Full Profile
@@ -381,7 +381,7 @@ export default function AdminApplications() {
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             <button
                               onClick={() => app.jobPosting?.id && openJobDetail(app.jobPosting.id)}
-                              className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                              className="flex items-center gap-1.5 hover:text-orange-600 transition-colors"
                             >
                               <Briefcase className="w-4 h-4" />
                               <span className="underline">{app.jobPosting?.title ?? 'Unknown Job'}</span>
@@ -557,7 +557,7 @@ export default function AdminApplications() {
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter the reason for rejection (optional)..."
               rows={3}
-              className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
 
@@ -669,7 +669,7 @@ export default function AdminApplications() {
                       href={selectedJob.company.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                      className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Visit Website

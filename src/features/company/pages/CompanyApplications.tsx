@@ -278,13 +278,13 @@ export default function CompanyApplications() {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg text-sm font-medium border ${
                 filter === status
-                  ? 'bg-blue-600 text-white border-blue-600'
+                  ? 'bg-teal-600 text-white border-teal-600'
                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
               }`}
             >
               {status === 'all' ? 'All' : statusConfig[status].label}
               {status === ApplicationStatus.REVIEWED && newApplicantsCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
+                <span className="ml-2 px-1.5 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-100">
                   {newApplicantsCount}
                 </span>
               )}
@@ -360,7 +360,7 @@ export default function CompanyApplications() {
                               ? 'bg-green-50 border-green-100 text-green-600'
                               : app.status === ApplicationStatus.REJECTED
                               ? 'bg-red-50 border-red-100 text-red-600'
-                              : 'bg-blue-50 border-blue-100 text-blue-600'
+                              : 'bg-teal-50 border-teal-100 text-teal-600'
                           }`}
                         >
                           {app.status === ApplicationStatus.HIRED ? (
@@ -382,7 +382,7 @@ export default function CompanyApplications() {
                           <div className="flex items-center gap-3 mb-3">
                             <button
                               onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
-                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                              className="inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               View Full Profile
@@ -405,7 +405,7 @@ export default function CompanyApplications() {
                               <Briefcase className="w-4 h-4" />
                               <Link
                                 to={`/jobs/${app.jobPostingId}`}
-                                className="hover:text-blue-600 transition-colors"
+                                className="hover:text-teal-600 transition-colors"
                               >
                                 {app.jobPosting?.title ?? 'Unknown Job'}
                               </Link>

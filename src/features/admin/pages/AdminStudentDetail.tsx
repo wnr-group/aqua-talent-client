@@ -237,7 +237,7 @@ export default function AdminStudentDetail() {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === tab
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -298,7 +298,7 @@ export default function AdminStudentDetail() {
                           href={student.profileLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                          className="text-sm text-orange-600 hover:underline flex items-center gap-1"
                         >
                           View Profile <ExternalLink className="w-3 h-3" />
                         </a>
@@ -339,7 +339,7 @@ export default function AdminStudentDetail() {
                   </CardTitle>
                   <div className="space-y-4">
                     {student.education.map((edu, i) => (
-                      <div key={i} className="border-l-2 border-blue-200 pl-4">
+                      <div key={i} className="border-l-2 border-orange-200 pl-4">
                         <p className="font-medium text-gray-900">{edu.degree} in {edu.field}</p>
                         <p className="text-sm text-gray-600">{edu.institution}</p>
                         {(edu.startYear || edu.endYear) && (
@@ -396,7 +396,7 @@ export default function AdminStudentDetail() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                     >
-                      <FileText className="w-5 h-5 text-blue-600" />
+                      <FileText className="w-5 h-5 text-orange-600" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">Resume</p>
                         <p className="text-xs text-gray-500">Click to download</p>
@@ -678,7 +678,7 @@ export default function AdminStudentDetail() {
                 const plan = plans.find((p) => p.id === e.target.value)
                 setAutoRenew(plan?.billingCycle !== 'one-time')
               }}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="">Select a plan...</option>
               {plans.map((plan) => (
@@ -697,7 +697,7 @@ export default function AdminStudentDetail() {
               type="date"
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">
               Leave empty to auto-calculate based on billing cycle
@@ -710,7 +710,7 @@ export default function AdminStudentDetail() {
               checked={autoRenew}
               onChange={(e) => setAutoRenew(e.target.checked)}
               disabled={selectedPlan?.billingCycle === 'one-time'}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
             />
             <span className="text-sm text-gray-700">Auto-renew subscription</span>
           </label>

@@ -142,11 +142,16 @@
 
   html {
     font-size: var(--font-size);
+    /* Ensure smooth scrolling and touch scrolling works */
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    /* Enable touch scrolling on mobile */
+    touch-action: pan-x pan-y;
+    overflow-y: auto;
   }
 
   /* Ensure pointer cursor on all interactive elements */

@@ -59,7 +59,7 @@ export default function CompanyDashboard() {
               <Card hover className={`${CARD_BASE_CLASSES} text-gray-900`}>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-lg bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center">
                       <Briefcase className="w-6 h-6" />
                     </div>
                     <div>
@@ -97,7 +97,7 @@ export default function CompanyDashboard() {
                   </div>
                   <div className="pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                      <Clock className="w-4 h-4 text-blue-500" />
+                      <Clock className="w-4 h-4 text-teal-500" />
                       <span>{stats?.reviewedApplications ?? 0} awaiting your decision</span>
                     </div>
                   </div>
@@ -146,7 +146,7 @@ export default function CompanyDashboard() {
                   <CardContent className="text-gray-900">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                           <Plus className="w-5 h-5" />
                         </div>
                         <div>
@@ -154,7 +154,7 @@ export default function CompanyDashboard() {
                           <p className="text-sm text-gray-500">Create a new job listing</p>
                         </div>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-teal-600 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
@@ -173,7 +173,7 @@ export default function CompanyDashboard() {
                           <p className="text-sm text-gray-500">Review candidate applications</p>
                         </div>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-teal-600 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>

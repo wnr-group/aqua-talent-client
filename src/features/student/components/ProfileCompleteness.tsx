@@ -42,7 +42,7 @@ export default function ProfileCompleteness({
           <p className="text-2xl font-display font-semibold text-gray-900">{progress}%</p>
         </div>
         {isLoading ? (
-          <Loader2 className="w-5 h-5 text-teal-600 animate-spin" />
+          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
         ) : (
           <div
             className={`px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -58,7 +58,7 @@ export default function ProfileCompleteness({
 
       <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden mb-3">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-purple-500 via-teal-500 to-teal-400 transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-blue-400 transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>

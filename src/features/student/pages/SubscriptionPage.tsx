@@ -122,12 +122,6 @@ function calculateOriginalPrice(price: number, discount: number): number {
   return Math.round(price / (1 - discount / 100))
 }
 
-// Helper to format limit values
-function formatLimit(value: number | null | undefined): string {
-  if (value === null || value === undefined) return 'Unlimited'
-  return `${value}`
-}
-
 export default function SubscriptionPage() {
   const { user } = useAuthContext()
   const navigate = useNavigate()
@@ -250,16 +244,12 @@ export default function SubscriptionPage() {
   const isLifetime = currentService?.billingCycle === 'one-time'
   const endDate = currentSubscription?.currentSubscription?.endDate
 
-  // Build comparison data only from API data
+  // Build comparison data - use applicationLimit pattern (2 for free, unlimited for paid)
   const comparisonFeatures = [
     {
       label: 'Active applications',
-      free: freeServices[0]?.maxApplications !== undefined
-        ? formatLimit(freeServices[0].maxApplications)
-        : null,
-      paid: paidServices[0]?.maxApplications !== undefined
-        ? formatLimit(paidServices[0].maxApplications)
-        : null,
+      free: freeServices.length > 0 ? '2' : null,
+      paid: paidServices.length > 0 ? 'Unlimited' : null,
     },
     {
       label: 'Priority support',
@@ -301,13 +291,13 @@ export default function SubscriptionPage() {
         {currentService && (
           <div className="mb-10">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Crown className="w-5 h-5 text-teal-600" />
+              <Crown className="w-5 h-5 text-blue-600" />
               Your Current Plan
             </h2>
 
-            <Card className={`relative overflow-hidden ${!isFree ? 'border-teal-500 border-2' : ''}`}>
+            <Card className={`relative overflow-hidden ${!isFree ? 'border-blue-500 border-2' : ''}`}>
               {!isFree && (
-                <div className="absolute top-0 right-0 bg-teal-500 text-white text-xs font-medium px-3 py-1 rounded-bl-lg">
+                <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-medium px-3 py-1 rounded-bl-lg">
                   Active
                 </div>
               )}
@@ -411,7 +401,7 @@ export default function SubscriptionPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {currentService.features.map((feature, i) => (
                             <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                              <Check className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                              <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
                               {feature}
                             </div>
                           ))}
@@ -437,7 +427,7 @@ export default function SubscriptionPage() {
                       {!hasUnlimitedApplications && applicationLimit && (
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-teal-600 h-2 rounded-full transition-all"
+                            className="bg-blue-600 h-2 rounded-full transition-all"
                             style={{
                               width: `${Math.min((applicationsUsed / applicationLimit) * 100, 100)}%`,
                             }}
@@ -445,8 +435,8 @@ export default function SubscriptionPage() {
                         </div>
                       )}
                       {hasUnlimitedApplications && (
-                        <div className="w-full bg-teal-100 rounded-full h-2">
-                          <div className="bg-teal-600 h-2 rounded-full w-full" />
+                        <div className="w-full bg-blue-100 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full w-full" />
                         </div>
                       )}
                     </div>
@@ -548,7 +538,7 @@ export default function SubscriptionPage() {
           <Card className="mb-6" padding="lg">
             <CardContent>
               <div className="mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-teal-600" />
+                <Sparkles className="h-5 w-5 text-blue-600" />
                 <CardTitle className="text-xl font-display text-gray-900">
                   Feature Comparison
                 </CardTitle>
@@ -570,7 +560,7 @@ export default function SubscriptionPage() {
                         <td className="px-4 py-3">
                           {typeof feature.free === 'boolean' ? (
                             feature.free ? (
-                              <Check className="inline w-4 h-4 text-teal-600" />
+                              <Check className="inline w-4 h-4 text-blue-600" />
                             ) : (
                               <Minus className="inline w-4 h-4 text-gray-400" />
                             )
@@ -583,7 +573,7 @@ export default function SubscriptionPage() {
                         <td className="px-4 py-3">
                           {typeof feature.paid === 'boolean' ? (
                             feature.paid ? (
-                              <Check className="inline w-4 h-4 text-teal-600" />
+                              <Check className="inline w-4 h-4 text-blue-600" />
                             ) : (
                               <Minus className="inline w-4 h-4 text-gray-400" />
                             )

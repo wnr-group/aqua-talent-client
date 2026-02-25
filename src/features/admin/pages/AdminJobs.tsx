@@ -179,7 +179,7 @@ export default function AdminJobs() {
                 onClick={() => setFilter(status)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   filter === status
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-orange-500 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
@@ -208,7 +208,7 @@ export default function AdminJobs() {
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
             <option value="">All Job Types</option>
             {JOB_TYPES.map((type) => (
@@ -239,14 +239,14 @@ export default function AdminJobs() {
                   <div className="flex-1">
                     <button
                       onClick={() => openDetailModal(job)}
-                      className="block font-semibold text-gray-900 hover:text-blue-600 text-left"
+                      className="block font-semibold text-gray-900 hover:text-orange-600 text-left"
                     >
                       {job.title}
                     </button>
                     {job.company?.id ? (
                       <button
                         onClick={() => openCompanyProfile(job.company!.id)}
-                        className="block text-sm text-blue-600 hover:text-blue-700 hover:underline text-left"
+                        className="block text-sm text-orange-600 hover:text-orange-700 hover:underline text-left"
                       >
                         {job.company.name}
                       </button>
@@ -376,7 +376,7 @@ export default function AdminJobs() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
-            className="block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             placeholder="Enter rejection reason (optional)..."
           />
           <div className="flex justify-end gap-3">
@@ -416,7 +416,7 @@ export default function AdminJobs() {
                     setShowDetailModal(false)
                     openCompanyProfile(selectedJob.company!.id)
                   }}
-                  className="font-medium text-blue-600 hover:text-blue-700 hover:underline text-left"
+                  className="font-medium text-orange-600 hover:text-orange-700 hover:underline text-left"
                 >
                   {selectedJob.company.name}
                 </button>
@@ -560,7 +560,7 @@ export default function AdminJobs() {
                     href={companyProfile.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Globe className="w-3 h-3" />
                     {companyProfile.website}
@@ -584,7 +584,7 @@ export default function AdminJobs() {
                     href={companyProfile.socialLinks.linkedin}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Linkedin className="w-4 h-4" />
                     LinkedIn
@@ -600,7 +600,7 @@ export default function AdminJobs() {
                     href={companyProfile.socialLinks.twitter}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Twitter className="w-4 h-4" />
                     Twitter

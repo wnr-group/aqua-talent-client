@@ -159,7 +159,7 @@ export default function CompanyJobList() {
                 onClick={() => setFilter(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium border ${
                   filter === status
-                    ? 'bg-blue-600 text-white border-blue-600'
+                    ? 'bg-teal-600 text-white border-teal-600'
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -232,7 +232,7 @@ export default function CompanyJobList() {
                   <div className="flex-1">
                     <Link
                       to={job.status === JobStatus.DRAFT ? `/jobs/${job.id}/edit` : `/jobs/${job.id}`}
-                      className="text-lg font-semibold text-gray-900 hover:text-blue-600"
+                      className="text-lg font-semibold text-gray-900 hover:text-teal-600"
                     >
                       {job.title || '(Untitled Draft)'}
                     </Link>

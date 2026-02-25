@@ -16,17 +16,17 @@ const publicUserTypeConfig = {
     label: 'Student',
     icon: GraduationCap,
     description: 'Find your dream job',
-    bgClass: 'bg-teal-600',
-    hoverClass: 'hover:bg-teal-700',
-    panelBg: 'from-teal-600 to-teal-700',
+    bgClass: 'bg-blue-600',
+    hoverClass: 'hover:bg-blue-700',
+    panelBg: 'from-blue-600 to-blue-700',
   },
   [UserType.COMPANY]: {
     label: 'Company',
     icon: Building2,
     description: 'Hire top talent',
-    bgClass: 'bg-purple-600',
-    hoverClass: 'hover:bg-purple-700',
-    panelBg: 'from-purple-600 to-purple-700',
+    bgClass: 'bg-teal-600',
+    hoverClass: 'hover:bg-teal-700',
+    panelBg: 'from-teal-600 to-teal-700',
   },
 }
 
@@ -46,9 +46,9 @@ const companyUserTypeConfig = {
     label: 'Company',
     icon: Building2,
     description: 'Hire top talent',
-    bgClass: 'bg-purple-600',
-    hoverClass: 'hover:bg-purple-700',
-    panelBg: 'from-purple-600 to-purple-700',
+    bgClass: 'bg-teal-600',
+    hoverClass: 'hover:bg-teal-700',
+    panelBg: 'from-teal-600 to-teal-700',
   },
 }
 
@@ -293,7 +293,7 @@ export default function LoginPage() {
             {/* User type selector - Mobile only (or dedicated portal badge) */}
             {isDedicatedPortal ? (
               <div className={`flex items-center justify-center gap-3 mb-8 py-4 px-4 rounded-xl ${
-                isAdminLogin ? 'bg-orange-500' : 'bg-purple-600'
+                isAdminLogin ? 'bg-orange-500' : 'bg-teal-600'
               }`}>
                 {isAdminLogin ? (
                   <Shield className="w-6 h-6 text-white" />
@@ -416,7 +416,7 @@ export default function LoginPage() {
                   Don't have an account?{' '}
                   <Link
                     to="/register"
-                    className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                    className="text-teal-600 hover:text-teal-700 font-medium transition-colors"
                   >
                     Register your company
                   </Link>
@@ -424,7 +424,7 @@ export default function LoginPage() {
                 <div>
                   <Link
                     to="/forgot-password"
-                    className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                    className="text-teal-600 hover:text-teal-700 font-medium transition-colors"
                   >
                     Forgot Password?
                   </Link>

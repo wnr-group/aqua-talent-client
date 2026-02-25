@@ -17,6 +17,7 @@ import {
   GraduationCap,
 } from 'lucide-react'
 import StudentNavbar from '@/components/layout/StudentNavbar'
+import PublicNavbar from '@/components/layout/PublicNavbar'
 import Logo from '@/components/common/Logo'
 
 interface PublicJobsResponse {
@@ -56,54 +57,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation - Use StudentNavbar for logged-in students */}
-      {isStudent ? (
-        <StudentNavbar />
-      ) : (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-blue-600 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Link to="/">
-                <Logo size="md" />
-              </Link>
-
-              <div className="flex items-center gap-4">
-                <Link
-                  to="/jobs"
-                  className="text-white/80 hover:text-white transition-colors font-medium"
-                >
-                  Browse Jobs
-                </Link>
-                <Link
-                  to="/login"
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register/student"
-                  className="px-5 py-2.5 rounded-xl bg-white text-blue-600 font-semibold hover:bg-gray-100 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-      )}
+      {isStudent ? <StudentNavbar /> : <PublicNavbar />}
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-40 left-10 w-72 h-72 bg-blue-100/50 rounded-full blur-[100px]" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-100/40 rounded-full blur-[120px]" />
-        <div className="absolute top-60 right-1/4 w-64 h-64 bg-indigo-100/30 rounded-full blur-[80px]" />
+      <section className="relative pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
+        {/* Decorative elements - hidden on mobile for cleaner look */}
+        <div className="hidden sm:block absolute top-40 left-10 w-72 h-72 bg-blue-100/50 rounded-full blur-[100px]" />
+        <div className="hidden sm:block absolute bottom-20 right-10 w-96 h-96 bg-blue-100/40 rounded-full blur-[120px]" />
+        <div className="hidden sm:block absolute top-60 right-1/4 w-64 h-64 bg-indigo-100/30 rounded-full blur-[80px]" />
 
         <div className="max-w-7xl mx-auto relative">
           <div className="max-w-3xl">
             <div className="animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 mb-6">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-blue-50 border border-blue-200 mb-4 sm:mb-6">
+                <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-blue-700">
                   {isStudent
                     ? `Welcome back, ${user?.student?.fullName?.split(' ')[0]}!`
                     : 'The future of student recruitment'}
@@ -111,7 +79,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-display font-bold leading-tight mb-6 animate-fade-in-up stagger-1 text-gray-900">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-display font-bold leading-tight mb-4 sm:mb-6 animate-fade-in-up stagger-1 text-gray-900">
               {isStudent ? (
                 <>
                   Find Your{' '}
@@ -125,7 +93,7 @@ export default function LandingPage() {
               )}
             </h1>
 
-            <p className="text-xl text-gray-500 leading-relaxed mb-10 animate-fade-in-up stagger-2">
+            <p className="text-base sm:text-xl text-gray-500 leading-relaxed mb-8 sm:mb-10 animate-fade-in-up stagger-2">
               {isStudent
                 ? 'Browse the latest opportunities and find the perfect match for your skills. Your next career move is just a click away.'
                 : 'Connect with top companies seeking fresh talent. Whether you\'re a student looking for opportunities or a company searching for rising stars, Aqua Talent makes it seamless.'}
@@ -134,20 +102,20 @@ export default function LandingPage() {
             {/* Search Bar */}
             <div className="animate-fade-in-up stagger-3">
               <div className="relative max-w-2xl">
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-2 flex items-center gap-2">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-2 sm:p-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <div className="flex-1 flex items-center gap-3 px-4">
-                    <Search className="w-5 h-5 text-gray-400" />
+                    <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <input
                       type="text"
-                      placeholder="Search jobs, companies, or keywords..."
+                      placeholder="Search jobs, companies..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 py-3"
+                      className="flex-1 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 py-3 min-w-0"
                     />
                   </div>
                   <Link
                     to={`/jobs${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`}
-                    className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
+                    className="px-6 sm:px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
                   >
                     Search
                     <ArrowRight className="w-4 h-4" />
@@ -157,10 +125,10 @@ export default function LandingPage() {
             </div>
 
             {/* Quick stats */}
-            <div className="flex items-center gap-8 mt-12 animate-fade-in-up stagger-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 mt-12 animate-fade-in-up stagger-4">
               {stats.map((stat) => (
                 <div key={stat.label} className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-gray-200">
+                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-gray-200 flex-shrink-0">
                     <stat.icon className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
