@@ -39,6 +39,7 @@ const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' |
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
+  [ApplicationStatus.WITHDRAWAL_REQUESTED]: { variant: 'warning', label: 'Withdrawal Requested' },
 }
 
 const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'

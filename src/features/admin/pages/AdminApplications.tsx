@@ -37,6 +37,7 @@ const statusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary' |
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
+  [ApplicationStatus.WITHDRAWAL_REQUESTED]: { variant: 'warning', label: 'Withdrawal Requested' },
 }
 
 // Applications in these statuses cannot be modified by admin
@@ -212,6 +213,44 @@ export default function AdminApplications() {
 
   const pendingCount = applications.filter((a) => a.status === ApplicationStatus.PENDING).length
 
+  const withdrawalRequestCount = applications.filter(
+    (a) => a.status === ApplicationStatus.WITHDRAWAL_REQUESTED
+  ).length
+
+  const handleApproveWithdrawal = async (app: Application) => {
+    setIsProcessing(true)
+    try {
+      await api.patch(`/admin/applications/${app.id}/withdraw-approve`)
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === app.id ? { ...a, status: ApplicationStatus.WITHDRAWN } : a
+        )
+      )
+      success('Withdrawal approved')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to approve withdrawal')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleRejectWithdrawal = async (app: Application) => {
+    setIsProcessing(true)
+    try {
+      await api.patch(`/admin/applications/${app.id}/withdraw-reject`)
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === app.id ? { ...a, status: ApplicationStatus.REVIEWED } : a
+        )
+      )
+      success('Withdrawal request declined — application restored')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to reject withdrawal')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   return (
     <PageContainer
       title="Applications"
@@ -221,7 +260,7 @@ export default function AdminApplications() {
       <div className="mb-6 space-y-4">
         {/* Filter Tabs */}
         <div className="flex gap-2 flex-wrap">
-          {(['all', ApplicationStatus.PENDING, ApplicationStatus.REVIEWED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN] as const).map((status) => (
+          {(['all', ApplicationStatus.PENDING, ApplicationStatus.WITHDRAWAL_REQUESTED, ApplicationStatus.REVIEWED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN] as const).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -235,6 +274,11 @@ export default function AdminApplications() {
               {status === ApplicationStatus.PENDING && pendingCount > 0 && (
                 <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                   {pendingCount}
+                </span>
+              )}
+              {status === ApplicationStatus.WITHDRAWAL_REQUESTED && withdrawalRequestCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs rounded-full">
+                  {withdrawalRequestCount}
                 </span>
               )}
             </button>
@@ -363,6 +407,28 @@ export default function AdminApplications() {
                       </div>
                     </div>
 
+                    {app.status === ApplicationStatus.WITHDRAWAL_REQUESTED && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRejectWithdrawal(app)}
+                          disabled={isProcessing}
+                          leftIcon={<XCircle className="w-4 h-4" />}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveWithdrawal(app)}
+                          disabled={isProcessing}
+                          leftIcon={<CheckCircle className="w-4 h-4" />}
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                    )}
                     {app.status === ApplicationStatus.PENDING && (
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Button

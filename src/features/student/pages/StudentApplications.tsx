@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useNotification } from '@/contexts/NotificationContext'
+import Button from '@/components/common/Button'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import ApplicationStatusTimeline from '@/features/student/components/ApplicationStatusTimeline'
@@ -65,6 +66,12 @@ const statusConfig: Record<ApplicationStatus, { bg: string; text: string; border
     text: 'text-gray-500',
     border: 'border-gray-200',
     icon: XCircle
+  },
+  [ApplicationStatus.WITHDRAWAL_REQUESTED]: {
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200',
+    icon: Clock
   },
 }
 
@@ -203,35 +210,36 @@ export default function StudentApplications() {
     fetchApplications()
   }, [])
 
-  const handleWithdraw = async (applicationId: string) => {
-    try {
-      await api.patch(`/student/applications/${applicationId}/withdraw`)
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId
-            ? {
-                ...app,
-                status: ApplicationStatus.WITHDRAWN,
-                studentFacingStatus: 'Withdrawn',
-                statusMessage: 'You withdrew this application.',
-              }
-            : app
-        )
+ const handleWithdraw = async (applicationId: string) => {
+  try {
+    await api.patch(`/student/applications/${applicationId}/withdraw`)
+
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.id === applicationId
+          ? {
+              ...app,
+              status: 'withdrawn' as ApplicationStatus,
+              studentFacingStatus: 'Withdrawn',
+              statusMessage: 'You have withdrawn this application.',
+            }
+          : app
       )
-      success('Application withdrawn. You can now apply to another job.')
-    } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to withdraw application')
-    }
+    )
+
+    success('Application withdrawn successfully.')
+  } catch (err) {
+    const message =
+      (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      (err instanceof Error ? err.message : 'Failed to withdraw application')
+    showError(message)
   }
+}
 
   // Active = NOT withdrawn (per WTD-8 requirements)
   const activeApplications = applications.filter(
     (app) => app.status !== ApplicationStatus.WITHDRAWN
   )
-
-  // Withdraw is permanently disabled — students cannot withdraw once applied
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const canWithdraw = (_status: ApplicationStatus) => false
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -274,6 +282,7 @@ export default function StudentApplications() {
               const statusMessage = app.status === ApplicationStatus.INTERVIEW_SCHEDULED
                 ? fallback.message
                 : app.statusMessage || fallback.message
+              const canWithdraw = app.status === 'pending'
 
               return (
                 <div key={app.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -300,14 +309,14 @@ export default function StudentApplications() {
                         <StatusIcon className="w-4 h-4" />
                         {statusLabel}
                       </span>
-                      {canWithdraw(app.status) && (
-                        <button
-                          onClick={() => handleWithdraw(app.id)}
-                          className="px-4 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
-                        >
-                          Withdraw
-                        </button>
-                      )}
+                      {canWithdraw && (
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleWithdraw(app.id)}
+                          >
+                            Withdraw
+                          </Button>
+                        )}
                     </div>
                   </div>
 
