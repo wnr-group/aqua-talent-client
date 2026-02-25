@@ -61,6 +61,7 @@ const appStatusConfig: Record<ApplicationStatus, { variant: 'default' | 'primary
   [ApplicationStatus.HIRED]: { variant: 'success', label: 'Hired' },
   [ApplicationStatus.REJECTED]: { variant: 'destructive', label: 'Rejected' },
   [ApplicationStatus.WITHDRAWN]: { variant: 'default', label: 'Withdrawn' },
+  [ApplicationStatus.WITHDRAWAL_REQUESTED]: { variant: 'warning', label: 'Withdrawal Requested' },
 }
 
 const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
@@ -294,7 +295,7 @@ export default function CompanyJobDetail() {
       {/* Back Link */}
       <Link
         to="/jobs"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-teal-600 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Jobs
@@ -397,7 +398,7 @@ export default function CompanyJobDetail() {
             <p className="text-sm text-gray-500 mt-1">
               Review and manage applicants for this position
               {newApplicantsCount > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
+                <span className="ml-2 px-2 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-100">
                   {newApplicantsCount} new
                 </span>
               )}
@@ -415,7 +416,7 @@ export default function CompanyJobDetail() {
                 onClick={() => setAppFilter(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium border ${
                   appFilter === status
-                    ? 'bg-blue-600 text-white border-blue-600'
+                    ? 'bg-teal-600 text-white border-teal-600'
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -472,7 +473,7 @@ export default function CompanyJobDetail() {
                             ? 'bg-green-50 border-green-100 text-green-600'
                             : app.status === ApplicationStatus.REJECTED
                             ? 'bg-red-50 border-red-100 text-red-600'
-                            : 'bg-blue-50 border-blue-100 text-blue-600'
+                            : 'bg-teal-50 border-teal-100 text-teal-600'
                         }`}
                       >
                         {app.status === ApplicationStatus.HIRED ? (
@@ -512,7 +513,7 @@ export default function CompanyJobDetail() {
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => openStudentProfile(app.studentId, app.student?.fullName ?? 'Student')}
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                className="inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium"
                               >
                                 <Eye className="w-4 h-4" />
                                 View Full Profile

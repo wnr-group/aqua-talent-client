@@ -235,7 +235,7 @@ export default function AdminCompanies() {
                   onClick={() => updateFilter('status', status)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     statusFilter === status
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-orange-500 text-white'
                       : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                   }`}
                 >
@@ -434,7 +434,7 @@ export default function AdminCompanies() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
-            className="block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             placeholder="Enter rejection reason..."
           />
           <div className="flex justify-end gap-3">
@@ -513,7 +513,7 @@ export default function AdminCompanies() {
                     href={companyProfile.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Globe className="w-3 h-3" />
                     {companyProfile.website}
@@ -537,7 +537,7 @@ export default function AdminCompanies() {
                     href={companyProfile.socialLinks.linkedin}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Linkedin className="w-4 h-4" />
                     LinkedIn
@@ -553,7 +553,7 @@ export default function AdminCompanies() {
                     href={companyProfile.socialLinks.twitter}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
                   >
                     <Twitter className="w-4 h-4" />
                     Twitter

@@ -11,8 +11,8 @@ interface SkillsSectionProps {
 
 const inputClasses = `
   w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
-  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
-  border-gray-200 hover:border-teal-300
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
+  border-gray-200 hover:border-blue-300
 `
 
 export default function SkillsSection({ control, maxSkills = 25, error }: SkillsSectionProps) {
@@ -49,8 +49,8 @@ export default function SkillsSection({ control, maxSkills = 25, error }: Skills
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 rounded-xl bg-teal-100 border border-teal-200">
-          <Tag className="w-5 h-5 text-teal-600" />
+        <div className="p-3 rounded-xl bg-blue-100 border border-blue-200">
+          <Tag className="w-5 h-5 text-blue-600" />
         </div>
         <div>
           <h3 className="text-lg font-display font-semibold text-gray-900">Skills & Tools</h3>
@@ -70,7 +70,7 @@ export default function SkillsSection({ control, maxSkills = 25, error }: Skills
           <button
             type="button"
             onClick={handleAddSkill}
-            className="px-4 py-3 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors"
+            className="px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
           >
             Add
           </button>

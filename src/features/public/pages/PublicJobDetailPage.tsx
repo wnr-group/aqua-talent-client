@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
-import Logo from '@/components/common/Logo'
+import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 
@@ -32,7 +32,6 @@ export default function PublicJobDetailPage() {
 
   const [job, setJob] = useState<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus } | null>(null)
   const [dashboard, setDashboard] = useState<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean } | null>(null)
-  const [subscription, setSubscription] = useState<{ subscriptionTier: 'free' | 'paid' } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
 
@@ -48,12 +47,8 @@ export default function PublicJobDetailPage() {
         setJob(data)
 
         if (isStudent) {
-          const [dashboardData, subscriptionData] = await Promise.all([
-            api.get<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean }>('/student/dashboard'),
-            api.get<{ subscriptionTier: 'free' | 'paid' }>('/student/subscription'),
-          ])
+          const dashboardData = await api.get<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean }>('/student/dashboard')
           setDashboard(dashboardData)
-          setSubscription(subscriptionData)
         }
       } catch {
         showError('Job not found')
@@ -65,9 +60,8 @@ export default function PublicJobDetailPage() {
     fetchJob()
   }, [jobId, navigate, showError, isStudent])
 
-  const applicationLimit = dashboard?.applicationLimit ?? 2
-  const isPaidTier = subscription?.subscriptionTier === 'paid'
-  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === Number.POSITIVE_INFINITY || isPaidTier
+  const applicationLimit = dashboard?.applicationLimit
+  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === undefined
   const hasReachedFreeLimit = !hasUnlimitedApplications && (dashboard?.applicationsUsed ?? 0) >= applicationLimit
 
   const handleApply = async () => {
@@ -87,7 +81,7 @@ export default function PublicJobDetailPage() {
     }
 
     if (hasReachedFreeLimit) {
-      showError('Application limit reached for free tier (2). Upgrade to apply to unlimited jobs.')
+      showError(`Application limit reached (${applicationLimit}). Upgrade to apply to unlimited jobs.`)
       return
     }
 
@@ -127,58 +121,25 @@ export default function PublicJobDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation - Use StudentNavbar for logged-in students */}
-      {isStudent ? (
-        <StudentNavbar />
-      ) : (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-teal-600 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Link to="/">
-                <Logo size="md" />
-              </Link>
+      {isStudent ? <StudentNavbar /> : <PublicNavbar />}
 
-              <div className="flex items-center gap-4">
-                <Link
-                  to="/jobs"
-                  className="text-white/80 hover:text-white transition-colors font-medium"
-                >
-                  Browse Jobs
-                </Link>
-                <Link
-                  to="/login"
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register/student"
-                  className="px-5 py-2.5 rounded-xl bg-white text-teal-600 font-semibold hover:bg-gray-100 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-      )}
-
-      <div className="pt-24 pb-12 px-6">
+      <div className="pt-20 sm:pt-24 pb-8 sm:pb-12 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           {/* Back button */}
           <Link
             to="/jobs"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-8"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 sm:mb-8"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Jobs
+            <ArrowLeft className="w-4 h-4 flex-shrink-0" />
+            <span>Back to Jobs</span>
           </Link>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Main content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               {/* Job header */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up">
-                <div className="flex items-start gap-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
                   <CompanyAvatar
                     name={job.company?.name || 'Company'}
                     logoUrl={job.company?.logo}
@@ -186,13 +147,13 @@ export default function PublicJobDetailPage() {
                     className="flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h1 className="text-2xl md:text-3xl font-display font-bold text-gray-900 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                      <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-gray-900 mb-2">
                           {job.title}
                         </h1>
-                        <div className="flex flex-wrap items-center gap-3 text-gray-500">
-                          <p className="text-lg">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-gray-500">
+                          <p className="text-base sm:text-lg">
                             {job.company?.name}
                           </p>
                           {job.company?.industry && (
@@ -202,24 +163,24 @@ export default function PublicJobDetailPage() {
                           )}
                         </div>
                       </div>
-                      <span className="px-4 py-2 rounded-full text-sm font-medium bg-teal-50 text-teal-700 border border-teal-200 whitespace-nowrap">
+                      <span className="self-start px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                         {job.jobType}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 mt-4 text-gray-500">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-4 text-sm sm:text-base text-gray-500">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {job.location}
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span>{job.location}</span>
                       </div>
                       {job.salaryRange && (
-                        <div className="text-teal-600 font-medium">
+                        <div className="text-blue-600 font-medium">
                           {job.salaryRange}
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Posted {new Date(job.createdAt).toLocaleDateString()}
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
@@ -227,13 +188,13 @@ export default function PublicJobDetailPage() {
               </div>
 
               {/* Job description */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up stagger-1">
-                <h2 className="text-xl font-display font-semibold text-gray-900 mb-4 flex items-center gap-3">
-                  <Briefcase className="w-5 h-5 text-teal-600" />
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-1">
+                <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                  <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
                   About the Role
                 </h2>
                 <div className="prose prose-gray max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {job.description}
                   </p>
                 </div>
@@ -241,13 +202,13 @@ export default function PublicJobDetailPage() {
 
               {/* Requirements */}
               {job.requirements && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up stagger-2">
-                  <h2 className="text-xl font-display font-semibold text-gray-900 mb-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-teal-500" />
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-2">
+                  <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     Requirements
                   </h2>
                   <div className="prose prose-gray max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                       {job.requirements}
                     </p>
                   </div>
@@ -256,9 +217,9 @@ export default function PublicJobDetailPage() {
 
               {/* Company info */}
               {job.company && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up stagger-3">
-                  <h2 className="text-xl font-display font-semibold text-gray-900 mb-4 flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-purple-600" />
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-3">
+                  <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <Building2 className="w-5 h-5 text-purple-600 flex-shrink-0" />
                     About {job.company.name}
                   </h2>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-4">
@@ -278,11 +239,11 @@ export default function PublicJobDetailPage() {
                     )}
                   </div>
                   {job.company.description ? (
-                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
                       {job.company.description}
                     </p>
                   ) : (
-                    <p className="text-gray-400 italic">
+                    <p className="text-sm sm:text-base text-gray-400 italic">
                       This company hasn't added a public description yet.
                     </p>
                   )}
@@ -293,7 +254,7 @@ export default function PublicJobDetailPage() {
                           href={job.company.website}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
                         >
                           <Globe className="w-4 h-4" />
                           Visit Website
@@ -304,7 +265,7 @@ export default function PublicJobDetailPage() {
                           href={job.company.socialLinks.linkedin}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
                         >
                           <Linkedin className="w-4 h-4" />
                           LinkedIn
@@ -315,7 +276,7 @@ export default function PublicJobDetailPage() {
                           href={job.company.socialLinks.twitter}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
                         >
                           <Twitter className="w-4 h-4" />
                           Twitter
@@ -328,9 +289,9 @@ export default function PublicJobDetailPage() {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Apply card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-28 z-10 animate-fade-in-up stagger-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:sticky lg:top-28 z-10 animate-fade-in-up stagger-1">
                 {job.deadline && (
                   <div className={`flex items-center gap-2 mb-4 ${isDeadlinePassed ? 'text-red-600' : 'text-gray-500'}`}>
                     <Clock className="w-4 h-4" />
@@ -349,14 +310,14 @@ export default function PublicJobDetailPage() {
                         ? 'bg-green-100'
                         : job.applicationStatus === ApplicationStatus.REJECTED
                         ? 'bg-red-100'
-                        : 'bg-teal-100'
+                        : 'bg-blue-100'
                     }`}>
                       <CheckCircle className={`w-8 h-8 ${
                         job.applicationStatus === ApplicationStatus.HIRED
                           ? 'text-green-600'
                           : job.applicationStatus === ApplicationStatus.REJECTED
                           ? 'text-red-600'
-                          : 'text-teal-600'
+                          : 'text-blue-600'
                       }`} />
                     </div>
                     <p className="text-gray-900 font-medium mb-2">You've already applied!</p>
@@ -381,7 +342,7 @@ export default function PublicJobDetailPage() {
                     </p>
                     <Link
                       to="/my-applications"
-                      className="mt-4 inline-block text-teal-600 hover:text-teal-700 transition-colors text-sm"
+                      className="mt-4 inline-block text-blue-600 hover:text-blue-700 transition-colors text-sm"
                     >
                       View My Applications
                     </Link>
@@ -397,7 +358,7 @@ export default function PublicJobDetailPage() {
                     </p>
                     <Link
                       to="/jobs"
-                      className="inline-block text-teal-600 hover:text-teal-700 transition-colors text-sm"
+                      className="inline-block text-blue-600 hover:text-blue-700 transition-colors text-sm"
                     >
                       Browse Other Jobs
                     </Link>
@@ -415,7 +376,7 @@ export default function PublicJobDetailPage() {
                       <button
                         onClick={handleApply}
                         disabled={isApplying}
-                        className="w-full px-6 py-4 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all disabled:opacity-50 shadow-sm"
+                        className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
                       >
                         {isApplying ? 'Applying...' : 'Reapply Now'}
                       </button>
@@ -433,7 +394,7 @@ export default function PublicJobDetailPage() {
                     {isStudent && dashboard && (
                       <div className="mb-4 text-sm">
                         {hasUnlimitedApplications ? (
-                          <p className="text-teal-600">Paid tier: Unlimited applications available.</p>
+                          <p className="text-blue-600">Unlimited applications available.</p>
                         ) : (
                           <p className="text-gray-500">
                             {dashboard.applicationsUsed}/{applicationLimit} applications used
@@ -449,7 +410,7 @@ export default function PublicJobDetailPage() {
                         </p>
                         <Link
                           to="/subscription"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white hover:bg-teal-700 transition-all"
+                          className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 transition-all"
                         >
                           Upgrade to Unlimited
                         </Link>
@@ -458,7 +419,7 @@ export default function PublicJobDetailPage() {
                       <button
                         onClick={handleApply}
                         disabled={isApplying || (isStudent && !!dashboard?.isHired)}
-                        className="w-full px-6 py-4 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-all disabled:opacity-50 shadow-sm"
+                        className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
                       >
                         {isApplying
                           ? 'Applying...'
@@ -475,7 +436,7 @@ export default function PublicJobDetailPage() {
                 {!isAuthenticated && !hasActiveApplication && !isWithdrawn && !isRejected && !isDeadlinePassed && (
                   <p className="text-center text-sm text-gray-500 mt-4">
                     Don't have an account?{' '}
-                    <Link to="/register/student" className="text-teal-600 hover:text-teal-700">
+                    <Link to="/register/student" className="text-blue-600 hover:text-blue-700">
                       Sign up
                     </Link>
                   </p>
@@ -484,8 +445,8 @@ export default function PublicJobDetailPage() {
               </div>
 
               {/* Quick info */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 animate-fade-in-up stagger-2">
-                <h3 className="font-display font-semibold text-gray-900 mb-4">Quick Info</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-fade-in-up stagger-2">
+                <h3 className="font-display font-semibold text-gray-900 mb-3 sm:mb-4">Quick Info</h3>
                 <dl className="space-y-4">
                   <div>
                     <dt className="text-sm text-gray-500">Job Type</dt>
@@ -498,7 +459,7 @@ export default function PublicJobDetailPage() {
                   {job.salaryRange && (
                     <div>
                       <dt className="text-sm text-gray-500">Salary Range</dt>
-                      <dd className="text-teal-600 font-medium">{job.salaryRange}</dd>
+                      <dd className="text-blue-600 font-medium">{job.salaryRange}</dd>
                     </div>
                   )}
                   <div>

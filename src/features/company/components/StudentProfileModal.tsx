@@ -115,8 +115,8 @@ export default function StudentProfileModal({
           <div className="space-y-6">
             {/* Header */}
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center">
+                <User className="w-8 h-8 text-teal-600" />
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-gray-900">{displayName}</h2>
@@ -225,7 +225,7 @@ export default function StudentProfileModal({
                   href={profile.resumeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors text-sm font-medium"
                 >
                   <FileText className="w-4 h-4" />
                   View Resume

@@ -67,14 +67,14 @@ export default function StudentDashboard() {
   }, [])
 
   const applicationLimit = stats?.applicationLimit
-  const hasUnlimitedApplications = applicationLimit === Number.POSITIVE_INFINITY
+  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === undefined
   const applicationsRemaining = hasUnlimitedApplications
     ? null
-    : (applicationLimit ?? 0) - (stats?.applicationsUsed ?? 0)
+    : applicationLimit - (stats?.applicationsUsed ?? 0)
   const limitedApplicationsRemaining = applicationsRemaining ?? 0
   const usageText = hasUnlimitedApplications
     ? 'Unlimited applications'
-    : `${stats?.applicationsUsed ?? 0} / ${applicationLimit ?? '-'} applications`
+    : `${stats?.applicationsUsed ?? 0} / ${applicationLimit} applications`
   const isFreeTier = (subscription?.subscriptionTier ?? 'free') === 'free'
 
   return (
@@ -92,13 +92,13 @@ export default function StudentDashboard() {
 
         {/* Hired Status Banner */}
         {stats?.isHired && (
-          <div className="mb-8 p-6 rounded-2xl bg-teal-50 border border-teal-200">
+          <div className="mb-8 p-6 rounded-2xl bg-blue-50 border border-blue-200">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-teal-100 flex items-center justify-center">
-                <Trophy className="w-8 h-8 text-teal-600" />
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                <Trophy className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-display font-bold text-teal-700">Congratulations!</h2>
+                <h2 className="text-xl font-display font-bold text-blue-700">Congratulations!</h2>
                 <p className="text-gray-500">You have been hired. Your job search journey is complete.</p>
               </div>
             </div>
@@ -116,15 +116,15 @@ export default function StudentDashboard() {
               {/* Subscription Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-teal-100 flex items-center justify-center">
-                    <Gem className="w-7 h-7 text-teal-600" />
+                  <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Gem className="w-7 h-7 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Subscription</p>
                     <div className="mt-1">
                       <Badge
                         variant={isFreeTier ? 'secondary' : 'primary'}
-                        className={isFreeTier ? '' : 'bg-teal-100 text-teal-700'}
+                        className={isFreeTier ? '' : 'bg-blue-100 text-blue-700'}
                       >
                         {isFreeTier ? 'Free Tier' : 'Paid Tier'}
                       </Badge>
@@ -138,7 +138,7 @@ export default function StudentDashboard() {
                   {isFreeTier && (
                     <Link
                       to="/subscription"
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
                     >
                       Upgrade
                       <ArrowRight className="w-4 h-4" />
@@ -158,7 +158,7 @@ export default function StudentDashboard() {
                     <p className="text-3xl font-display font-bold text-gray-900">
                       {stats?.applicationsUsed ?? 0}
                       {!hasUnlimitedApplications && (
-                        <span className="text-lg font-normal text-gray-500"> / {applicationLimit ?? '-'}</span>
+                        <span className="text-lg font-normal text-gray-500"> / {applicationLimit}</span>
                       )}
                     </p>
                   </div>
@@ -233,7 +233,7 @@ export default function StudentDashboard() {
                   completeness && completeness.percentage < 100 ? (
                     <Link
                       to="/profile"
-                      className="inline-flex items-center justify-center w-full md:w-auto px-4 py-2 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700 transition-colors"
+                      className="inline-flex items-center justify-center w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
                     >
                       Update profile
                     </Link>
@@ -249,10 +249,10 @@ export default function StudentDashboard() {
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Search className="w-5 h-5 text-teal-600" />
+                        <Search className="w-5 h-5 text-blue-600" />
                         <span className="font-medium text-gray-900">Browse Jobs</span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-teal-600 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                     </div>
                   </div>
                 </Link>
@@ -261,10 +261,10 @@ export default function StudentDashboard() {
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-teal-600" />
+                        <FileText className="w-5 h-5 text-blue-600" />
                         <span className="font-medium text-gray-900">View Applications</span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-teal-600 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                     </div>
                   </div>
                 </Link>
@@ -273,10 +273,10 @@ export default function StudentDashboard() {
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-teal-600" />
+                        <User className="w-5 h-5 text-blue-600" />
                         <span className="font-medium text-gray-900">Update Profile</span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-teal-600 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                     </div>
                   </div>
                 </Link>

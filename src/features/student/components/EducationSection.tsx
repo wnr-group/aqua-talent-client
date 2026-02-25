@@ -10,8 +10,8 @@ interface EducationSectionProps {
 
 const inputClasses = `
   w-full px-4 py-3 rounded-xl bg-gray-50 border transition-all text-gray-900
-  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
-  border-gray-200 hover:border-teal-300
+  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
+  border-gray-200 hover:border-blue-300
 `
 
 const EMPTY_EDUCATION = {

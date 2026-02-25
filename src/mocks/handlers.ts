@@ -893,6 +893,11 @@ export const handlers = [
             studentFacingStatus: 'Withdrawn',
             statusMessage: 'You withdrew this application.',
           }
+        case 'WITHDRAWAL_REQUESTED':
+          return {
+            studentFacingStatus: 'Withdrawal Requested',
+            statusMessage: 'Your withdrawal request has been submitted and is awaiting admin approval.',
+          }
         default:
           return {
             studentFacingStatus: 'Shortlisted',
@@ -916,16 +921,36 @@ export const handlers = [
     return HttpResponse.json({ applications })
   }),
 
-  // Withdraw application
+  // Withdraw application (student only, PENDING or REVIEWED)
   http.patch(`${API_URL}/student/applications/:appId/withdraw`, async ({ params }) => {
     await delay(DELAY_MS)
+
+    // Student-only guard
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Forbidden: students only' }, { status: 403 })
+    }
+
     const appIndex = mockApplications.findIndex((a) => a.id === params.appId)
     if (appIndex === -1) {
       return HttpResponse.json({ message: 'Application not found' }, { status: 404 })
     }
 
-    mockApplications[appIndex]!.status = ApplicationStatus.WITHDRAWN
-    return HttpResponse.json(mockApplications[appIndex])
+    const app = mockApplications[appIndex]!
+
+    // Only allow withdrawal for PENDING or REVIEWED
+    if (
+      app.status !== ApplicationStatus.PENDING &&
+      app.status !== ApplicationStatus.REVIEWED
+    ) {
+      return HttpResponse.json(
+        { message: 'Withdrawal is only allowed for applications with status PENDING or REVIEWED' },
+        { status: 422 }
+      )
+    }
+
+    app.status = ApplicationStatus.WITHDRAWN
+    return HttpResponse.json(app)
   }),
 
   // Get student profile
@@ -1376,6 +1401,70 @@ export const handlers = [
         createdAt: now,
       })
     }
+
+    return HttpResponse.json(app)
+  }),
+
+  // Admin approve withdrawal request
+  http.patch(`${API_URL}/admin/applications/:appId/withdraw-approve`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const appIndex = mockApplications.findIndex((a) => a.id === params.appId)
+    if (appIndex === -1) {
+      return HttpResponse.json({ message: 'Application not found' }, { status: 404 })
+    }
+
+    const app = mockApplications[appIndex]!
+    app.status = ApplicationStatus.WITHDRAWN
+
+    // Notify student
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-withdraw-approved`,
+      recipientId: app.studentId,
+      recipientType: 'student',
+      type: 'application_status',
+      title: 'Withdrawal approved',
+      message: `Your withdrawal request for ${app.jobPosting?.title ?? 'a job'} has been approved.`,
+      link: '/my-applications',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    })
+
+    return HttpResponse.json(app)
+  }),
+
+  // Admin reject withdrawal request (application reverts to shortlisted)
+  http.patch(`${API_URL}/admin/applications/:appId/withdraw-reject`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.ADMIN) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const appIndex = mockApplications.findIndex((a) => a.id === params.appId)
+    if (appIndex === -1) {
+      return HttpResponse.json({ message: 'Application not found' }, { status: 404 })
+    }
+
+    const app = mockApplications[appIndex]!
+    app.status = ApplicationStatus.REVIEWED
+
+    // Notify student
+    mockNotifications.unshift({
+      id: `notif-${Date.now()}-withdraw-rejected`,
+      recipientId: app.studentId,
+      recipientType: 'student',
+      type: 'application_status',
+      title: 'Withdrawal request declined',
+      message: `Your withdrawal request for ${app.jobPosting?.title ?? 'a job'} was not approved. Your application remains active.`,
+      link: '/my-applications',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    })
 
     return HttpResponse.json(app)
   }),

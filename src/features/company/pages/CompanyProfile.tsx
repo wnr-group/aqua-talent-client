@@ -352,7 +352,7 @@ setProfile(data);
                       </div>
                     )}
                     <div className="text-center">
-                      <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-colors">
+                      <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-teal-400 hover:text-teal-600 transition-colors">
                         Upload Logo
                         <input
                           type="file"
@@ -628,7 +628,7 @@ setProfile(data);
                         href={previewWebsite}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                        className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700"
                       >
                         <Globe className="h-4 w-4" />
                         Visit Website
@@ -639,7 +639,7 @@ setProfile(data);
                         href={previewLinkedin}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                        className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700"
                       >
                         <Linkedin className="h-4 w-4" />
                         LinkedIn
@@ -650,7 +650,7 @@ setProfile(data);
                         href={previewTwitter}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                        className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700"
                       >
                         <Twitter className="h-4 w-4" />
                         Twitter

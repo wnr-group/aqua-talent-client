@@ -48,8 +48,8 @@ export default function StudentRegisterPage() {
   const inputClasses = (hasError: boolean) => `
     w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 border transition-all
     text-gray-900 placeholder:text-gray-400
-    focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500
-    ${hasError ? 'border-red-500' : 'border-gray-200 hover:border-teal-300'}
+    focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
+    ${hasError ? 'border-red-500' : 'border-gray-200 hover:border-blue-300'}
   `
 
   return (
@@ -75,7 +75,7 @@ export default function StudentRegisterPage() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up stagger-1">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <span className="text-lg font-semibold text-gray-900">Student Account</span>
@@ -208,7 +208,7 @@ export default function StudentRegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 mt-6 rounded-xl font-semibold transition-all bg-teal-600 text-white hover:bg-teal-700 shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 mt-6 rounded-xl font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -222,7 +222,7 @@ export default function StudentRegisterPage() {
             Already have an account?{' '}
             <Link
               to="/login"
-              className="text-teal-600 hover:text-teal-700 font-medium transition-colors"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
             >
               Sign in
             </Link>

@@ -44,17 +44,17 @@ export default function PricingCard({
     <Card
       className={`relative h-full overflow-hidden rounded-2xl transition-all duration-300 ${
         isCurrentPlan
-          ? 'border-teal-500 shadow-lg'
+          ? 'border-blue-500 shadow-lg'
           : badge
-          ? 'border-teal-400 shadow-md'
-          : 'hover:border-teal-300 hover:shadow-md'
+          ? 'border-blue-400 shadow-md'
+          : 'hover:border-blue-300 hover:shadow-md'
       }`}
       padding="lg"
     >
       {/* Badge ribbon */}
       {badge && (
         <div className="absolute top-4 right-4">
-          <Badge variant="primary" className="bg-teal-600 text-white">
+          <Badge variant="primary" className="bg-blue-600 text-white">
             {badge}
           </Badge>
         </div>
@@ -74,7 +74,7 @@ export default function PricingCard({
         </div>
 
         {hasDiscount && (
-          <span className="mt-1 text-sm font-medium text-teal-600">
+          <span className="mt-1 text-sm font-medium text-blue-600">
             Save {discount}%
           </span>
         )}
@@ -88,7 +88,7 @@ export default function PricingCard({
         <CardDescription className="text-gray-500 mt-1">{description}</CardDescription>
 
         {trialDays && trialDays > 0 && !isOneTime && (
-          <p className="mt-2 text-sm font-medium text-teal-600">
+          <p className="mt-2 text-sm font-medium text-blue-600">
             {trialDays}-day free trial
           </p>
         )}

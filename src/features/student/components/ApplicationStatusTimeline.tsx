@@ -6,6 +6,7 @@ interface ApplicationStatusTimelineProps {
 
 const STEPS = [
   'Applied',
+  'Under Review',
   'Shortlisted',
   'Interview',
   'Offer',
@@ -17,15 +18,15 @@ function getCurrentStep(status: string): number {
 
   switch (normalized) {
     case 'PENDING':
-      return 2
+      return 2 // Under Review
     case 'REVIEWED':
-      return 2
+      return 3 // Shortlisted
     case 'INTERVIEW_SCHEDULED':
-      return 3
-    case 'OFFER_EXTENDED':
       return 4
-    case 'HIRED':
+    case 'OFFER_EXTENDED':
       return 5
+    case 'HIRED':
+      return 6
     default:
       return 1
   }
@@ -34,7 +35,7 @@ function getCurrentStep(status: string): number {
 export default function ApplicationStatusTimeline({ status }: ApplicationStatusTimelineProps) {
   const normalized = String(status).toUpperCase()
 
-  if (normalized === 'WITHDRAWN' || normalized === 'REJECTED') {
+  if (normalized === 'WITHDRAWN' || normalized === 'REJECTED' || normalized === 'WITHDRAWAL_REQUESTED') {
     return null
   }
 
@@ -55,14 +56,12 @@ export default function ApplicationStatusTimeline({ status }: ApplicationStatusT
               <div className="flex flex-col items-center gap-1">
                 <div
                   className={`w-7 h-7 rounded-full border flex items-center justify-center text-[11px] font-semibold ${
-                    isCompleted
-                      ? 'bg-teal-600 border-teal-600 text-white'
-                      : isCurrent
-                      ? 'bg-teal-50 border-teal-300 text-teal-700'
+                    isCompleted || isCurrent
+                      ? 'bg-blue-600 border-blue-600 text-white'
                       : 'bg-gray-50 border-gray-200 text-gray-400'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-3.5 h-3.5" /> : stepNumber}
+                  {isCompleted || isCurrent ? <Check className="w-3.5 h-3.5" /> : stepNumber}
                 </div>
                 <span
                   className={`text-[11px] text-center leading-tight ${
@@ -75,7 +74,7 @@ export default function ApplicationStatusTimeline({ status }: ApplicationStatusT
               {index < STEPS.length - 1 && (
                 <div
                   className={`h-[2px] flex-1 mx-2 mb-5 ${
-                    stepNumber < currentStep ? 'bg-teal-400' : 'bg-gray-200'
+                    stepNumber < currentStep ? 'bg-blue-400' : 'bg-gray-200'
                   }`}
                 />
               )}

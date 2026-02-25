@@ -252,7 +252,7 @@ export default function AdminSubscriptionPlans() {
               type="checkbox"
               checked={showActiveOnly}
               onChange={(e) => setShowActiveOnly(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
             />
             <span className="text-sm text-gray-700">Show active plans only</span>
           </label>
@@ -280,7 +280,7 @@ export default function AdminSubscriptionPlans() {
             <Card key={plan.id} className={`relative ${!plan.isActive ? 'opacity-60' : ''}`}>
               {plan.badge && (
                 <div className="absolute -top-3 left-4">
-                  <Badge variant="primary" className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                  <Badge variant="primary" className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white">
                     <Star className="w-3 h-3 mr-1" />
                     {plan.badge}
                   </Badge>
@@ -318,7 +318,7 @@ export default function AdminSubscriptionPlans() {
                     <span className="text-xs text-green-600">{plan.discount}% off</span>
                   )}
                   {plan.trialDays > 0 && (
-                    <p className="text-xs text-blue-600 mt-1">{plan.trialDays}-day free trial</p>
+                    <p className="text-xs text-orange-600 mt-1">{plan.trialDays}-day free trial</p>
                   )}
                 </div>
 
@@ -431,7 +431,7 @@ export default function AdminSubscriptionPlans() {
                 value={formData.tier}
                 onChange={(e) => setFormData((p) => ({ ...p, tier: e.target.value as SubscriptionTier }))}
                 disabled={editingPlan?.tier === 'free'}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="free">Free</option>
                 <option value="paid">Paid</option>
@@ -445,7 +445,7 @@ export default function AdminSubscriptionPlans() {
               value={formData.description}
               onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder:text-gray-400"
               placeholder="Describe what this plan offers..."
             />
           </div>
@@ -465,7 +465,7 @@ export default function AdminSubscriptionPlans() {
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData((p) => ({ ...p, currency: e.target.value as SubscriptionCurrency }))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -477,7 +477,7 @@ export default function AdminSubscriptionPlans() {
               <select
                 value={formData.billingCycle}
                 onChange={(e) => setFormData((p) => ({ ...p, billingCycle: e.target.value as BillingCycle }))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 {BILLING_CYCLES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -584,7 +584,7 @@ export default function AdminSubscriptionPlans() {
                 type="checkbox"
                 checked={formData.prioritySupport}
                 onChange={(e) => setFormData((p) => ({ ...p, prioritySupport: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Priority Support</p>
@@ -596,7 +596,7 @@ export default function AdminSubscriptionPlans() {
                 type="checkbox"
                 checked={formData.profileBoost}
                 onChange={(e) => setFormData((p) => ({ ...p, profileBoost: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Profile Boost</p>
@@ -608,7 +608,7 @@ export default function AdminSubscriptionPlans() {
                 type="checkbox"
                 checked={formData.applicationHighlight}
                 onChange={(e) => setFormData((p) => ({ ...p, applicationHighlight: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Application Highlight</p>
@@ -620,7 +620,7 @@ export default function AdminSubscriptionPlans() {
                 type="checkbox"
                 checked={formData.isActive}
                 onChange={(e) => setFormData((p) => ({ ...p, isActive: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Active</p>
