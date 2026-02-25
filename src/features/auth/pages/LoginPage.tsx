@@ -442,27 +442,6 @@ export default function LoginPage() {
               </div>
             )}
           </div>
-
-          {/* Demo credentials */}
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-fade-in-up stagger-2">
-            <p className="text-sm text-center">
-              <span className="font-medium text-gray-900">Demo Credentials:</span>
-              <br />
-              <span className="text-gray-500">
-                {isAdminLogin ? (
-                  'Admin: admin / password123'
-                ) : isCompanyLogin ? (
-                  'Company: infosys / password123'
-                ) : (
-                  <>
-                    Student: rahul / password123
-                    <br />
-                    Company: infosys / password123
-                  </>
-                )}
-              </span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
