@@ -38,6 +38,7 @@ export const JOB_TYPES = [
   'Contract',
   'Internship',
   'Freelance',
+  'Project',
 ] as const
 
 export type JobType = (typeof JOB_TYPES)[number]
