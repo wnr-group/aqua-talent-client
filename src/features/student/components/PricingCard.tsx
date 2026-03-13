@@ -1,3 +1,4 @@
+import { ReactNode } from 'react'
 import { ArrowRight } from 'lucide-react'
 import Card, { CardContent, CardDescription, CardFooter, CardTitle } from '@/components/common/Card'
 import Button from '@/components/common/Button'
@@ -8,6 +9,7 @@ import FeatureList from './FeatureList'
 interface PricingCardProps {
   name: string
   price: string
+  secondaryPrice?: string | null
   description: string
   features: string[]
   isCurrentPlan: boolean
@@ -19,11 +21,13 @@ interface PricingCardProps {
   trialDays?: number
   originalPrice?: string
   billingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
+  actionButton?: ReactNode
 }
 
 export default function PricingCard({
   name,
   price,
+  secondaryPrice,
   description,
   features,
   isCurrentPlan,
@@ -35,6 +39,7 @@ export default function PricingCard({
   trialDays,
   originalPrice,
   billingCycle,
+  actionButton,
 }: PricingCardProps) {
   const isActionable = !isCurrentPlan && !!onCtaClick
   const hasDiscount = discount && discount > 0
@@ -73,6 +78,10 @@ export default function PricingCard({
           )}
         </div>
 
+        {secondaryPrice && (
+          <p className="mt-1 text-sm font-medium text-gray-500">{secondaryPrice}</p>
+        )}
+
         {hasDiscount && (
           <span className="mt-1 text-sm font-medium text-blue-600">
             Save {discount}%
@@ -98,17 +107,19 @@ export default function PricingCard({
         </div>
 
         <CardFooter className="mt-6 border-gray-200 px-0 pb-0 pt-4">
-          <Button
-            variant={isActionable ? 'primary' : 'secondary'}
-            size="md"
-            className="w-full"
-            rightIcon={isActionable ? <ArrowRight className="w-4 h-4" /> : undefined}
-            onClick={onCtaClick}
-            disabled={!isActionable || isProcessing}
-            isLoading={isProcessing}
-          >
-            {isCurrentPlan ? 'Current Plan' : ctaLabel}
-          </Button>
+          {actionButton || (
+            <Button
+              variant={isActionable ? 'primary' : 'secondary'}
+              size="md"
+              className="w-full"
+              rightIcon={isActionable ? <ArrowRight className="w-4 h-4" /> : undefined}
+              onClick={onCtaClick}
+              disabled={!isActionable || isProcessing}
+              isLoading={isProcessing}
+            >
+              {isCurrentPlan ? 'Current Plan' : ctaLabel}
+            </Button>
+          )}
         </CardFooter>
       </CardContent>
     </Card>

@@ -183,6 +183,23 @@ export default function AdminStudentDetail() {
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId)
 
+  const getIndianPrice = (plan: SubscriptionPlan) => {
+    return plan.indianPrice ?? (plan.currency === 'INR' ? plan.price : null)
+  }
+
+  const getInternationalPrice = (plan: SubscriptionPlan) => {
+    return plan.internationalPrice ?? (plan.currency === 'USD' ? plan.price : null)
+  }
+
+  const formatDualPricing = (plan: SubscriptionPlan) => {
+    const indianPrice = getIndianPrice(plan)
+    const internationalPrice = getInternationalPrice(plan)
+    const indianLabel = indianPrice === null ? 'INR not set' : `₹${indianPrice}`
+    const internationalLabel = internationalPrice === null ? 'USD not set' : `$${internationalPrice}`
+
+    return `${indianLabel} • ${internationalLabel}`
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -683,7 +700,7 @@ export default function AdminStudentDetail() {
               <option value="">Select a plan...</option>
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
-                  {plan.name} - ${plan.price}/{plan.billingCycle} ({plan.tier})
+                  {plan.name} - {formatDualPricing(plan)}/{plan.billingCycle} ({plan.tier})
                 </option>
               ))}
             </select>

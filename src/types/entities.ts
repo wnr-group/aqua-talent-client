@@ -143,6 +143,9 @@ export interface SubscriptionPlan {
   description: string
   maxApplications: number | null // null = unlimited
   price: number
+  indianPrice?: number | null
+  nonIndianPrice?: number | null
+  internationalPrice?: number | null
   currency: SubscriptionCurrency
   billingCycle: BillingCycle
   trialDays: number
