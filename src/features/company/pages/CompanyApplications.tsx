@@ -199,15 +199,12 @@ export default function CompanyApplications() {
     if (status === ApplicationStatus.REVIEWED) {
       return [
         ApplicationStatus.INTERVIEW_SCHEDULED,
-        ApplicationStatus.OFFER_EXTENDED,
-        ApplicationStatus.HIRED,
         ApplicationStatus.REJECTED,
       ]
     }
     if (status === ApplicationStatus.INTERVIEW_SCHEDULED) {
       return [
         ApplicationStatus.OFFER_EXTENDED,
-        ApplicationStatus.HIRED,
         ApplicationStatus.REJECTED,
       ]
     }
