@@ -11,7 +11,6 @@ import {
   SubscriptionPlan,
   SubscriptionTier,
   SubscriptionCurrency,
-  BillingCycle,
 } from "@/types";
 import { api } from "@/services/api/client";
 import { format } from "date-fns";
@@ -47,15 +46,13 @@ interface PlanFormData {
   indianPrice: number;
   nonIndianPrice: number;
   currency: SubscriptionCurrency;
-  billingCycle: BillingCycle;
-  trialDays: number;
   discount: number;
-  maxApplications: string; // empty = unlimited
+  maxApplications: string; // required for paid plans
   features: string[];
   badge: string;
   displayOrder: number;
-  resumeDownloadsPerMonth: string;
-  videoViewsPerMonth: string;
+  resumeDownloads: string;
+  videoViews: string;
   prioritySupport: boolean;
   profileBoost: boolean;
   applicationHighlight: boolean;
@@ -70,15 +67,13 @@ const defaultFormData: PlanFormData = {
   indianPrice: 0,
   nonIndianPrice: 0,
   currency: "INR",
-  billingCycle: "monthly",
-  trialDays: 0,
   discount: 0,
   maxApplications: "",
   features: [],
   badge: "",
   displayOrder: 0,
-  resumeDownloadsPerMonth: "",
-  videoViewsPerMonth: "",
+  resumeDownloads: "",
+  videoViews: "",
   prioritySupport: false,
   profileBoost: false,
   applicationHighlight: false,
@@ -158,15 +153,13 @@ export default function AdminSubscriptionPlans() {
         plan.internationalPrice ??
         (plan.currency === "USD" ? plan.price : 0),
       currency: plan.currency,
-      billingCycle: plan.billingCycle,
-      trialDays: plan.trialDays ?? 0,
       discount: plan.discount ?? 0,
       maxApplications: plan.maxApplications?.toString() ?? "",
       features: plan.features || [],
       badge: plan.badge || "",
       displayOrder: plan.displayOrder ?? 0,
-      resumeDownloadsPerMonth: plan.resumeDownloadsPerMonth?.toString() ?? "",
-      videoViewsPerMonth: plan.videoViewsPerMonth?.toString() ?? "",
+      resumeDownloads: (plan.resumeDownloads ?? plan.resumeDownloadsPerMonth)?.toString() ?? "",
+      videoViews: (plan.videoViews ?? plan.videoViewsPerMonth)?.toString() ?? "",
       prioritySupport: plan.prioritySupport ?? false,
       profileBoost: plan.profileBoost ?? false,
       applicationHighlight: plan.applicationHighlight ?? false,
@@ -178,6 +171,12 @@ export default function AdminSubscriptionPlans() {
   const handleSave = async () => {
     if (!formData.name.trim()) {
       showError("Plan name is required");
+      return;
+    }
+
+    // maxApplications is required for paid plans
+    if (formData.tier === "paid" && !formData.maxApplications) {
+      showError("Max applications is required for paid plans");
       return;
     }
 
@@ -194,8 +193,6 @@ export default function AdminSubscriptionPlans() {
         internationalPrice:
           formData.tier === "free" ? 0 : formData.nonIndianPrice,
         currency: formData.currency,
-        billingCycle: formData.billingCycle,
-        trialDays: formData.trialDays || 0,
         discount: formData.discount || 0,
         maxApplications: formData.maxApplications
           ? parseInt(formData.maxApplications)
@@ -205,11 +202,11 @@ export default function AdminSubscriptionPlans() {
           : [],
         badge: formData.badge.trim() || null,
         displayOrder: formData.displayOrder || 0,
-        resumeDownloadsPerMonth: formData.resumeDownloadsPerMonth
-          ? parseInt(formData.resumeDownloadsPerMonth)
+        resumeDownloads: formData.resumeDownloads
+          ? parseInt(formData.resumeDownloads)
           : null,
-        videoViewsPerMonth: formData.videoViewsPerMonth
-          ? parseInt(formData.videoViewsPerMonth)
+        videoViews: formData.videoViews
+          ? parseInt(formData.videoViews)
           : null,
         prioritySupport: Boolean(formData.prioritySupport),
         profileBoost: Boolean(formData.profileBoost),
@@ -432,11 +429,6 @@ export default function AdminSubscriptionPlans() {
                       {plan.discount}% off
                     </span>
                   )}
-                  {plan.trialDays > 0 && (
-                    <p className="text-xs text-orange-600 mt-1">
-                      {plan.trialDays}-day free trial
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2 mb-4">
@@ -448,20 +440,20 @@ export default function AdminSubscriptionPlans() {
                       </span>
                     </div>
                   )}
-                  {plan.resumeDownloadsPerMonth &&
-                    plan.resumeDownloadsPerMonth > 0 && (
+                  {(plan.resumeDownloads ?? plan.resumeDownloadsPerMonth) &&
+                    (plan.resumeDownloads ?? plan.resumeDownloadsPerMonth)! > 0 && (
                       <div className="flex items-center gap-2 text-sm">
                         <FileText className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-600">
-                          {plan.resumeDownloadsPerMonth} resume downloads
+                          {plan.resumeDownloads ?? plan.resumeDownloadsPerMonth} resume downloads
                         </span>
                       </div>
                     )}
-                  {plan.videoViewsPerMonth && plan.videoViewsPerMonth > 0 && (
+                  {(plan.videoViews ?? plan.videoViewsPerMonth) && (plan.videoViews ?? plan.videoViewsPerMonth)! > 0 && (
                     <div className="flex items-center gap-2 text-sm">
                       <Video className="w-4 h-4 text-gray-400" />
                       <span className="text-gray-600">
-                        {plan.videoViewsPerMonth} video views
+                        {plan.videoViews ?? plan.videoViewsPerMonth} video views
                       </span>
                     </div>
                   )}
@@ -625,19 +617,7 @@ export default function AdminSubscriptionPlans() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              label="Trial Days"
-              type="number"
-              value={formData.trialDays}
-              onChange={(e) =>
-                setFormData((p) => ({
-                  ...p,
-                  trialDays: parseInt(e.target.value) || 0,
-                }))
-              }
-              min={0}
-            />
+          <div className="grid grid-cols-2 gap-4">
             <Input
               label="Discount %"
               type="number"
@@ -667,36 +647,37 @@ export default function AdminSubscriptionPlans() {
 
           <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Max Applications"
+              label="Max Applications *"
               type="number"
               value={formData.maxApplications}
               onChange={(e) =>
                 setFormData((p) => ({ ...p, maxApplications: e.target.value }))
               }
-              placeholder="Empty = unlimited"
-              min={0}
+              placeholder={formData.tier === "free" ? "e.g., 2" : "Required"}
+              min={1}
+              required={formData.tier === "paid"}
             />
             <Input
-              label="Resume Downloads/Month"
+              label="Resume Downloads"
               type="number"
-              value={formData.resumeDownloadsPerMonth}
+              value={formData.resumeDownloads}
               onChange={(e) =>
                 setFormData((p) => ({
                   ...p,
-                  resumeDownloadsPerMonth: e.target.value,
+                  resumeDownloads: e.target.value,
                 }))
               }
               placeholder="Empty = unlimited"
               min={0}
             />
             <Input
-              label="Video Views/Month"
+              label="Video Views"
               type="number"
-              value={formData.videoViewsPerMonth}
+              value={formData.videoViews}
               onChange={(e) =>
                 setFormData((p) => ({
                   ...p,
-                  videoViewsPerMonth: e.target.value,
+                  videoViews: e.target.value,
                 }))
               }
               placeholder="Empty = unlimited"

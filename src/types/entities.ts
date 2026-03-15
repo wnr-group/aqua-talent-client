@@ -133,8 +133,8 @@ export interface InAppNotification {
 // Subscription Plans
 export type SubscriptionTier = 'free' | 'paid'
 export type SubscriptionCurrency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
-export type BillingCycle = 'monthly' | 'quarterly' | 'yearly' | 'one-time'
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled'
+export type BillingCycle = 'one-time' // Quota-based only
+export type SubscriptionStatus = 'active' | 'exhausted' | 'cancelled' | 'expired' | 'pending'
 
 export interface SubscriptionPlan {
   id: string
@@ -147,14 +147,15 @@ export interface SubscriptionPlan {
   nonIndianPrice?: number | null
   internationalPrice?: number | null
   currency: SubscriptionCurrency
-  billingCycle: BillingCycle
-  trialDays: number
   discount: number // 0-100
   features: string[]
   badge: string | null // "Popular", "Best Value"
   displayOrder: number
-  resumeDownloadsPerMonth: number | null
-  videoViewsPerMonth: number | null
+  resumeDownloads: number | null
+  videoViews: number | null
+  // Legacy field names for backwards compatibility
+  resumeDownloadsPerMonth?: number | null
+  videoViewsPerMonth?: number | null
   prioritySupport: boolean
   profileBoost: boolean
   applicationHighlight: boolean
@@ -166,8 +167,8 @@ export interface SubscriptionPlan {
 export interface FreeTierConfig {
   maxApplications: number | null
   features: string[]
-  resumeDownloadsPerMonth: number | null
-  videoViewsPerMonth: number | null
+  resumeDownloads: number | null
+  videoViews: number | null
 }
 
 export interface StudentSubscription {
@@ -181,8 +182,7 @@ export interface StudentSubscription {
   }
   status: SubscriptionStatus
   startDate: string
-  endDate: string
-  autoRenew: boolean
+  endDate: string | null // null for quota-based plans
 }
 
 export interface SubscriptionUsage {

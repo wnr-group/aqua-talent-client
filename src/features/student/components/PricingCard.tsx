@@ -18,9 +18,8 @@ interface PricingCardProps {
   isProcessing?: boolean
   badge?: string | null
   discount?: number
-  trialDays?: number
   originalPrice?: string
-  billingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
+  maxApplications?: number | null
   actionButton?: ReactNode
 }
 
@@ -36,14 +35,12 @@ export default function PricingCard({
   isProcessing = false,
   badge,
   discount,
-  trialDays,
   originalPrice,
-  billingCycle,
+  maxApplications,
   actionButton,
 }: PricingCardProps) {
   const isActionable = !isCurrentPlan && !!onCtaClick
   const hasDiscount = discount && discount > 0
-  const isOneTime = billingCycle === 'one-time'
 
   return (
     <Card
@@ -88,19 +85,13 @@ export default function PricingCard({
           </span>
         )}
 
-        {isOneTime && (
+        {maxApplications && maxApplications > 0 && (
           <span className="mt-1 text-sm font-medium text-purple-600">
-            One-time payment • Lifetime access
+            {maxApplications} applications included
           </span>
         )}
 
         <CardDescription className="text-gray-500 mt-1">{description}</CardDescription>
-
-        {trialDays && trialDays > 0 && !isOneTime && (
-          <p className="mt-2 text-sm font-medium text-blue-600">
-            {trialDays}-day free trial
-          </p>
-        )}
 
         <div className="mt-6 flex-1">
           <FeatureList features={features} />

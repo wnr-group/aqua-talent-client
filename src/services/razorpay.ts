@@ -4,6 +4,7 @@ export interface RazorpayCheckoutOptions {
   currency: string
   name: string
   description: string
+  orderId?: string
   prefill?: {
     name?: string
     email?: string
@@ -40,6 +41,7 @@ export function openRazorpayCheckout(
       currency: options.currency,
       name: options.name,
       description: options.description,
+      order_id: options.orderId,
       prefill: options.prefill,
       notes: options.notes,
       theme: options.themeColor ? { color: options.themeColor } : undefined,
