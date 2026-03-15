@@ -222,6 +222,9 @@ export interface MockSubscriptionPlan {
   description: string
   maxApplications: number | null
   price: number
+  indianPrice?: number | null
+  nonIndianPrice?: number | null
+  internationalPrice?: number | null
   currency: 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
   billingCycle: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
   trialDays: number
@@ -266,6 +269,9 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'Great for getting started with your job search.',
     maxApplications: 2,
     price: 0,
+    indianPrice: 0,
+    nonIndianPrice: 0,
+    internationalPrice: 0,
     currency: 'INR',
     billingCycle: 'monthly',
     trialDays: 0,
@@ -294,6 +300,9 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'For serious job seekers who want unlimited applications.',
     maxApplications: null,
     price: 499,
+    indianPrice: 599,
+    nonIndianPrice: 20,
+    internationalPrice: 20,
     currency: 'INR',
     billingCycle: 'monthly',
     trialDays: 7,
@@ -323,6 +332,9 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'Best value for committed job seekers. Save 20%!',
     maxApplications: null,
     price: 4790,
+    indianPrice: 1699,
+    nonIndianPrice: 35,
+    internationalPrice: 35,
     currency: 'INR',
     billingCycle: 'yearly',
     trialDays: 14,
@@ -353,6 +365,9 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'One-time payment for lifetime access. Never pay again!',
     maxApplications: null,
     price: 9999,
+    indianPrice: 3250,
+    nonIndianPrice: 60,
+    internationalPrice: 60,
     currency: 'INR',
     billingCycle: 'one-time',
     trialDays: 0,

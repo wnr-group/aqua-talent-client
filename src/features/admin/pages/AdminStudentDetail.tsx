@@ -67,14 +67,13 @@ interface StudentProfile {
       id: string
       status: 'active' | 'expired' | 'cancelled' | 'pending'
       startDate: string
-      endDate: string
-      autoRenew: boolean
+      endDate: string | null
       plan: {
         id: string
         name: string
         description: string
         price: number
-        billingCycle: string
+        maxApplications: number | null
         features: string[]
       } | null
     } | null
@@ -181,7 +180,22 @@ export default function AdminStudentDetail() {
     }
   }
 
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId)
+  const getIndianPrice = (plan: SubscriptionPlan) => {
+    return plan.indianPrice ?? (plan.currency === 'INR' ? plan.price : null)
+  }
+
+  const getInternationalPrice = (plan: SubscriptionPlan) => {
+    return plan.internationalPrice ?? (plan.currency === 'USD' ? plan.price : null)
+  }
+
+  const formatDualPricing = (plan: SubscriptionPlan) => {
+    const indianPrice = getIndianPrice(plan)
+    const internationalPrice = getInternationalPrice(plan)
+    const indianLabel = indianPrice === null ? 'INR not set' : `₹${indianPrice}`
+    const internationalLabel = internationalPrice === null ? 'USD not set' : `$${internationalPrice}`
+
+    return `${indianLabel} • ${internationalLabel}`
+  }
 
   if (isLoading) {
     return (
@@ -506,7 +520,13 @@ export default function AdminStudentDetail() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Price</p>
                     <p className="text-gray-900">
-                      ${student.subscription.current.plan?.price || 0} / {student.subscription.current.plan?.billingCycle}
+                      ${student.subscription.current.plan?.price || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Applications</p>
+                    <p className="text-gray-900">
+                      {student.subscription.current.plan?.maxApplications || 'Unlimited'}
                     </p>
                   </div>
                   <div>
@@ -514,20 +534,6 @@ export default function AdminStudentDetail() {
                     <p className="text-gray-900">
                       {format(new Date(student.subscription.current.startDate), 'MMM d, yyyy')}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">End Date</p>
-                    <p className="text-gray-900">
-                      {student.subscription.current.plan?.billingCycle === 'one-time'
-                        ? 'Never expires'
-                        : format(new Date(student.subscription.current.endDate), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Auto-Renew</p>
-                    <Badge variant={student.subscription.current.autoRenew ? 'success' : 'secondary'}>
-                      {student.subscription.current.autoRenew ? 'Yes' : 'No'}
-                    </Badge>
                   </div>
 
                   {student.subscription.current.plan?.features && (
@@ -675,45 +681,17 @@ export default function AdminStudentDetail() {
               value={selectedPlanId}
               onChange={(e) => {
                 setSelectedPlanId(e.target.value)
-                const plan = plans.find((p) => p.id === e.target.value)
-                setAutoRenew(plan?.billingCycle !== 'one-time')
               }}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="">Select a plan...</option>
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
-                  {plan.name} - ${plan.price}/{plan.billingCycle} ({plan.tier})
+                  {plan.name} - {formatDualPricing(plan)} ({plan.maxApplications || 'Unlimited'} applications)
                 </option>
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Custom End Date (optional)
-            </label>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to auto-calculate based on billing cycle
-            </p>
-          </div>
-
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={autoRenew}
-              onChange={(e) => setAutoRenew(e.target.checked)}
-              disabled={selectedPlan?.billingCycle === 'one-time'}
-              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-            />
-            <span className="text-sm text-gray-700">Auto-renew subscription</span>
-          </label>
 
           {student.subscription.current && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

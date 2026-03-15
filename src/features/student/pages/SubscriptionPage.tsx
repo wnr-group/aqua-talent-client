@@ -1,29 +1,27 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Check,
   Minus,
   Sparkles,
   Crown,
-  Calendar,
   Users,
   Star,
   Clock,
-  Infinity,
   Zap,
 } from 'lucide-react'
 import Card, { CardContent, CardTitle } from '@/components/common/Card'
 import Alert from '@/components/common/Alert'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PricingCard from '@/features/student/components/PricingCard'
+import SubscriptionPurchaseAction from '@/features/student/components/SubscriptionPurchaseAction'
 import Badge from '@/components/common/Badge'
-import { api } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { openRazorpayCheckout } from '@/services/razorpay'
+import { api } from '@/services/api/client'
 import { SubscriptionTier } from '@/types'
-import { format } from 'date-fns'
 
-// Service from GET /api/services endpoint
+type SupportedCurrency = 'INR' | 'USD'
+
+// Service from GET /api/services endpoint (quota-based, one-time purchase)
 interface SubscriptionService {
   _id: string
   name: string
@@ -31,23 +29,33 @@ interface SubscriptionService {
   description: string
   maxApplications: number | null
   price: number
+  indianPrice?: number | null
+  internationalPrice?: number | null
   currency: string
-  billingCycle: string
-  trialDays: number
   discount: number
   features: string[]
   badge: string | null
   displayOrder: number
+  resumeDownloads: number | null
+  videoViews: number | null
   prioritySupport: boolean
   profileBoost: boolean
   applicationHighlight: boolean
 }
 
 interface ServicesResponse {
-  services: SubscriptionService[]
+  services?: SubscriptionService[]
+  plans?: SubscriptionService[]
 }
 
-// Current subscription from GET /api/student/subscription endpoint
+interface GeoLocationResponse {
+  currency?: string
+  countryCode?: string
+  country_code?: string
+  country?: string
+}
+
+// Current subscription from GET /api/student/subscription endpoint (quota-based)
 interface CurrentSubscriptionResponse {
   subscriptionTier: SubscriptionTier
   status: string
@@ -60,32 +68,28 @@ interface CurrentSubscriptionResponse {
       name: string
       tier: string
       price: number
+      indianPrice?: number | null
+      internationalPrice?: number | null
       currency: string
-      billingCycle: string
-      trialDays: number
       discount: number
       badge: string | null
+      maxApplications: number | null
       features?: string[]
       prioritySupport: boolean
       profileBoost: boolean
       applicationHighlight: boolean
     }
     startDate: string
-    endDate: string
+    endDate: string | null
     status: string
-    autoRenew: boolean
   } | null
   applicationLimit: number | null
   applicationsUsed: number
   applicationsRemaining: number | null
 }
 
-// Helper to format price with currency
-function formatPrice(
-  price: number,
-  currency: string,
-  billingCycle: string
-): string {
+// Helper to format price with currency (quota-based, no recurring billing)
+function formatPrice(price: number, currency: string): string {
   const currencySymbols: Record<string, string> = {
     USD: '$',
     EUR: '€',
@@ -95,25 +99,13 @@ function formatPrice(
     CAD: 'C$',
   }
 
-  const cycleLabels: Record<string, string> = {
-    monthly: '/month',
-    quarterly: '/quarter',
-    yearly: '/year',
-    'one-time': ' one-time',
-  }
-
   const symbol = currencySymbols[currency] || currency
-  const cycleLabel = cycleLabels[billingCycle] || `/${billingCycle}`
 
   if (price === 0) {
     return 'Free'
   }
 
-  if (billingCycle === 'one-time') {
-    return `${symbol}${price.toLocaleString()}`
-  }
-
-  return `${symbol}${price.toLocaleString()}${cycleLabel}`
+  return `${symbol}${price.toLocaleString()}`
 }
 
 // Helper to calculate original price before discount
@@ -122,99 +114,154 @@ function calculateOriginalPrice(price: number, discount: number): number {
   return Math.round(price / (1 - discount / 100))
 }
 
+function getIndianPrice(service: Pick<SubscriptionService, 'indianPrice' | 'price' | 'currency'>): number | null {
+  return service.indianPrice ?? (service.currency === 'INR' ? service.price : null)
+}
+
+function getInternationalPrice(service: Pick<SubscriptionService, 'internationalPrice' | 'price' | 'currency'>): number | null {
+  return service.internationalPrice ?? (service.currency === 'USD' ? service.price : null)
+}
+
+function resolveCurrency(geoLocation?: GeoLocationResponse | null): SupportedCurrency {
+  const responseCurrency = geoLocation?.currency?.toUpperCase()
+  if (responseCurrency === 'INR' || responseCurrency === 'USD') {
+    return responseCurrency
+  }
+
+  const countryCode = (geoLocation?.countryCode || geoLocation?.country_code || '').toUpperCase()
+  if (countryCode === 'IN') {
+    return 'INR'
+  }
+
+  if (geoLocation?.country?.toLowerCase() === 'india') {
+    return 'INR'
+  }
+
+  return 'USD'
+}
+
+function getDisplayPrice(
+  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  preferredCurrency: SupportedCurrency
+): { amount: number; currency: string } {
+  if (preferredCurrency === 'USD') {
+    const internationalPrice = getInternationalPrice(service)
+    if (internationalPrice !== null) {
+      return { amount: internationalPrice, currency: 'USD' }
+    }
+  }
+
+  if (preferredCurrency === 'INR') {
+    const indianPrice = getIndianPrice(service)
+    if (indianPrice !== null) {
+      return { amount: indianPrice, currency: 'INR' }
+    }
+  }
+
+  return { amount: service.price, currency: service.currency }
+}
+
+function getAlternatePrice(
+  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  preferredCurrency: SupportedCurrency
+): { amount: number; currency: string } | null {
+  if (preferredCurrency === 'USD') {
+    const indianPrice = getIndianPrice(service)
+    if (indianPrice !== null) {
+      return { amount: indianPrice, currency: 'INR' }
+    }
+  }
+
+  if (preferredCurrency === 'INR') {
+    const internationalPrice = getInternationalPrice(service)
+    if (internationalPrice !== null) {
+      return { amount: internationalPrice, currency: 'USD' }
+    }
+  }
+
+  return null
+}
+
+function getPrimaryPriceLabel(
+  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  preferredCurrency: SupportedCurrency
+): string {
+  const displayPrice = getDisplayPrice(service, preferredCurrency)
+  return formatPrice(displayPrice.amount, displayPrice.currency)
+}
+
+function getSecondaryPriceLabel(
+  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  preferredCurrency: SupportedCurrency
+): string | null {
+  const alternatePrice = getAlternatePrice(service, preferredCurrency)
+  if (!alternatePrice) {
+    return null
+  }
+
+  const suffix = alternatePrice.currency === 'USD' ? 'International' : 'India'
+  return `${formatPrice(alternatePrice.amount, alternatePrice.currency)} ${suffix}`
+}
+
+function hasPositiveApplicationLimit(limit: number | null | undefined): limit is number {
+  return typeof limit === 'number' && limit > 0
+}
+
+function getPlanCardFeatures(service: Pick<SubscriptionService, 'maxApplications' | 'features'>): string[] {
+  const sanitizedFeatures = service.features.filter(
+    (feature) => !/application/i.test(feature)
+  )
+
+  if (!hasPositiveApplicationLimit(service.maxApplications)) {
+    return sanitizedFeatures
+  }
+
+  return [`${service.maxApplications} applications`, ...sanitizedFeatures]
+}
+
+function isSpotlightService(service: Pick<SubscriptionService, 'name'>): boolean {
+  const normalizedName = service.name.trim().toLowerCase()
+  return normalizedName.includes('spotlight')
+}
+
 export default function SubscriptionPage() {
   const { user } = useAuthContext()
-  const navigate = useNavigate()
   const [services, setServices] = useState<SubscriptionService[]>([])
   const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscriptionResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null)
+  const [currency, setCurrency] = useState<SupportedCurrency>('USD')
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [])
 
-  const loadData = async () => {
+  const loadData = async (showLoader = true) => {
     try {
+      if (showLoader) {
+        setLoading(true)
+      }
+
       setErrorMessage(null)
-      const [servicesData, subscriptionData] = await Promise.all([
+      const [servicesData, subscriptionData, geoLocation] = await Promise.all([
         api.get<ServicesResponse>('/services'),
         api.get<CurrentSubscriptionResponse>('/student/subscription'),
+        api.get<GeoLocationResponse>('/geo-location').catch(() => null),
       ])
 
       // Sort services by displayOrder
-      const sortedServices = (servicesData.services || [])
+      const sortedServices = (servicesData.services || servicesData.plans || [])
         .sort((a, b) => a.displayOrder - b.displayOrder)
 
       setServices(sortedServices)
       setCurrentSubscription(subscriptionData)
+      setCurrency(resolveCurrency(geoLocation))
     } catch {
       setErrorMessage('Unable to load subscription details. Please try again.')
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUpgrade = async (service: SubscriptionService) => {
-    if (processingPlanId) return
-
-    // Don't process free tier plans
-    if (service.tier === 'free' || service.price === 0) return
-
-    setErrorMessage(null)
-    setProcessingPlanId(service._id)
-
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID
-
-    try {
-      let paymentId: string
-
-      if (razorpayKey) {
-        if (!service.price || service.price <= 0) {
-          setErrorMessage('Invalid plan amount. Please select a valid subscription plan.')
-          return
-        }
-
-        const paymentResult = await openRazorpayCheckout({
-          key: razorpayKey,
-          amount: Math.round(service.price * 100),
-          currency: service.currency || 'INR',
-          name: 'AquaTalent',
-          description: `${service.name} Subscription`,
-          prefill: {
-            name: user?.student?.fullName || user?.username,
-            email: user?.student?.email,
-          },
-          notes: {
-            planId: service._id,
-            planName: service.name,
-          },
-          themeColor: '#22d3ee',
-        })
-        paymentId = paymentResult.paymentId
-      } else {
-        paymentId = `mock_pay_${Date.now()}`
+      if (showLoader) {
+        setLoading(false)
       }
-
-      await api.post('/student/subscription', {
-        planId: service._id,
-        paymentId,
-      })
-
-      await loadData()
-
-      navigate('/subscription/success', {
-        state: {
-          planName: service.name,
-          paymentId,
-        },
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Payment failed. Please try again.'
-      setErrorMessage(message)
-    } finally {
-      setProcessingPlanId(null)
     }
   }
 
@@ -234,15 +281,19 @@ export default function SubscriptionPage() {
   // Usage data from API
   const applicationLimit = currentSubscription?.applicationLimit
   const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
-  const hasUnlimitedApplications = applicationLimit === null
+  const hasLimitedApplications = hasPositiveApplicationLimit(applicationLimit)
 
   // Separate free and paid plans for display
   const freeServices = services.filter((s) => s.tier === 'free')
   const paidServices = services.filter((s) => s.tier === 'paid')
 
-  // Check if current subscription is lifetime
-  const isLifetime = currentService?.billingCycle === 'one-time'
-  const endDate = currentSubscription?.currentSubscription?.endDate
+  // Quota-based subscription (all plans are now quota-based, one-time purchase)
+  const applicationsRemaining = currentSubscription?.applicationsRemaining ?? 0
+  const isQuotaExhausted = hasLimitedApplications && applicationsRemaining <= 0
+  const paymentPrefill = {
+    name: user?.student?.fullName || user?.username,
+    email: user?.student?.email,
+  }
 
   // Build comparison data - use applicationLimit pattern (2 for free, unlimited for paid)
   const comparisonFeatures = [
@@ -320,57 +371,34 @@ export default function SubscriptionPage() {
                     </div>
 
                     {/* Plan Details Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      {/* Billing Cycle - only show for paid plans */}
-                      {currentService.billingCycle && currentService.tier !== 'free' && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                      {/* Applications Quota */}
+                      {hasLimitedApplications && (
                         <div className="flex items-start gap-3">
-                          <div className="p-2 bg-blue-50 rounded-lg">
-                            <Calendar className="w-4 h-4 text-blue-600" />
+                          <div className="p-2 bg-green-50 rounded-lg">
+                            <Users className="w-4 h-4 text-green-600" />
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Billing</p>
-                            <p className="text-sm font-medium text-gray-900 capitalize">
-                              {currentService.billingCycle === 'one-time'
-                                ? 'Lifetime'
-                                : currentService.billingCycle}
+                            <p className="text-xs text-gray-500">Applications</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {`${applicationsUsed} / ${applicationLimit}`}
                             </p>
                           </div>
                         </div>
                       )}
 
-                      {/* Applications */}
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-green-50 rounded-lg">
-                          <Users className="w-4 h-4 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Applications</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {hasUnlimitedApplications ? (
-                              <span className="flex items-center gap-1">
-                                <Infinity className="w-4 h-4" /> Unlimited
-                              </span>
-                            ) : (
-                              `${applicationsUsed} / ${applicationLimit}`
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Status / Expiry */}
-                      {(isLifetime || endDate) && (
+                      {/* Remaining Applications */}
+                      {hasLimitedApplications && (
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-purple-50 rounded-lg">
                             <Clock className="w-4 h-4 text-purple-600" />
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">
-                              {isLifetime ? 'Access' : 'Valid Until'}
-                            </p>
-                            <p className="text-sm font-medium text-gray-900">
-                              {isLifetime
-                                ? 'Never Expires'
-                                : format(new Date(endDate!), 'MMM d, yyyy')}
+                            <p className="text-xs text-gray-500">Remaining</p>
+                            <p className={`text-sm font-medium ${applicationsRemaining > 0 ? 'text-gray-900' : 'text-yellow-600'}`}>
+                              {applicationsRemaining > 0
+                                ? `${applicationsRemaining} applications`
+                                : 'Quota exhausted'}
                             </p>
                           </div>
                         </div>
@@ -383,13 +411,16 @@ export default function SubscriptionPage() {
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">Price</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatPrice(
-                              currentService.price,
-                              currentService.currency,
-                              currentService.billingCycle
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {getPrimaryPriceLabel(currentService, currency)}
+                            </p>
+                            {getSecondaryPriceLabel(currentService, currency) && (
+                              <p className="text-xs text-gray-500">
+                                {getSecondaryPriceLabel(currentService, currency)}
+                              </p>
                             )}
-                          </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -415,31 +446,31 @@ export default function SubscriptionPage() {
                     <h4 className="text-sm font-semibold text-gray-700 mb-4">Your Usage</h4>
 
                     {/* Applications Usage */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Applications</span>
-                        <span className="font-medium text-gray-900">
-                          {hasUnlimitedApplications
-                            ? `${applicationsUsed} used`
-                            : `${applicationsUsed} / ${applicationLimit}`}
-                        </span>
-                      </div>
-                      {!hasUnlimitedApplications && applicationLimit && (
+                    {hasLimitedApplications && (
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Applications</span>
+                          <span className="font-medium text-gray-900">
+                            {`${applicationsUsed} / ${applicationLimit}`}
+                          </span>
+                        </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            className={`h-2 rounded-full transition-all ${
+                              isQuotaExhausted ? 'bg-yellow-500' : 'bg-blue-600'
+                            }`}
                             style={{
                               width: `${Math.min((applicationsUsed / applicationLimit) * 100, 100)}%`,
                             }}
                           />
                         </div>
-                      )}
-                      {hasUnlimitedApplications && (
-                        <div className="w-full bg-blue-100 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full w-full" />
-                        </div>
-                      )}
-                    </div>
+                        {isQuotaExhausted && (
+                          <p className="text-xs text-yellow-600 mt-2">
+                            All applications used. Buy more to continue applying.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Additional Plan Benefits from API */}
                     {/* Plan Benefits from API */}
@@ -493,13 +524,17 @@ export default function SubscriptionPage() {
               const isCurrentPlan = currentService
                 ? (currentService._id === service._id || currentService.name === service.name)
                 : false
+              const shouldShowPaymentAction = service.tier !== 'free'
+              // Only allow buying any plan when quota is exhausted
+              // No reason to buy if user still has applications remaining
+              const canBuy = isQuotaExhausted
+              const displayPrice = getDisplayPrice(service, currency)
 
               const originalPrice =
                 service.discount > 0
                   ? formatPrice(
-                      calculateOriginalPrice(service.price, service.discount),
-                      service.currency,
-                      service.billingCycle
+                      calculateOriginalPrice(displayPrice.amount, service.discount),
+                      displayPrice.currency
                     )
                   : undefined
 
@@ -507,26 +542,36 @@ export default function SubscriptionPage() {
                 <PricingCard
                   key={service._id}
                   name={service.name}
-                  price={formatPrice(service.price, service.currency, service.billingCycle)}
+                  price={getPrimaryPriceLabel(service, currency)}
+                  secondaryPrice={getSecondaryPriceLabel(service, currency)}
                   description={service.description}
-                  features={service.features}
-                  isCurrentPlan={isCurrentPlan}
+                  features={getPlanCardFeatures(service)}
+                  isCurrentPlan={isCurrentPlan && !canBuy}
                   ctaLabel={
-                    isCurrentPlan
+                    isCurrentPlan && !canBuy
                       ? 'Current Plan'
                       : service.tier === 'free'
                       ? 'Downgrade'
-                      : 'Upgrade'
+                      : 'Buy'
                   }
-                  onCtaClick={
-                    isCurrentPlan || service.tier === 'free' ? undefined : () => handleUpgrade(service)
+                  onCtaClick={undefined}
+                  actionButton={
+                    shouldShowPaymentAction ? (
+                      <SubscriptionPurchaseAction
+                        serviceId={service._id}
+                        serviceName={service.name}
+                        currency={currency}
+                        requiresCompanySelection={isSpotlightService(service)}
+                        disabled={!canBuy}
+                        prefill={paymentPrefill}
+                        onPaymentSuccess={() => loadData(false)}
+                      />
+                    ) : undefined
                   }
-                  isProcessing={processingPlanId === service._id}
                   badge={service.badge || undefined}
                   discount={service.discount > 0 ? service.discount : undefined}
-                  trialDays={service.trialDays > 0 ? service.trialDays : undefined}
                   originalPrice={originalPrice}
-                  billingCycle={service.tier !== 'free' ? service.billingCycle as 'monthly' | 'quarterly' | 'yearly' | 'one-time' : undefined}
+                  maxApplications={service.maxApplications}
                 />
               )
             })}

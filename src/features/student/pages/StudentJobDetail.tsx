@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout'
 import Card, { CardTitle, CardContent } from '@/components/common/Card'
 import Button from '@/components/common/Button'
@@ -12,9 +12,7 @@ import { api } from '@/services/api/client'
 import { format } from 'date-fns'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
-import { Globe, Linkedin, Twitter } from 'lucide-react'
-
-const MAX_APPLICATIONS = 2
+import { Globe, Linkedin, Twitter, ArrowRight } from 'lucide-react'
 
 interface JobDetailResponse extends JobPosting {
   hasApplied: boolean
@@ -23,7 +21,15 @@ interface JobDetailResponse extends JobPosting {
 
 interface StudentStats {
   applicationsUsed: number
+  applicationLimit: number | null
+  hasUnlimitedApplications: boolean
   isHired: boolean
+}
+
+interface ApplicationLimitError {
+  error: string
+  applicationsUsed: number
+  applicationLimit: number
 }
 
 export default function StudentJobDetail() {
@@ -35,6 +41,7 @@ export default function StudentJobDetail() {
   const [stats, setStats] = useState<StudentStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
+  const [showLimitReachedPrompt, setShowLimitReachedPrompt] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +77,7 @@ export default function StudentJobDetail() {
     }
 
     setIsApplying(true)
+    setShowLimitReachedPrompt(false)
     try {
       await api.post(`/student/jobs/${jobId}/apply`)
       setJob({ ...job, hasApplied: true, applicationStatus: ApplicationStatus.PENDING })
@@ -78,7 +86,21 @@ export default function StudentJobDetail() {
       }
       success('Application submitted successfully!')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to submit application')
+      // Check if this is a 403 application limit error
+      const errorData = err as { status?: number; data?: ApplicationLimitError }
+      if (errorData.status === 403 && errorData.data?.applicationLimit !== undefined) {
+        setShowLimitReachedPrompt(true)
+        if (stats) {
+          setStats({
+            ...stats,
+            applicationsUsed: errorData.data.applicationsUsed,
+            applicationLimit: errorData.data.applicationLimit,
+          })
+        }
+        showError('Application limit reached. Please upgrade your plan.')
+      } else {
+        showError(err instanceof Error ? err.message : 'Failed to submit application')
+      }
     } finally {
       setIsApplying(false)
     }
@@ -88,10 +110,14 @@ export default function StudentJobDetail() {
   // Cast to string to handle API response correctly
   const isWithdrawnStatus = (job?.applicationStatus as string) === 'withdrawn'
   const hasWithdrawn = job?.hasApplied && isWithdrawnStatus
+  const hasUnlimitedApplications = stats?.hasUnlimitedApplications ?? stats?.applicationLimit === null
+  const applicationLimit = stats?.applicationLimit ?? 0
+  const applicationsUsed = stats?.applicationsUsed ?? 0
+  const isAtLimit = !hasUnlimitedApplications && applicationsUsed >= applicationLimit
   const canApply =
     (!job?.hasApplied || hasWithdrawn) &&
     !stats?.isHired &&
-    (stats?.applicationsUsed ?? 0) < MAX_APPLICATIONS
+    !isAtLimit
 
   if (isLoading) {
     return (
@@ -251,30 +277,57 @@ export default function StudentJobDetail() {
                       Your previous application was withdrawn. You can reapply if you'd like.
                     </Alert>
                   )}
+                  {showLimitReachedPrompt && (
+                    <Alert variant="warning" className="mb-4">
+                      <div className="space-y-2">
+                        <p className="font-medium">Application limit reached</p>
+                        <p className="text-sm">Buy more applications to continue applying to jobs.</p>
+                        <Link
+                          to="/subscription"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+                        >
+                          Buy More Applications
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </Alert>
+                  )}
                   <p className="text-sm text-gray-600 mb-4">
-                    Applications used: {stats?.applicationsUsed ?? 0} / {MAX_APPLICATIONS}
+                    {hasUnlimitedApplications
+                      ? 'Unlimited applications available'
+                      : `Applications used: ${applicationsUsed} / ${applicationLimit}`}
                   </p>
                   {!user?.student?.profileLink && (
                     <Alert variant="warning" className="mb-4">
                       Add a profile link before applying.
                     </Alert>
                   )}
-                  <Button
-                    onClick={handleApply}
-                    disabled={!canApply}
-                    isLoading={isApplying}
-                    className="w-full"
-                  >
-                    {stats?.isHired
-                      ? 'Already Hired'
-                      : (stats?.applicationsUsed ?? 0) >= MAX_APPLICATIONS
-                      ? 'Limit Reached'
-                      : hasWithdrawn
-                      ? 'Reapply Now'
-                      : 'Apply Now'}
-                  </Button>
+                  {isAtLimit && !showLimitReachedPrompt ? (
+                    <Link
+                      to="/subscription"
+                      className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Buy More Applications
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <Button
+                      onClick={handleApply}
+                      disabled={!canApply}
+                      isLoading={isApplying}
+                      className="w-full"
+                    >
+                      {stats?.isHired
+                        ? 'Already Hired'
+                        : hasWithdrawn
+                        ? 'Reapply Now'
+                        : 'Apply Now'}
+                    </Button>
+                  )}
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    One-click apply with your profile link
+                    {isAtLimit
+                      ? 'Withdraw an application or buy more to apply'
+                      : 'One-click apply with your profile link'}
                   </p>
                 </>
               )}

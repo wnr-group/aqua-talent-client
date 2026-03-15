@@ -67,6 +67,228 @@ function updateStudentRecord(studentId: string, updates: Partial<Student>): Stud
   return updated
 }
 
+interface MockPaymentOrder {
+  id: string
+  planId: string
+  amount: number
+  currency: string
+  studentId: string
+  companyId?: string
+}
+
+const mockPaymentOrders = new Map<string, MockPaymentOrder>()
+
+function findSubscriptionPlan(planIdentifier?: string) {
+  if (!planIdentifier) {
+    return undefined
+  }
+
+  return mockSubscriptionPlans.find(
+    (item) => item.id === planIdentifier || item._id === planIdentifier
+  )
+}
+
+function getNormalizedNonIndianPrice(plan: {
+  nonIndianPrice?: number | null
+  internationalPrice?: number | null
+  price: number
+  currency: string
+}) {
+  return plan.nonIndianPrice ?? plan.internationalPrice ?? (plan.currency === 'USD' ? plan.price : null)
+}
+
+function getNormalizedIndianPrice(plan: {
+  indianPrice?: number | null
+  price: number
+  currency: string
+}) {
+  return plan.indianPrice ?? (plan.currency === 'INR' ? plan.price : null)
+}
+
+function withPricingAliases<T extends {
+  indianPrice?: number | null
+  nonIndianPrice?: number | null
+  internationalPrice?: number | null
+  price: number
+  currency: string
+}>(plan: T) {
+  const indianPrice = getNormalizedIndianPrice(plan)
+  const nonIndianPrice = getNormalizedNonIndianPrice(plan)
+
+  return {
+    ...plan,
+    indianPrice,
+    nonIndianPrice,
+    internationalPrice: plan.internationalPrice ?? nonIndianPrice,
+  }
+}
+
+function calculateSubscriptionEndDate(billingCycle: string): string {
+  const endDate = new Date()
+
+  switch (billingCycle) {
+    case 'yearly':
+      endDate.setFullYear(endDate.getFullYear() + 1)
+      break
+    case 'quarterly':
+      endDate.setMonth(endDate.getMonth() + 3)
+      break
+    case 'one-time':
+      endDate.setFullYear(2099, 11, 31)
+      break
+    default:
+      endDate.setMonth(endDate.getMonth() + 1)
+      break
+  }
+
+  return endDate.toISOString()
+}
+
+function isSpotlightPlan(plan: { name: string }) {
+  return plan.name.trim().toLowerCase().includes('spotlight')
+}
+
+function getOrderAmount(plan: {
+  indianPrice?: number | null
+  nonIndianPrice?: number | null
+  internationalPrice?: number | null
+  price: number
+  currency: string
+}, currency?: string) {
+  const normalizedCurrency = currency?.toUpperCase()
+
+  if (normalizedCurrency === 'USD') {
+    return plan.internationalPrice ?? plan.nonIndianPrice ?? plan.price
+  }
+
+  if (normalizedCurrency === 'INR') {
+    return plan.indianPrice ?? plan.price
+  }
+
+  return plan.price
+}
+
+async function verifyPaymentRequest(request: Request) {
+  await delay(DELAY_MS)
+  const user = auth.getCurrentUser()
+  if (!user || user.userType !== UserType.STUDENT) {
+    return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+  }
+
+  const body = (await request.json()) as {
+    serviceId?: string
+    companyId?: string
+    razorpay_order_id?: string
+    razorpay_payment_id?: string
+    razorpay_signature?: string
+  }
+
+  if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+    return HttpResponse.json({ message: 'Invalid payment verification payload' }, { status: 400 })
+  }
+
+  const order = mockPaymentOrders.get(body.razorpay_order_id)
+
+  if (!order) {
+    return HttpResponse.json({ message: 'Payment order not found' }, { status: 404 })
+  }
+
+  if (order.studentId !== user.id) {
+    return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+  }
+
+  if (body.serviceId && body.serviceId !== order.planId) {
+    const matchingPlan = findSubscriptionPlan(body.serviceId)
+    if (!matchingPlan || matchingPlan.id !== order.planId) {
+      return HttpResponse.json({ message: 'Payment verification failed' }, { status: 400 })
+    }
+  }
+
+  if (order.companyId && body.companyId && order.companyId !== body.companyId) {
+    return HttpResponse.json({ message: 'Payment verification failed' }, { status: 400 })
+  }
+
+  const plan = findSubscriptionPlan(order.planId)
+  if (!plan) {
+    return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+  }
+
+  mockStudentSubscriptions[user.id] = {
+    subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
+    serviceId: plan.tier === 'free' ? undefined : plan.id,
+    endDate: plan.tier === 'free' ? undefined : calculateSubscriptionEndDate(plan.billingCycle),
+  }
+
+  return HttpResponse.json({ success: true })
+}
+
+function buildStudentSubscriptionResponse(studentId: string) {
+  const current = mockStudentSubscriptions[studentId] || { subscriptionTier: 'free' as const }
+  const freePlan = mockSubscriptionPlans.find((item) => item.tier === 'free' && item.isActive)
+  const applicationsUsed = mockApplications.filter(
+    (application) =>
+      application.studentId === studentId && application.status !== ApplicationStatus.WITHDRAWN
+  ).length
+
+  if (current.subscriptionTier === 'paid' && current.serviceId) {
+    const plan = findSubscriptionPlan(current.serviceId)
+
+    if (plan) {
+      const applicationLimit = plan.maxApplications
+
+      return {
+        subscriptionTier: 'paid' as const,
+        status: 'active',
+        isActive: true,
+        inGracePeriod: false,
+        currentSubscription: {
+          id: `subscription-${studentId}`,
+          service: {
+            _id: plan._id,
+            name: plan.name,
+            tier: plan.tier,
+            price: plan.price,
+            indianPrice: plan.indianPrice,
+            nonIndianPrice: getNormalizedNonIndianPrice(plan),
+            internationalPrice: plan.internationalPrice,
+            currency: plan.currency,
+            billingCycle: plan.billingCycle,
+            trialDays: plan.trialDays,
+            discount: plan.discount,
+            badge: plan.badge,
+            features: plan.features,
+            prioritySupport: plan.prioritySupport,
+            profileBoost: plan.profileBoost,
+            applicationHighlight: plan.applicationHighlight,
+          },
+          startDate: new Date().toISOString(),
+          endDate: current.endDate || calculateSubscriptionEndDate(plan.billingCycle),
+          status: 'active',
+          autoRenew: plan.billingCycle !== 'one-time',
+        },
+        applicationLimit,
+        applicationsUsed,
+        applicationsRemaining:
+          applicationLimit === null ? null : Math.max(applicationLimit - applicationsUsed, 0),
+      }
+    }
+  }
+
+  const applicationLimit = freePlan?.maxApplications ?? 2
+
+  return {
+    subscriptionTier: 'free' as const,
+    status: 'active',
+    isActive: true,
+    inGracePeriod: false,
+    currentSubscription: null,
+    applicationLimit,
+    applicationsUsed,
+    applicationsRemaining:
+      applicationLimit === null ? null : Math.max(applicationLimit - applicationsUsed, 0),
+  }
+}
+
 export const handlers = [
   // ============ AUTH ============
 
@@ -266,6 +488,69 @@ export const handlers = [
     const mockUrl = `https://cdn.aquatalent.local/${key}`
 
     return HttpResponse.json({ url: mockUrl })
+  }),
+
+  // ============ PAYMENTS ============
+
+  http.post(`${API_URL}/payments/create-order`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      planId?: string
+      serviceId?: string
+      companyId?: string
+      currency?: string
+    }
+    const planIdentifier = body.planId || body.serviceId
+    const plan = findSubscriptionPlan(planIdentifier)
+
+    if (!plan) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    if (plan.tier === 'free' || plan.price <= 0) {
+      return HttpResponse.json({ message: 'This plan does not require payment' }, { status: 400 })
+    }
+
+    if (isSpotlightPlan(plan) && !body.companyId) {
+      return HttpResponse.json({ message: 'companyId is required for Spotlight plans' }, { status: 400 })
+    }
+
+    const displayCurrency = body.currency?.toUpperCase() === 'USD' ? 'USD' : 'INR'
+    const displayAmount = getOrderAmount(plan, displayCurrency)
+
+    const orderId = `order_${Date.now()}`
+    const order: MockPaymentOrder = {
+      id: orderId,
+      planId: plan.id,
+      amount: Math.round(displayAmount * 100),
+      currency: displayCurrency,
+      studentId: user.id,
+      companyId: body.companyId,
+    }
+
+    mockPaymentOrders.set(orderId, order)
+
+    return HttpResponse.json({
+      orderId: order.id,
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: 'rzp_test_aqua_talent',
+      serviceName: plan.name,
+    })
+  }),
+
+  http.post(`${API_URL}/payments/verify-payment`, async ({ request }) => {
+    return verifyPaymentRequest(request)
+  }),
+
+  http.post(`${API_URL}/payments/verify`, async ({ request }) => {
+    return verifyPaymentRequest(request)
   }),
 
   // ============ COMPANY ============
@@ -590,6 +875,26 @@ export const handlers = [
     return HttpResponse.json({ plans: activePlans })
   }),
 
+  http.get(`${API_URL}/geo-location`, async () => {
+    await delay(DELAY_MS)
+    return HttpResponse.json({
+      countryCode: 'IN',
+      currency: 'INR',
+    })
+  }),
+
+  http.get(`${API_URL}/companies`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const url = new URL(request.url)
+    const activeOnly = url.searchParams.get('active') === 'true'
+
+    const companies = activeOnly
+      ? mockCompanies.filter((company) => company.status === CompanyStatus.APPROVED)
+      : mockCompanies
+
+    return HttpResponse.json({ companies })
+  }),
+
   // Student subscription details
   http.get(`${API_URL}/student/subscription`, async () => {
     await delay(DELAY_MS)
@@ -598,31 +903,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const current = mockStudentSubscriptions[user.id] || { subscriptionTier: 'free' as const }
-
-    if (current.subscriptionTier === 'paid' && current.serviceId && current.endDate) {
-      // Find plan by either id or _id for backwards compatibility
-      const plan = mockSubscriptionPlans.find(
-        (item) => item.id === current.serviceId || item._id === current.serviceId
-      )
-
-      return HttpResponse.json({
-        subscriptionTier: 'paid',
-        currentSubscription: {
-          plan: plan
-            ? { id: plan.id, name: plan.name, tier: plan.tier, maxApplications: plan.maxApplications }
-            : undefined,
-          // Keep service for backwards compatibility
-          service: plan ? { _id: plan._id, name: plan.name } : undefined,
-          endDate: current.endDate,
-        },
-      })
-    }
-
-    return HttpResponse.json({
-      subscriptionTier: 'free',
-      currentSubscription: null,
-    })
+    return HttpResponse.json(buildStudentSubscriptionResponse(user.id))
   }),
 
   // Upgrade student subscription
@@ -640,30 +921,15 @@ export const handlers = [
     }
 
     // Find plan by either id or _id for backwards compatibility
-    const plan = mockSubscriptionPlans.find(
-      (item) => item.id === planIdentifier || item._id === planIdentifier
-    )
+    const plan = findSubscriptionPlan(planIdentifier)
     if (!plan) {
       return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
     }
 
-    // Calculate end date based on billing cycle
-    const endDate = new Date()
-    switch (plan.billingCycle) {
-      case 'yearly':
-        endDate.setFullYear(endDate.getFullYear() + 1)
-        break
-      case 'quarterly':
-        endDate.setMonth(endDate.getMonth() + 3)
-        break
-      default:
-        endDate.setMonth(endDate.getMonth() + 1)
-    }
-
     mockStudentSubscriptions[user.id] = {
       subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
-      serviceId: plan.id,
-      endDate: endDate.toISOString(),
+      serviceId: plan.tier === 'free' ? undefined : plan.id,
+      endDate: plan.tier === 'free' ? undefined : calculateSubscriptionEndDate(plan.billingCycle),
     }
 
     return HttpResponse.json({ success: true })
@@ -1737,7 +2003,9 @@ export const handlers = [
     }
 
     // Return all plans (including inactive) sorted by displayOrder
-    const plans = [...mockSubscriptionPlans].sort((a, b) => a.displayOrder - b.displayOrder)
+    const plans = [...mockSubscriptionPlans]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((plan) => withPricingAliases(plan))
     return HttpResponse.json({ plans })
   }),
 
@@ -1754,7 +2022,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
     }
 
-    return HttpResponse.json(plan)
+    return HttpResponse.json(withPricingAliases(plan))
   }),
 
   // Admin subscription plans - Create
@@ -1771,8 +2039,12 @@ export const handlers = [
     >
 
     const now = new Date().toISOString()
+    const nonIndianPrice = getNormalizedNonIndianPrice(body)
     const newPlan = {
       ...body,
+      indianPrice: getNormalizedIndianPrice(body),
+      nonIndianPrice,
+      internationalPrice: body.internationalPrice ?? nonIndianPrice,
       id: `plan-${Date.now()}`,
       _id: `plan-${Date.now()}`,
       createdAt: now,
@@ -1780,7 +2052,7 @@ export const handlers = [
     }
 
     mockSubscriptionPlans.push(newPlan)
-    return HttpResponse.json(newPlan, { status: 201 })
+    return HttpResponse.json(withPricingAliases(newPlan), { status: 201 })
   }),
 
   // Admin subscription plans - Update
@@ -1805,6 +2077,9 @@ export const handlers = [
     if (body.description !== undefined) plan.description = body.description
     if (body.maxApplications !== undefined) plan.maxApplications = body.maxApplications
     if (body.price !== undefined) plan.price = body.price
+    if (body.indianPrice !== undefined) plan.indianPrice = body.indianPrice
+    if (body.nonIndianPrice !== undefined) plan.nonIndianPrice = body.nonIndianPrice
+    if (body.internationalPrice !== undefined) plan.internationalPrice = body.internationalPrice
     if (body.currency !== undefined) plan.currency = body.currency
     if (body.billingCycle !== undefined) plan.billingCycle = body.billingCycle
     if (body.trialDays !== undefined) plan.trialDays = body.trialDays
@@ -1818,9 +2093,12 @@ export const handlers = [
     if (body.profileBoost !== undefined) plan.profileBoost = body.profileBoost
     if (body.applicationHighlight !== undefined) plan.applicationHighlight = body.applicationHighlight
     if (body.isActive !== undefined) plan.isActive = body.isActive
+    plan.indianPrice = getNormalizedIndianPrice(plan)
+    plan.nonIndianPrice = getNormalizedNonIndianPrice(plan)
+    plan.internationalPrice = plan.internationalPrice ?? plan.nonIndianPrice
     plan.updatedAt = new Date().toISOString()
 
-    return HttpResponse.json(plan)
+    return HttpResponse.json(withPricingAliases(plan))
   }),
 
   // Admin subscription plans - Delete (soft delete by deactivating)

@@ -300,10 +300,20 @@ export default function StudentDashboard() {
 
             {/* Warning for application limit */}
             {!hasUnlimitedApplications && applicationsRemaining === 0 && !stats?.isHired && (
-              <div className="mt-6 p-4 rounded-xl bg-yellow-50 border border-yellow-200">
-                <p className="text-yellow-700 text-sm">
-                  You have reached your application limit. Withdraw an existing application to apply to new jobs.
-                </p>
+              <div className="mt-6 p-4 rounded-xl bg-yellow-50 border border-yellow-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Application limit reached</p>
+                  <p className="text-sm text-yellow-700">
+                    Buy more applications or withdraw an existing one to continue applying.
+                  </p>
+                </div>
+                <Link
+                  to="/subscription"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  Buy More Applications
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             )}
           </>
