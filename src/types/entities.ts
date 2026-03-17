@@ -70,6 +70,7 @@ export interface JobPosting {
   companyId: string
   title: string
   description: string
+  isDescriptionLocked?: boolean
   requirements?: string | null
   location: string
   jobType: string

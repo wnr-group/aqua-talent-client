@@ -12,7 +12,7 @@ import { api } from '@/services/api/client'
 import { format } from 'date-fns'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
-import { Globe, Linkedin, Twitter, ArrowRight } from 'lucide-react'
+import { Globe, Linkedin, Twitter, ArrowRight, Lock } from 'lucide-react'
 
 interface JobDetailResponse extends JobPosting {
   hasApplied: boolean
@@ -20,16 +20,49 @@ interface JobDetailResponse extends JobPosting {
 }
 
 interface StudentStats {
-  applicationsUsed: number
-  applicationLimit: number | null
-  hasUnlimitedApplications: boolean
   isHired: boolean
 }
 
-interface ApplicationLimitError {
-  error: string
-  applicationsUsed: number
-  applicationLimit: number
+type JobDetailsPayload = JobPosting & {
+  _id?: string
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
+  application?: { status?: ApplicationStatus }
+}
+
+type JobDetailsApiResponse =
+  | JobDetailsPayload
+  | { data?: JobDetailsPayload; job?: JobDetailsPayload }
+
+const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
+const DESCRIPTION_PREVIEW_PLACEHOLDER = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Upgrade your plan to unlock the full job description and keep exploring the role details.'
+
+function getDescriptionPreview(description?: string | null): string {
+  const trimmedDescription = description?.trim()
+
+  if (!trimmedDescription) {
+    return DESCRIPTION_PREVIEW_PLACEHOLDER
+  }
+
+  return trimmedDescription
+}
+
+function normalizeJobDetailsResponse(
+  response: JobDetailsApiResponse,
+  jobId?: string
+): JobDetailResponse {
+  const payload = (
+    ('data' in response && response.data)
+    || ('job' in response && response.job)
+    || response
+  ) as JobDetailsPayload
+
+  return {
+    ...payload,
+    id: payload.id || payload._id || jobId || '',
+    hasApplied: payload.hasApplied ?? false,
+    applicationStatus: payload.applicationStatus || payload.application?.status,
+  }
 }
 
 export default function StudentJobDetail() {
@@ -39,6 +72,7 @@ export default function StudentJobDetail() {
   const { user } = useAuthContext()
   const [job, setJob] = useState<JobDetailResponse | null>(null)
   const [stats, setStats] = useState<StudentStats | null>(null)
+  const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
   const [showLimitReachedPrompt, setShowLimitReachedPrompt] = useState(false)
@@ -47,18 +81,16 @@ export default function StudentJobDetail() {
     const fetchData = async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const [jobData, statsData] = await Promise.all([
-          api.get<any>(`/student/jobs/${jobId}`),
+        const [jobData, statsData, subData] = await Promise.all([
+          api.get<JobDetailsApiResponse>(`/student/jobs/${jobId}`),
           api.get<StudentStats>('/student/dashboard'),
+          api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription'),
         ])
-        // Normalize response - applicationStatus may be in different locations
-        const normalizedJob: JobDetailResponse = {
-          ...jobData,
-          id: jobData.id || jobData._id || jobId,
-          applicationStatus: jobData.applicationStatus || jobData.application?.status,
-        }
+        const normalizedJob = normalizeJobDetailsResponse(jobData, jobId)
+        console.log('DESCRIPTION LOCK:', normalizedJob.isDescriptionLocked)
         setJob(normalizedJob)
         setStats(statsData)
+        setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
       } catch {
         showError('Failed to load job details')
         navigate('/jobs')
@@ -80,26 +112,34 @@ export default function StudentJobDetail() {
     setShowLimitReachedPrompt(false)
     try {
       await api.post(`/student/jobs/${jobId}/apply`)
-      setJob({ ...job, hasApplied: true, applicationStatus: ApplicationStatus.PENDING })
-      if (stats) {
-        setStats({ ...stats, applicationsUsed: stats.applicationsUsed + 1 })
-      }
+      // Immediately update quota count so UI re-renders without a page refresh
+      const newUsed = (quota?.applicationsUsed ?? 0) + 1
+      const newQuota = quota ? { ...quota, applicationsUsed: newUsed } : null
+      setQuota(newQuota)
+      const justReachedLimit =
+        typeof newQuota?.applicationLimit === 'number' && newUsed >= newQuota.applicationLimit
+      setJob({
+        ...job,
+        hasApplied: true,
+        applicationStatus: ApplicationStatus.PENDING,
+        isDescriptionLocked: justReachedLimit || job.isDescriptionLocked === true,
+      })
       success('Application submitted successfully!')
     } catch (err) {
-      // Check if this is a 403 application limit error
-      const errorData = err as { status?: number; data?: ApplicationLimitError }
-      if (errorData.status === 403 && errorData.data?.applicationLimit !== undefined) {
+      const message = err instanceof Error ? err.message : 'Failed to submit application'
+      if (
+        message === 'Free tier allows only 2 job applications' ||
+        message.toLowerCase().includes('application limit reached')
+      ) {
         setShowLimitReachedPrompt(true)
-        if (stats) {
-          setStats({
-            ...stats,
-            applicationsUsed: errorData.data.applicationsUsed,
-            applicationLimit: errorData.data.applicationLimit,
-          })
-        }
-        showError('Application limit reached. Please upgrade your plan.')
+        // Re-fetch quota so blur/lock triggers immediately
+        try {
+          const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+          setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
+        } catch { /* best-effort */ }
+        showError('You have reached your application limit. Upgrade your plan to continue applying.')
       } else {
-        showError(err instanceof Error ? err.message : 'Failed to submit application')
+        showError(message)
       }
     } finally {
       setIsApplying(false)
@@ -110,14 +150,14 @@ export default function StudentJobDetail() {
   // Cast to string to handle API response correctly
   const isWithdrawnStatus = (job?.applicationStatus as string) === 'withdrawn'
   const hasWithdrawn = job?.hasApplied && isWithdrawnStatus
-  const hasUnlimitedApplications = stats?.hasUnlimitedApplications ?? stats?.applicationLimit === null
-  const applicationLimit = stats?.applicationLimit ?? 0
-  const applicationsUsed = stats?.applicationsUsed ?? 0
-  const isAtLimit = !hasUnlimitedApplications && applicationsUsed >= applicationLimit
+  const lockedDescriptionPreview = getDescriptionPreview(job?.description)
+  const isQuotaReached =
+    typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isLocked = job?.isDescriptionLocked === true || isQuotaReached
   const canApply =
     (!job?.hasApplied || hasWithdrawn) &&
     !stats?.isHired &&
-    !isAtLimit
+    !isQuotaReached
 
   if (isLoading) {
     return (
@@ -178,14 +218,59 @@ export default function StudentJobDetail() {
 
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">{job.description}</p>
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                  {isLocked && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                      <Lock className="h-3.5 w-3.5" />
+                      Job Description Locked
+                    </span>
+                  )}
+                </div>
+
+                {isLocked ? (
+                  <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-amber-50/70 p-4 min-h-[220px]">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none select-none rounded-lg bg-white/80 p-4 h-full"
+                      style={{ filter: 'blur(6px)' }}
+                    >
+                      <p className="text-gray-900 whitespace-pre-wrap">{lockedDescriptionPreview}</p>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center p-6">
+                      <div className="max-w-sm rounded-xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
+                        <div className="mb-3 flex items-center justify-center gap-2 text-amber-800">
+                          <Lock className="h-4 w-4 flex-shrink-0" />
+                          <p className="text-sm font-semibold">Job Description Locked</p>
+                        </div>
+                        <p className="text-sm text-gray-700">{LOCKED_DESCRIPTION_MESSAGE}</p>
+                        <Link
+                          to="/subscription"
+                          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                        >
+                          Upgrade Plan
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-900 whitespace-pre-wrap">{job.description}</p>
+                )}
               </div>
 
               {job.requirements && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Requirements</h3>
-                  <p className="text-gray-900 whitespace-pre-wrap">{job.requirements}</p>
+                  <p
+                    className={`whitespace-pre-wrap ${
+                      isLocked
+                        ? 'text-gray-400 blur-sm select-none pointer-events-none'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    {job.requirements}
+                  </p>
                 </div>
               )}
 
@@ -277,57 +362,46 @@ export default function StudentJobDetail() {
                       Your previous application was withdrawn. You can reapply if you'd like.
                     </Alert>
                   )}
-                  {showLimitReachedPrompt && (
+                  {(isQuotaReached || showLimitReachedPrompt) && (
                     <Alert variant="warning" className="mb-4">
                       <div className="space-y-2">
                         <p className="font-medium">Application limit reached</p>
-                        <p className="text-sm">Buy more applications to continue applying to jobs.</p>
+                        <p className="text-sm">
+                          You have used {quota?.applicationsUsed ?? 'all'} of{' '}
+                          {quota?.applicationLimit ?? 'your'} allowed applications. Upgrade your
+                          plan to continue applying.
+                        </p>
                         <Link
                           to="/subscription"
                           className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
                         >
-                          Buy More Applications
+                          Upgrade Plan
                           <ArrowRight className="w-3 h-3" />
                         </Link>
                       </div>
                     </Alert>
                   )}
-                  <p className="text-sm text-gray-600 mb-4">
-                    {hasUnlimitedApplications
-                      ? 'Unlimited applications available'
-                      : `Applications used: ${applicationsUsed} / ${applicationLimit}`}
-                  </p>
                   {!user?.student?.profileLink && (
                     <Alert variant="warning" className="mb-4">
                       Add a profile link before applying.
                     </Alert>
                   )}
-                  {isAtLimit && !showLimitReachedPrompt ? (
-                    <Link
-                      to="/subscription"
-                      className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Buy More Applications
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  ) : (
-                    <Button
-                      onClick={handleApply}
-                      disabled={!canApply}
-                      isLoading={isApplying}
-                      className="w-full"
-                    >
-                      {stats?.isHired
-                        ? 'Already Hired'
-                        : hasWithdrawn
-                        ? 'Reapply Now'
-                        : 'Apply Now'}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleApply}
+                    disabled={!canApply}
+                    isLoading={isApplying}
+                    className="w-full"
+                  >
+                    {stats?.isHired
+                      ? 'Already Hired'
+                      : isQuotaReached
+                      ? 'Limit Reached'
+                      : hasWithdrawn
+                      ? 'Reapply Now'
+                      : 'Apply Now'}
+                  </Button>
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    {isAtLimit
-                      ? 'Withdraw an application or buy more to apply'
-                      : 'One-click apply with your profile link'}
+                    One-click apply with your profile link
                   </p>
                 </>
               )}

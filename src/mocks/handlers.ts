@@ -144,10 +144,6 @@ function calculateSubscriptionEndDate(billingCycle: string): string {
   return endDate.toISOString()
 }
 
-function isSpotlightPlan(plan: { name: string }) {
-  return plan.name.trim().toLowerCase().includes('spotlight')
-}
-
 function getOrderAmount(plan: {
   indianPrice?: number | null
   nonIndianPrice?: number | null
@@ -287,6 +283,54 @@ function buildStudentSubscriptionResponse(studentId: string) {
     applicationsRemaining:
       applicationLimit === null ? null : Math.max(applicationLimit - applicationsUsed, 0),
   }
+}
+
+// ── Description lock helper ──────────────────────────────────────────────────
+// Determines whether a student's job description should be locked based on
+// their current subscription plan limit vs. total applications submitted.
+function getStudentPlanUsage(studentId: string): {
+  planName: string
+  planLimit: number | null
+  totalApplications: number
+  isLimitReached: boolean
+} {
+  const current = mockStudentSubscriptions[studentId] || { subscriptionTier: 'free' as const }
+
+  let planName = 'Free'
+  let planLimit: number | null = null  // null = unlimited; a number = finite cap
+
+  if (current.subscriptionTier === 'paid' && current.serviceId) {
+    const plan = findSubscriptionPlan(current.serviceId)
+    if (plan) {
+      planName = plan.name
+      planLimit = plan.maxApplications ?? null  // null = unlimited paid plan
+    } else {
+      // Paid record found but plan missing — fall back to Free limit
+      const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free' && p.isActive)
+      planLimit = freePlan?.maxApplications ?? mockFreeTierConfig.free_tier_max_applications
+    }
+  } else {
+    const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free' && p.isActive)
+    planLimit = freePlan?.maxApplications ?? mockFreeTierConfig.free_tier_max_applications
+  }
+
+  // Count ALL applications (excluding only WITHDRAWN — student explicitly opted out)
+  const totalApplications = mockApplications.filter(
+    (a) => a.studentId === studentId && a.status !== ApplicationStatus.WITHDRAWN
+  ).length
+
+  // typeof guard: correctly handles null (unlimited) and any unexpected undefined state
+  const isLimitReached = typeof planLimit === 'number' && totalApplications >= planLimit
+
+  console.log({
+    studentId,
+    plan: planName,
+    planLimit,
+    totalApplications,
+    isLimitReached,
+  })
+
+  return { planName, planLimit, totalApplications, isLimitReached }
 }
 
 export const handlers = [
@@ -514,10 +558,6 @@ export const handlers = [
 
     if (plan.tier === 'free' || plan.price <= 0) {
       return HttpResponse.json({ message: 'This plan does not require payment' }, { status: 400 })
-    }
-
-    if (isSpotlightPlan(plan) && !body.companyId) {
-      return HttpResponse.json({ message: 'companyId is required for Spotlight plans' }, { status: 400 })
     }
 
     const displayCurrency = body.currency?.toUpperCase() === 'USD' ? 'USD' : 'INR'
@@ -948,28 +988,8 @@ export const handlers = [
       (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
     )
 
-    const currentSubscription = mockStudentSubscriptions[user.id]
-
-    // Get application limit from subscription plan
-    let applicationLimit: number | null = 2 // Default free tier limit
-    if (currentSubscription?.serviceId) {
-      const plan = mockSubscriptionPlans.find(
-        (p) => p.id === currentSubscription.serviceId || p._id === currentSubscription.serviceId
-      )
-      if (plan) {
-        applicationLimit = plan.maxApplications
-      }
-    } else {
-      // No subscription, use free tier defaults
-      const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free')
-      if (freePlan) {
-        applicationLimit = freePlan.maxApplications
-      }
-    }
-
     return HttpResponse.json({
       applicationsUsed: studentApps.length,
-      applicationLimit,
       pendingApplications: studentApps.filter((a) => a.status === ApplicationStatus.PENDING).length,
       isHired: student.isHired,
     })
@@ -1023,8 +1043,16 @@ export const handlers = [
         )
       : null
 
+    // Step 2-8: Determine description lock status from student's plan usage
+    const { isLimitReached } =
+      user && user.userType === UserType.STUDENT
+        ? getStudentPlanUsage(user.id)
+        : { isLimitReached: false }
+
     return HttpResponse.json({
       ...job,
+      description: isLimitReached ? null : job.description,
+      isDescriptionLocked: isLimitReached,
       hasApplied,
       applicationStatus: application?.status,
     })
@@ -1043,19 +1071,33 @@ export const handlers = [
       return HttpResponse.json({ message: 'You are already hired' }, { status: 400 })
     }
 
-    const activeApps = mockApplications.filter(
-      (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
-    )
-
-    const currentSubscription = mockStudentSubscriptions[user.id]
-    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
-    if (!isPaidTier && activeApps.length >= 2) {
-      return HttpResponse.json({ message: 'Application limit reached (2)' }, { status: 400 })
-    }
-
     const job = mockJobs.find((j) => j.id === params.jobId)
     if (!job) {
       return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
+    }
+
+    // Guard: prevent duplicate applications to the same job
+    const alreadyApplied = mockApplications.some(
+      (a) => a.studentId === user.id && a.jobPostingId === params.jobId
+    )
+    if (alreadyApplied) {
+      return HttpResponse.json(
+        { message: 'You have already applied to this job.' },
+        { status: 400 }
+      )
+    }
+
+    // Guard: enforce subscription plan application limit before creating the application
+    const { planLimit, totalApplications, isLimitReached } = getStudentPlanUsage(user.id)
+    if (isLimitReached) {
+      return HttpResponse.json(
+        {
+          message: 'Application limit reached for your current plan.',
+          applicationsUsed: totalApplications,
+          applicationLimit: planLimit,
+        },
+        { status: 403 }
+      )
     }
 
     const newApp: Application = {
@@ -1099,7 +1141,10 @@ export const handlers = [
       createdAt: now,
     })
 
-    return HttpResponse.json(newApp)
+    return HttpResponse.json({
+      success: true,
+      message: 'Application submitted successfully',
+    })
   }),
 
   // Get student applications

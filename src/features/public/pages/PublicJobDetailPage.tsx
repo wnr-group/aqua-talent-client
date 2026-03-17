@@ -17,6 +17,8 @@ import {
   Globe,
   Linkedin,
   Twitter,
+  Lock,
+  ArrowRight,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
@@ -24,14 +26,59 @@ import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 
+const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
+const DESCRIPTION_PREVIEW_PLACEHOLDER = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Upgrade your plan to unlock the full job description and keep exploring the role details.'
+
+type PublicJobDetailsPayload = JobPosting & {
+  _id?: string
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
+  application?: { status?: ApplicationStatus }
+}
+
+type PublicJobDetailsResponse =
+  | PublicJobDetailsPayload
+  | {
+      data?: PublicJobDetailsPayload
+      job?: PublicJobDetailsPayload
+    }
+
+function getDescriptionPreview(description?: string | null): string {
+  const trimmedDescription = description?.trim()
+
+  if (!trimmedDescription) {
+    return DESCRIPTION_PREVIEW_PLACEHOLDER
+  }
+
+  return trimmedDescription
+}
+
+function normalizePublicJobDetailsResponse(
+  response: PublicJobDetailsResponse,
+  jobId?: string
+) {
+  const payload = (
+    ('data' in response && response.data)
+    || ('job' in response && response.job)
+    || response
+  ) as PublicJobDetailsPayload
+
+  return {
+    ...payload,
+    id: payload.id || payload._id || jobId || '',
+    applicationStatus: payload.applicationStatus || payload.application?.status,
+  }
+}
+
 export default function PublicJobDetailPage() {
   const { jobId } = useParams<{ jobId: string }>()
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuthContext()
   const { success, error: showError } = useNotification()
 
-  const [job, setJob] = useState<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus } | null>(null)
-  const [dashboard, setDashboard] = useState<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean } | null>(null)
+  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }) | null>(null)
+  const [dashboard, setDashboard] = useState<{ isHired: boolean } | null>(null)
+  const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
 
@@ -43,12 +90,18 @@ export default function PublicJobDetailPage() {
       if (!jobId) return
       setIsLoading(true)
       try {
-        const data = await api.get<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }>(`/student/jobs/${jobId}`)
-        setJob(data)
+        const data = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+        const normalizedJob = normalizePublicJobDetailsResponse(data, jobId)
+        console.log('DESCRIPTION LOCK:', normalizedJob.isDescriptionLocked)
+        setJob(normalizedJob)
 
         if (isStudent) {
-          const dashboardData = await api.get<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean }>('/student/dashboard')
+          const [dashboardData, subData] = await Promise.all([
+            api.get<{ isHired: boolean }>('/student/dashboard'),
+            api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription'),
+          ])
           setDashboard(dashboardData)
+          setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
         }
       } catch {
         showError('Job not found')
@@ -59,10 +112,6 @@ export default function PublicJobDetailPage() {
     }
     fetchJob()
   }, [jobId, navigate, showError, isStudent])
-
-  const applicationLimit = dashboard?.applicationLimit
-  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === undefined
-  const hasReachedFreeLimit = !hasUnlimitedApplications && (dashboard?.applicationsUsed ?? 0) >= applicationLimit
 
   const handleApply = async () => {
     if (!isAuthenticated) {
@@ -80,20 +129,33 @@ export default function PublicJobDetailPage() {
       return
     }
 
-    if (hasReachedFreeLimit) {
-      showError(`Application limit reached (${applicationLimit}). Upgrade to apply to unlimited jobs.`)
-      return
-    }
-
     setIsApplying(true)
     try {
       await api.post(`/student/jobs/${jobId}/apply`)
+      // Immediately update quota so UI re-renders without a page refresh
+      const newUsed = (quota?.applicationsUsed ?? 0) + 1
+      const newQuota = quota ? { ...quota, applicationsUsed: newUsed } : null
+      setQuota(newQuota)
       success('Application submitted successfully!')
       // Refetch job data to get accurate application status
-      const updatedJob = await api.get<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }>(`/student/jobs/${jobId}`)
-      setJob(updatedJob)
+      const updatedJob = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+      const normalizedJob = normalizePublicJobDetailsResponse(updatedJob, jobId)
+      setJob(normalizedJob)
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to apply')
+      const message = err instanceof Error ? err.message : 'Failed to apply'
+      if (
+        message.toLowerCase().includes('application limit reached') ||
+        message === 'Free tier allows only 2 job applications'
+      ) {
+        // Sync quota so blur/lock triggers immediately
+        try {
+          const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+          setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
+        } catch { /* best-effort */ }
+        showError('You have reached your application limit. Upgrade your plan to continue applying.')
+      } else {
+        showError(message)
+      }
     } finally {
       setIsApplying(false)
     }
@@ -112,6 +174,10 @@ export default function PublicJobDetailPage() {
   }
 
   const isDeadlinePassed = job.deadline ? new Date(job.deadline) < new Date() : false
+  const lockedDescriptionPreview = getDescriptionPreview(job.description)
+  const isQuotaReached =
+    typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isLocked = job?.isDescriptionLocked === true || isQuotaReached
 
   // Check application status - only withdrawn can reapply (not rejected)
   const isWithdrawn = (job?.applicationStatus as string) === 'withdrawn'
@@ -189,15 +255,54 @@ export default function PublicJobDetailPage() {
 
               {/* Job description */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-1">
-                <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                  <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  About the Role
-                </h2>
-                <div className="prose prose-gray max-w-none">
-                  <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {job.description}
-                  </p>
+                <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4 sm:gap-3">
+                  <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 flex items-center gap-2 sm:gap-3">
+                    <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    About the Role
+                  </h2>
+                  {isLocked && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                      <Lock className="h-3.5 w-3.5" />
+                      Job Description Locked
+                    </span>
+                  )}
                 </div>
+
+                {isLocked ? (
+                  <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 min-h-[240px]">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none select-none rounded-xl bg-white/80 p-4 sm:p-5 h-full"
+                      style={{ filter: 'blur(6px)' }}
+                    >
+                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {lockedDescriptionPreview}
+                      </p>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center p-6">
+                      <div className="max-w-sm rounded-2xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
+                        <div className="mb-3 flex items-center justify-center gap-2 text-amber-800">
+                          <Lock className="h-4 w-4 flex-shrink-0" />
+                          <p className="text-sm sm:text-base font-semibold">Job Description Locked</p>
+                        </div>
+                        <p className="text-sm sm:text-base text-gray-700">{LOCKED_DESCRIPTION_MESSAGE}</p>
+                        <Link
+                          to="/subscription"
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+                        >
+                          Upgrade Plan
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="prose prose-gray max-w-none">
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {job.description}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Requirements */}
@@ -207,7 +312,7 @@ export default function PublicJobDetailPage() {
                     <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     Requirements
                   </h2>
-                  <div className="prose prose-gray max-w-none">
+                  <div className={`prose prose-gray max-w-none ${isLocked ? 'blur-sm select-none pointer-events-none opacity-60' : ''}`}>
                     <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                       {job.requirements}
                     </p>
@@ -391,45 +496,21 @@ export default function PublicJobDetailPage() {
                   </button>
                 ) : (
                   <>
-                    {isStudent && dashboard && (
-                      <div className="mb-4 text-sm">
-                        {hasUnlimitedApplications ? (
-                          <p className="text-blue-600">Unlimited applications available.</p>
-                        ) : (
-                          <p className="text-gray-500">
-                            {dashboard.applicationsUsed}/{applicationLimit} applications used
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {isStudent && hasReachedFreeLimit ? (
-                      <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                        <p className="text-sm text-yellow-700 mb-3">
-                          Free tier limit reached. Upgrade to apply to unlimited jobs.
-                        </p>
-                        <Link
-                          to="/subscription"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 transition-all"
-                        >
-                          Upgrade to Unlimited
-                        </Link>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleApply}
-                        disabled={isApplying || (isStudent && !!dashboard?.isHired)}
-                        className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
-                      >
-                        {isApplying
-                          ? 'Applying...'
-                          : dashboard?.isHired
-                          ? 'Already Hired'
-                          : isAuthenticated
-                          ? 'Apply Now'
-                          : 'Sign In to Apply'}
-                      </button>
-                    )}
+                    <button
+                      onClick={handleApply}
+                      disabled={isApplying || (isStudent && !!dashboard?.isHired) || isQuotaReached}
+                      className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
+                    >
+                      {isApplying
+                        ? 'Applying...'
+                        : dashboard?.isHired
+                        ? 'Already Hired'
+                        : isQuotaReached
+                        ? 'Limit Reached'
+                        : isAuthenticated
+                        ? 'Apply Now'
+                        : 'Sign In to Apply'}
+                    </button>
                   </>
                 )}
 

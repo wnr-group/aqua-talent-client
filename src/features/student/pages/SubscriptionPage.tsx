@@ -219,9 +219,8 @@ function getPlanCardFeatures(service: Pick<SubscriptionService, 'maxApplications
   return [`${service.maxApplications} applications`, ...sanitizedFeatures]
 }
 
-function isSpotlightService(service: Pick<SubscriptionService, 'name'>): boolean {
-  const normalizedName = service.name.trim().toLowerCase()
-  return normalizedName.includes('spotlight')
+function isVisibleService(service: Pick<SubscriptionService, 'name'>): boolean {
+  return !service.name.trim().toLowerCase().includes('spotlight')
 }
 
 export default function SubscriptionPage() {
@@ -251,6 +250,7 @@ export default function SubscriptionPage() {
 
       // Sort services by displayOrder
       const sortedServices = (servicesData.services || servicesData.plans || [])
+        .filter(isVisibleService)
         .sort((a, b) => a.displayOrder - b.displayOrder)
 
       setServices(sortedServices)
@@ -559,9 +559,7 @@ export default function SubscriptionPage() {
                     shouldShowPaymentAction ? (
                       <SubscriptionPurchaseAction
                         serviceId={service._id}
-                        serviceName={service.name}
                         currency={currency}
-                        requiresCompanySelection={isSpotlightService(service)}
                         disabled={!canBuy}
                         prefill={paymentPrefill}
                         onPaymentSuccess={() => loadData(false)}
