@@ -66,6 +66,7 @@ export default function CompanyApplications() {
   const [search, setSearch] = useState('')
   const [location, setLocation] = useState('')
   const [jobType, setJobType] = useState('')
+  const [skills, setSkills] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -94,6 +95,7 @@ export default function CompanyApplications() {
         if (search) params.append('search', search)
         if (location) params.append('location', location)
         if (jobType) params.append('jobType', jobType)
+        if (skills) params.append('skills', skills)
         params.append('page', page.toString())
         params.append('limit', '15')
 
@@ -144,7 +146,7 @@ export default function CompanyApplications() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1)
-  }, [filter, search, location, jobType])
+  }, [filter, search, location, jobType, skills])
 
   const updateApplicationStatus = async (
     application: Application,
@@ -290,7 +292,7 @@ export default function CompanyApplications() {
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Input
             placeholder="Search student name, email, job..."
             value={search}
@@ -303,6 +305,13 @@ export default function CompanyApplications() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             leftIcon={<MapPin className="w-4 h-4" />}
+            className={COMPANY_INPUT_STYLES}
+          />
+          <Input
+            placeholder="Filter by skill..."
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            leftIcon={<User className="w-4 h-4" />}
             className={COMPANY_INPUT_STYLES}
           />
           <select

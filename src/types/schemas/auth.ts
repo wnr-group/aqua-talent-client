@@ -15,6 +15,11 @@ export const companyRegisterSchema = z.object({
     .max(30)
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   email: z.string().email('Invalid email address'),
+  companyDomain: z
+    .string()
+    .min(3, 'Company domain is required')
+    .regex(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid domain format'),
+
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -25,6 +30,10 @@ export const companyRegisterSchema = z.object({
 export type CompanyRegisterFormData = z.infer<typeof companyRegisterSchema>
 
 export const studentRegisterSchema = z.object({
+  studentId: z
+    .string()
+    .min(3, 'Student ID must be at least 3 characters')
+    .max(30, 'Student ID must be less than 30 characters'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100),
   username: z
     .string()

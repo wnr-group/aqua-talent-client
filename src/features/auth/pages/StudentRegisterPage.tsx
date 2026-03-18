@@ -103,6 +103,31 @@ export default function StudentRegisterPage() {
             </div>
 
             <div>
+  <label className="block text-sm font-medium text-gray-900 mb-2">
+    Student ID
+  </label>
+
+  <div className="relative">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      <User className="w-5 h-5" />
+    </div>
+
+    <input
+      {...register('studentId')}
+      type="text"
+      placeholder="Enter your student ID"
+      className={inputClasses(!!errors.studentId)}
+    />
+  </div>
+
+  {errors.studentId && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.studentId.message}
+    </p>
+  )}
+</div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 Username
               </label>
