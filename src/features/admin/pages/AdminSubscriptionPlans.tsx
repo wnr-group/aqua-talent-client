@@ -11,6 +11,7 @@ import {
   SubscriptionPlan,
   SubscriptionTier,
   SubscriptionCurrency,
+  ZoneInfo,
 } from "@/types";
 import { api } from "@/services/api/client";
 import { format } from "date-fns";
@@ -27,6 +28,7 @@ import {
   Video,
   Zap,
   Star,
+  Globe,
 } from "lucide-react";
 
 const currencySymbols: Record<SubscriptionCurrency, string> = {
@@ -95,6 +97,11 @@ export default function AdminSubscriptionPlans() {
     null,
   );
 
+  // Zone access state for create/edit modal
+  const [availableZones, setAvailableZones] = useState<ZoneInfo[]>([]);
+  const [zoneAllIncluded, setZoneAllIncluded] = useState(false);
+  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+
   const fetchPlans = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -132,14 +139,55 @@ export default function AdminSubscriptionPlans() {
   const sortedPlans = [...filteredPlans].sort(
     (a, b) => a.displayOrder - b.displayOrder,
   );
+  
+const loadZonesForModal = async (planId?: string) => {
+  try {
+    // Step 1: always load all zones
+    const zonesRes = await api.get<{ zones: ZoneInfo[] }>("/admin/zones");
+    const zones = (zonesRes.zones || []).map((z: any) => ({
+      ...z,
+      id: String(z.id || z._id),
+    }));
+
+    setAvailableZones(zones);
+
+    // Step 2: if editing, load plan zones
+    if (planId) {
+      const data = await api.get<{
+        allZonesIncluded: boolean;
+        zoneIds?: string[];
+        zones?: Array<{ id: string }>;
+      }>(`/admin/plans/${planId}/zones`);
+
+      setZoneAllIncluded(Boolean(data.allZonesIncluded));
+
+      if (data.allZonesIncluded) {
+        setSelectedZoneIds([]);
+      } else {
+        const ids =
+          data.zoneIds ??
+          (data.zones || []).map((z: any) => z.id || z._id);
+
+        setSelectedZoneIds((ids || []).map((id: any) => String(id)));
+      }
+    } else {
+      setZoneAllIncluded(false);
+      setSelectedZoneIds([]);
+    }
+  } catch (err) {
+    console.error("Zone load error:", err);
+    setAvailableZones([]);
+  }
+};
 
   const openCreateModal = () => {
     setEditingPlan(null);
     setFormData(defaultFormData);
     setIsModalOpen(true);
+    loadZonesForModal();
   };
 
-  const openEditModal = (plan: SubscriptionPlan) => {
+  const openEditModal = async (plan: SubscriptionPlan) => {
     setEditingPlan(plan);
     setFormData({
       name: plan.name,
@@ -154,7 +202,9 @@ export default function AdminSubscriptionPlans() {
         (plan.currency === "USD" ? plan.price : 0),
       currency: plan.currency,
       discount: plan.discount ?? 0,
-      maxApplications: plan.maxApplications?.toString() ?? "",
+      maxApplications: plan.tier === 'free'
+        ? '2'
+        : plan.maxApplications?.toString() ?? "",
       features: plan.features || [],
       badge: plan.badge || "",
       displayOrder: plan.displayOrder ?? 0,
@@ -166,17 +216,12 @@ export default function AdminSubscriptionPlans() {
       isActive: plan.isActive ?? true,
     });
     setIsModalOpen(true);
+   await loadZonesForModal(plan.id);
   };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
       showError("Plan name is required");
-      return;
-    }
-
-    // maxApplications is required for paid plans
-    if (formData.tier === "paid" && !formData.maxApplications) {
-      showError("Max applications is required for paid plans");
       return;
     }
 
@@ -194,7 +239,9 @@ export default function AdminSubscriptionPlans() {
           formData.tier === "free" ? 0 : formData.nonIndianPrice,
         currency: formData.currency,
         discount: formData.discount || 0,
-        maxApplications: formData.maxApplications
+        maxApplications: formData.tier === 'free'
+          ? 2
+          : formData.maxApplications
           ? parseInt(formData.maxApplications)
           : null,
         features: Array.isArray(formData.features)
@@ -214,12 +261,23 @@ export default function AdminSubscriptionPlans() {
         isActive: Boolean(formData.isActive),
       };
 
+      let savedPlanId: string | undefined;
       if (editingPlan) {
         await api.patch(`/admin/subscription-plans/${editingPlan.id}`, payload);
+        savedPlanId = editingPlan.id;
         success("Plan updated successfully");
       } else {
-        await api.post("/admin/subscription-plans", payload);
+        const created = await api.post<{ id?: string; _id?: string }>("/admin/subscription-plans", payload);
+        savedPlanId = created?.id ?? created?._id;
         success("Plan created successfully");
+      }
+
+      // Save zone config
+      if (savedPlanId) {
+        await api.patch(`/admin/plans/${savedPlanId}/zones`, {
+          allZonesIncluded: zoneAllIncluded,
+          zoneIds: zoneAllIncluded ? [] : selectedZoneIds,
+        }).catch(() => {/* non-critical */});
       }
 
       setIsModalOpen(false);
@@ -432,14 +490,19 @@ export default function AdminSubscriptionPlans() {
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  {plan.maxApplications && plan.maxApplications > 0 && (
+                  {plan.maxApplications === null || plan.maxApplications === undefined ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">Unlimited applications</span>
+                    </div>
+                  ) : plan.maxApplications > 0 ? (
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-gray-400" />
                       <span className="text-gray-600">
                         {plan.maxApplications} applications
                       </span>
                     </div>
-                  )}
+                  ) : null}
                   {(plan.resumeDownloads ?? plan.resumeDownloadsPerMonth) &&
                     (plan.resumeDownloads ?? plan.resumeDownloadsPerMonth)! > 0 && (
                       <div className="flex items-center gap-2 text-sm">
@@ -472,7 +535,7 @@ export default function AdminSubscriptionPlans() {
                   )}
                 </div>
 
-                {plan.features.length > 0 && (
+                {(plan.features || []).length > 0 && (
                   <div className="border-t border-gray-100 pt-4 mb-4">
                     <p className="text-xs font-medium text-gray-500 mb-2">
                       Features
@@ -487,9 +550,9 @@ export default function AdminSubscriptionPlans() {
                           {feature}
                         </li>
                       ))}
-                      {plan.features.length > 4 && (
+                      {(plan.features || []).length > 4 && (
                         <li className="text-xs text-gray-400">
-                          +{plan.features.length - 4} more
+                          +{(plan.features || []).length - 4} more
                         </li>
                       )}
                     </ul>
@@ -601,7 +664,7 @@ export default function AdminSubscriptionPlans() {
               placeholder="Enter Indian price"
             />
             <Input
-              label="Non-Indian Price (USD)"
+              label="International Price (USD)"
               type="number"
               value={formData.nonIndianPrice}
               onChange={(e) =>
@@ -647,15 +710,20 @@ export default function AdminSubscriptionPlans() {
 
           <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Max Applications *"
+              label="Max Applications"
               type="number"
-              value={formData.maxApplications}
+              value={formData.tier === 'free' ? '2' : formData.maxApplications}
               onChange={(e) =>
                 setFormData((p) => ({ ...p, maxApplications: e.target.value }))
               }
-              placeholder={formData.tier === "free" ? "e.g., 2" : "Required"}
+              disabled={formData.tier === 'free'}
+              placeholder={formData.tier === 'free' ? '2' : 'Empty = unlimited'}
+              helperText={
+                formData.tier === 'free'
+                  ? 'Fixed at 2 for free plan'
+                  : 'Leave empty for unlimited'
+              }
               min={1}
-              required={formData.tier === "paid"}
             />
             <Input
               label="Resume Downloads"
@@ -729,6 +797,63 @@ export default function AdminSubscriptionPlans() {
               </Button>
             </div>
           </div>
+
+          {/* Zone Access */}
+        
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <p className="text-sm font-semibold text-gray-900">Zone Access</p>
+              </div>
+              <div className="space-y-2 mb-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={zoneAllIncluded}
+                    onChange={() => setZoneAllIncluded(true)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">All Zones Included</p>
+                    <p className="text-xs text-gray-500">Students can apply to jobs from any zone</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={!zoneAllIncluded}
+                    onChange={() => setZoneAllIncluded(false)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Specific Zones</p>
+                    <p className="text-xs text-gray-500">Select which zones this plan covers</p>
+                  </div>
+                </label>
+              </div>
+              {!zoneAllIncluded && (
+                <div className="ml-7 space-y-2">
+                  {availableZones.map((zone) => (
+                    <label key={zone.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedZoneIds.includes(String(zone.id))}
+                        onChange={(e) => {
+                          setSelectedZoneIds((prev) =>
+                            e.target.checked
+                              ? [...prev, zone.id]
+                              : prev.filter((id) => id !== zone.id),
+                          );
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{zone.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          
 
           {/* Toggles */}
           <div className="grid grid-cols-2 gap-4">

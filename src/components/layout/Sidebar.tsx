@@ -10,6 +10,8 @@ import {
   CheckSquare,
   Crown,
   Users,
+  Globe,
+  Package,
 } from 'lucide-react'
 import { ReactNode } from 'react'
 
@@ -43,6 +45,8 @@ const adminNavItems: NavItem[] = [
   { label: 'Job Postings', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
   { label: 'Applications', path: '/applications', icon: <CheckSquare className="w-5 h-5" /> },
   { label: 'Subscription Plans', path: '/subscription-plans', icon: <Crown className="w-5 h-5" /> },
+  { label: 'Zones', path: '/zones', icon: <Globe className="w-5 h-5" /> },
+  { label: 'Addons', path: '/addons', icon: <Package className="w-5 h-5" /> },
 ]
 
 const navItemsByUserType: Record<UserType, NavItem[]> = {

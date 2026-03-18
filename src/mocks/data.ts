@@ -1,4 +1,4 @@
-import { Company, Student, Admin, JobPosting, Application } from '@/types/entities'
+import { Company, Student, Admin, JobPosting, Application, ZoneInfo, ZoneAddon, Country } from '@/types/entities'
 import { CompanyStatus, JobStatus, ApplicationStatus, UserType } from '@/types/enums'
 
 // Test credentials:
@@ -100,6 +100,8 @@ export const mockJobs: JobPosting[] = [
     salaryRange: '$25-35/hour',
     deadline: '2024-06-01T00:00:00Z',
     status: JobStatus.APPROVED,
+    countryId: 'country-us',
+    countryName: 'United States',
     createdAt: '2024-02-01T00:00:00Z',
     approvedAt: '2024-02-02T00:00:00Z',
     company: { id: 'company-1', name: 'Acme Corporation' },
@@ -182,6 +184,8 @@ export const mockJobs: JobPosting[] = [
     jobType: 'Internship',
     salaryRange: '₹20,000-30,000/month',
     status: JobStatus.APPROVED,
+    countryId: 'country-in',
+    countryName: 'India',
     createdAt: '2024-03-01T00:00:00Z',
     approvedAt: '2024-03-02T00:00:00Z',
     company: { id: 'company-1', name: 'Acme Corporation' },
@@ -468,6 +472,69 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
 
 // Legacy alias for backwards compatibility
 export const mockServices = mockSubscriptionPlans
+
+// ── Zonal Pricing Data ─────────────────────────────────────────────────────
+
+export const mockZones: ZoneInfo[] = [
+  { id: 'zone-apac', name: 'Asia-Pacific', countries: ['India', 'Singapore', 'Australia', 'Japan'] },
+  { id: 'zone-na', name: 'North America', countries: ['United States', 'Canada'] },
+  { id: 'zone-eu', name: 'Europe', countries: ['United Kingdom', 'Germany', 'France', 'Netherlands'] },
+]
+
+export const mockCountries: Country[] = [
+  { id: 'country-in', name: 'India', code: 'IN', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-sg', name: 'Singapore', code: 'SG', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-au', name: 'Australia', code: 'AU', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-jp', name: 'Japan', code: 'JP', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-us', name: 'United States', code: 'US', zoneId: 'zone-na', zoneName: 'North America' },
+  { id: 'country-ca', name: 'Canada', code: 'CA', zoneId: 'zone-na', zoneName: 'North America' },
+  { id: 'country-gb', name: 'United Kingdom', code: 'GB', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-de', name: 'Germany', code: 'DE', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-fr', name: 'France', code: 'FR', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-nl', name: 'Netherlands', code: 'NL', zoneId: 'zone-eu', zoneName: 'Europe' },
+]
+
+export const mockZoneAddons: ZoneAddon[] = [
+  {
+    id: 'addon-zone-single',
+    name: '1 Extra Zone',
+    description: 'Unlock job opportunities in one additional geographic zone of your choice.',
+    price: 299,
+    indianPrice: 299,
+    internationalPrice: 5,
+    currency: 'INR',
+    zonesIncluded: 1,
+    isFlexible: true,
+  },
+  {
+    id: 'addon-zone-all',
+    name: 'All Zones Access',
+    description: 'Unlock job opportunities in all geographic zones worldwide.',
+    price: 699,
+    indianPrice: 699,
+    internationalPrice: 10,
+    currency: 'INR',
+    zonesIncluded: 3,
+    isFlexible: false,
+    zones: mockZones,
+  },
+]
+
+// Tracks zone unlocks per student: addonZoneIds = zone IDs unlocked via addon, payPerJobIds = job IDs unlocked via pay-per-job
+export const mockStudentZoneAccess: Record<string, { addonZoneIds: string[]; payPerJobIds: string[] }> = {}
+
+// Plans that include all zones
+export const PLANS_WITH_ALL_ZONES = ['plan-pro-monthly', 'plan-pro-yearly', 'plan-lifetime', 'service-pro-monthly']
+
+// Per-plan zone configuration (admin-managed). Initialised from PLANS_WITH_ALL_ZONES.
+export const mockPlanZones: Record<string, { allZonesIncluded: boolean; zoneIds: string[] }> = {
+  'plan-free':         { allZonesIncluded: true,  zoneIds: [] },
+  'starter':           { allZonesIncluded: false, zoneIds: ['zone-apac'] },
+  'plan-pro-monthly':  { allZonesIncluded: true,  zoneIds: [] },
+  'plan-pro-yearly':   { allZonesIncluded: true,  zoneIds: [] },
+  'plan-lifetime':     { allZonesIncluded: true,  zoneIds: [] },
+  'service-pro-monthly': { allZonesIncluded: true, zoneIds: [] },
+}
 
 type StudentSubscription = {
   subscriptionTier: 'free' | 'paid'

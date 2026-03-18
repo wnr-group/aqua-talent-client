@@ -43,6 +43,8 @@ import AdminApplications from '@/features/admin/pages/AdminApplications'
 import AdminSubscriptionPlans from '@/features/admin/pages/AdminSubscriptionPlans'
 import AdminStudents from '@/features/admin/pages/AdminStudents'
 import AdminStudentDetail from '@/features/admin/pages/AdminStudentDetail'
+import AdminZones from '@/features/admin/pages/AdminZones'
+import AdminAddons from '@/features/admin/pages/AdminAddons'
 
 // Portal-specific notification pages
 import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
@@ -299,6 +301,22 @@ function AdminPortalRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
             <AdminNotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/zones"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminZones />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/addons"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminAddons />
           </ProtectedRoute>
         }
       />

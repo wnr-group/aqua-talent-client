@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { api } from '@/services/api/client'
+import { api, ApiClientError } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
 import { JobPosting, UserType, ApplicationStatus } from '@/types'
@@ -25,6 +25,7 @@ import StudentNavbar from '@/components/layout/StudentNavbar'
 import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
+import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
 
 const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
 const DESCRIPTION_PREVIEW_PLACEHOLDER = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Upgrade your plan to unlock the full job description and keep exploring the role details.'
@@ -142,6 +143,14 @@ export default function PublicJobDetailPage() {
       const normalizedJob = normalizePublicJobDetailsResponse(updatedJob, jobId)
       setJob(normalizedJob)
     } catch (err) {
+      const apiErr = err instanceof ApiClientError ? err : null
+      if (apiErr?.data?.isZoneLocked) {
+        const reason = apiErr.data.zoneLockReason as import('@/types').ZoneLockReason | undefined
+        if (reason) {
+          setJob((prev) => prev ? { ...prev, isZoneLocked: true, zoneLockReason: reason } : prev)
+        }
+        return
+      }
       const message = err instanceof Error ? err.message : 'Failed to apply'
       if (
         message.toLowerCase().includes('application limit reached') ||
@@ -177,12 +186,21 @@ export default function PublicJobDetailPage() {
   const lockedDescriptionPreview = getDescriptionPreview(job.description)
   const isQuotaReached =
     typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isZoneLocked = job?.isZoneLocked === true
   const isLocked = job?.isDescriptionLocked === true || isQuotaReached
 
   // Check application status - only withdrawn can reapply (not rejected)
   const isWithdrawn = (job?.applicationStatus as string) === 'withdrawn'
   const isRejected = (job?.applicationStatus as string) === 'rejected'
   const hasActiveApplication = job?.hasApplied && !isWithdrawn
+
+  const handleJobUnlocked = async () => {
+    if (!jobId) return
+    try {
+      const data = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+      setJob(normalizePublicJobDetailsResponse(data, jobId))
+    } catch { /* best-effort */ }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,7 +278,7 @@ export default function PublicJobDetailPage() {
                     <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     About the Role
                   </h2>
-                  {isLocked && (
+                  {isLocked && !isZoneLocked && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
                       <Lock className="h-3.5 w-3.5" />
                       Job Description Locked
@@ -268,7 +286,14 @@ export default function PublicJobDetailPage() {
                   )}
                 </div>
 
-                {isLocked ? (
+                {isZoneLocked && job.zoneLockReason ? (
+                  <ZoneUnlockPanel
+                    zoneLockReason={job.zoneLockReason}
+                    jobId={job.id}
+                    prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                    onUnlocked={handleJobUnlocked}
+                  />
+                ) : isLocked ? (
                   <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 min-h-[240px]">
                     <div
                       aria-hidden="true"
@@ -306,7 +331,7 @@ export default function PublicJobDetailPage() {
               </div>
 
               {/* Requirements */}
-              {job.requirements && (
+              {job.requirements && !isZoneLocked && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-2">
                   <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
                     <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
@@ -498,13 +523,15 @@ export default function PublicJobDetailPage() {
                   <>
                     <button
                       onClick={handleApply}
-                      disabled={isApplying || (isStudent && !!dashboard?.isHired) || isQuotaReached}
+                      disabled={isApplying || (isStudent && !!dashboard?.isHired) || isQuotaReached || isZoneLocked}
                       className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
                     >
                       {isApplying
                         ? 'Applying...'
                         : dashboard?.isHired
                         ? 'Already Hired'
+                        : isZoneLocked
+                        ? 'Unlock to Apply'
                         : isQuotaReached
                         ? 'Limit Reached'
                         : isAuthenticated

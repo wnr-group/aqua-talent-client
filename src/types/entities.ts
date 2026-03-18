@@ -65,12 +65,72 @@ export interface Admin {
   createdAt: string
 }
 
+export type UnlockOptionType = 'pay-per-job' | 'zone-addon' | 'upgrade-plan'
+
+export interface UnlockOption {
+  type: UnlockOptionType
+  label: string
+  description?: string
+  price?: number
+  currency?: string
+  addonId?: string
+  planId?: string
+  zonesIncluded?: number
+  unlockAllZones?: boolean
+}
+
+export interface ZoneLockReason {
+  zoneId: string
+  zoneName: string
+  message: string
+  unlockOptions: UnlockOption[]
+}
+
+export interface ZoneInfo {
+  id: string
+  name: string
+  description?: string
+  countries: string[]
+}
+
+export interface StudentSubscriptionZones {
+  allZonesIncluded: boolean
+  homeZoneId: string | null
+  accessibleZones: ZoneInfo[]
+  lockedZones: ZoneInfo[]
+}
+
+export interface ZoneAddon {
+  id: string
+  name: string
+  description: string
+  price: number
+  indianPrice?: number | null
+  internationalPrice?: number | null
+  currency: string
+  zonesIncluded: number
+  isFlexible: boolean
+  zones?: ZoneInfo[]
+}
+
+export interface Country {
+  id: string
+  name: string
+  code: string
+  zoneId: string
+  zoneName: string
+}
+
 export interface JobPosting {
   id: string
   companyId: string
   title: string
   description: string
   isDescriptionLocked?: boolean
+  isZoneLocked?: boolean
+  zoneLockReason?: ZoneLockReason | null
+  countryId?: string | null
+  countryName?: string | null
   requirements?: string | null
   location: string
   jobType: string

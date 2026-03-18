@@ -11,7 +11,7 @@ import CompanyAvatar from '@/components/common/CompanyAvatar'
 import { JobPosting } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock } from 'lucide-react'
+import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe } from 'lucide-react'
 
 export default function StudentJobSearch() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
@@ -183,6 +183,12 @@ export default function StudentJobSearch() {
                             <Badge variant="warning">
                               Deadline: {format(new Date(job.deadline), 'MMM d')}
                             </Badge>
+                          )}
+                          {job.isZoneLocked && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
+                              <Globe className="w-3 h-3" />
+                              Zone Locked
+                            </span>
                           )}
                         </div>
                       </div>

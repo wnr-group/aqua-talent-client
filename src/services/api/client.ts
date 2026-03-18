@@ -8,12 +8,14 @@ interface RequestOptions extends RequestInit {
 export class ApiClientError extends Error {
   status: number
   code?: string
+  data?: Record<string, unknown>
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, data?: Record<string, unknown>) {
     super(message)
     this.name = 'ApiClientError'
     this.status = status
     this.code = code
+    this.data = data
   }
 }
 
@@ -86,17 +88,18 @@ export async function fetchApi<T>(
   if (!response.ok) {
     let errorMessage = 'An error occurred'
     let errorCode: string | undefined
+    let errorData: Record<string, unknown> | undefined
 
     try {
-      const errorData = await response.json()
+      errorData = await response.json()
       // Handle both backend formats: { error: "..." } and { message: "..." }
-      errorMessage = errorData.error || errorData.message || errorMessage
-      errorCode = errorData.code
+      errorMessage = (errorData?.error as string) || (errorData?.message as string) || errorMessage
+      errorCode = errorData?.code as string | undefined
     } catch {
       errorMessage = response.statusText
     }
 
-    throw new ApiClientError(errorMessage, response.status, errorCode)
+    throw new ApiClientError(errorMessage, response.status, errorCode, errorData)
   }
 
   if (response.status === 204) {

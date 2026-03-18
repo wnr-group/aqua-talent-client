@@ -8,6 +8,9 @@ import {
   Star,
   Clock,
   Zap,
+  Globe,
+  Lock,
+  CheckCircle2,
 } from 'lucide-react'
 import Card, { CardContent, CardTitle } from '@/components/common/Card'
 import Alert from '@/components/common/Alert'
@@ -17,7 +20,8 @@ import SubscriptionPurchaseAction from '@/features/student/components/Subscripti
 import Badge from '@/components/common/Badge'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { api } from '@/services/api/client'
-import { SubscriptionTier } from '@/types'
+import { SubscriptionTier, StudentSubscriptionZones, ZoneAddon } from '@/types'
+import { startZoneAddonPayment } from '@/services/payment/studentPayment'
 
 type SupportedCurrency = 'INR' | 'USD'
 
@@ -230,6 +234,11 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [currency, setCurrency] = useState<SupportedCurrency>('USD')
+  const [zonesData, setZonesData] = useState<StudentSubscriptionZones | null>(null)
+  const [zoneAddons, setZoneAddons] = useState<ZoneAddon[]>([])
+  const [planZoneData, setPlanZoneData] = useState<Record<string, { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }>>({})
+  const [selectedLockedZoneId, setSelectedLockedZoneId] = useState<string | null>(null)
+  const [isUnlockingZone, setIsUnlockingZone] = useState(false)
 
   useEffect(() => {
     void loadData()
@@ -242,10 +251,12 @@ export default function SubscriptionPage() {
       }
 
       setErrorMessage(null)
-      const [servicesData, subscriptionData, geoLocation] = await Promise.all([
+      const [servicesData, subscriptionData, geoLocation, zonesResponse, addonsResponse] = await Promise.all([
         api.get<ServicesResponse>('/services'),
         api.get<CurrentSubscriptionResponse>('/student/subscription'),
         api.get<GeoLocationResponse>('/geo-location').catch(() => null),
+        api.get<StudentSubscriptionZones>('/student/subscription/zones').catch(() => null),
+        api.get<{ addons: ZoneAddon[] }>('/student/zone-addons').catch(() => null),
       ])
 
       // Sort services by displayOrder
@@ -256,6 +267,28 @@ export default function SubscriptionPage() {
       setServices(sortedServices)
       setCurrentSubscription(subscriptionData)
       setCurrency(resolveCurrency(geoLocation))
+      if (zonesResponse) setZonesData(zonesResponse)
+      if (addonsResponse) setZoneAddons(addonsResponse.addons)
+
+      // Fetch zone coverage per plan
+      const zoneResults = await Promise.allSettled(
+        sortedServices.map(async (s) => {
+          const d = await api.get<{ allZonesIncluded: boolean; zoneIds: string[]; availableZones: { id: string; name: string }[] }>(
+            `/admin/plans/${s._id}/zones`
+          )
+          const zones = d.allZonesIncluded
+            ? d.availableZones
+            : d.availableZones.filter((z) => d.zoneIds.includes(z.id))
+          return { id: s._id, info: { allZonesIncluded: d.allZonesIncluded, zones } }
+        })
+      )
+      const zoneDataMap: Record<string, { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }> = {}
+      for (const result of zoneResults) {
+        if (result.status === 'fulfilled') {
+          zoneDataMap[result.value.id] = result.value.info
+        }
+      }
+      setPlanZoneData(zoneDataMap)
     } catch {
       setErrorMessage('Unable to load subscription details. Please try again.')
     } finally {
@@ -501,6 +534,139 @@ export default function SubscriptionPage() {
           </div>
         )}
 
+        {/* My Zones Section */}
+        {zonesData && (
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              My Zones
+            </h2>
+
+            {zonesData.allZonesIncluded ? (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Global Access Included</p>
+                      <p className="text-sm text-gray-500">
+                        Your plan includes jobs from all geographic zones worldwide.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6 space-y-5">
+                  {/* Accessible zones */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Accessible Zones</p>
+                    <div className="flex flex-wrap gap-2">
+                      {zonesData.accessibleZones.map((zone) => (
+                        <span
+                          key={zone.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-full text-sm font-medium"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {zone.name}
+                        </span>
+                      ))}
+                      {zonesData.accessibleZones.length === 0 && (
+                        <p className="text-sm text-gray-500">No zones currently accessible.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Locked zones */}
+                  {zonesData.lockedZones.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Locked Zones</p>
+                      <div className="flex flex-wrap gap-2">
+                        {zonesData.lockedZones.map((zone) => (
+                          <button
+                            key={zone.id}
+                            onClick={() =>
+                              setSelectedLockedZoneId(
+                                selectedLockedZoneId === zone.id ? null : zone.id
+                              )
+                            }
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                              selectedLockedZoneId === zone.id
+                                ? 'bg-amber-100 border-amber-300 text-amber-800'
+                                : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700'
+                            }`}
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            {zone.name}
+                            <span className="text-xs ml-0.5 opacity-70">· Unlock</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Zone addon purchase panel */}
+                  {selectedLockedZoneId && zoneAddons.length > 0 && (
+                    <div className="border border-amber-200 rounded-xl bg-amber-50 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-semibold text-amber-800">
+                          Choose an unlock option
+                        </p>
+                        <button
+                          onClick={() => setSelectedLockedZoneId(null)}
+                          className="text-amber-600 hover:text-amber-800 text-sm"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {zoneAddons.map((addon) => (
+                          <button
+                            key={addon.id}
+                            disabled={isUnlockingZone}
+                            onClick={async () => {
+                              setIsUnlockingZone(true)
+                              try {
+                                const zoneIds =
+                                  addon.isFlexible
+                                    ? [selectedLockedZoneId]
+                                    : undefined
+                                await startZoneAddonPayment({
+                                  addonId: addon.id,
+                                  zoneIds,
+                                  prefill: paymentPrefill,
+                                })
+                                setSelectedLockedZoneId(null)
+                                await loadData(false)
+                              } catch {
+                                // Payment cancelled or failed — no action needed
+                              } finally {
+                                setIsUnlockingZone(false)
+                              }
+                            }}
+                            className="w-full flex items-start gap-3 p-3 bg-white border border-amber-200 rounded-lg hover:border-amber-400 transition-colors text-left disabled:opacity-50"
+                          >
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-900">{addon.name}</p>
+                              <p className="text-xs text-gray-500">{addon.description}</p>
+                            </div>
+                            <span className="text-sm font-bold text-amber-700 whitespace-nowrap">
+                              {formatPrice(addon.price, addon.currency)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Available Plans Section */}
         <div className="mb-10">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -570,6 +736,7 @@ export default function SubscriptionPage() {
                   discount={service.discount > 0 ? service.discount : undefined}
                   originalPrice={originalPrice}
                   maxApplications={service.maxApplications}
+                  zoneInfo={planZoneData[service._id]}
                 />
               )
             })}

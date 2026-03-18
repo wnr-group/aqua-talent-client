@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Globe } from 'lucide-react'
 import Card, { CardContent, CardDescription, CardFooter, CardTitle } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
@@ -21,6 +21,7 @@ interface PricingCardProps {
   originalPrice?: string
   maxApplications?: number | null
   actionButton?: ReactNode
+  zoneInfo?: { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }
 }
 
 export default function PricingCard({
@@ -38,6 +39,7 @@ export default function PricingCard({
   originalPrice,
   maxApplications,
   actionButton,
+  zoneInfo,
 }: PricingCardProps) {
   const isActionable = !isCurrentPlan && !!onCtaClick
   const hasDiscount = discount && discount > 0
@@ -92,6 +94,28 @@ export default function PricingCard({
         )}
 
         <CardDescription className="text-gray-500 mt-1">{description}</CardDescription>
+
+        {zoneInfo && (
+          <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
+            <Globe className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div>
+              {zoneInfo.allZonesIncluded ? (
+                <span className="text-blue-600 font-medium">All Zones Included</span>
+              ) : zoneInfo.zones.length > 0 ? (
+                <>
+                  <span className="text-gray-700 font-medium">
+                    {zoneInfo.zones.length} Zone{zoneInfo.zones.length > 1 ? 's' : ''} Included
+                  </span>
+                  <ul className="mt-1 space-y-0.5">
+                    {zoneInfo.zones.map((z) => (
+                      <li key={z.id} className="text-xs text-gray-500">• {z.name}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex-1">
           <FeatureList features={features} />

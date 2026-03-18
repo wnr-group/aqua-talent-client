@@ -8,10 +8,11 @@ import Alert from '@/components/common/Alert'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { JobPosting, ApplicationStatus } from '@/types'
-import { api } from '@/services/api/client'
+import { api, ApiClientError } from '@/services/api/client'
 import { format } from 'date-fns'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
+import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
 import { Globe, Linkedin, Twitter, ArrowRight, Lock } from 'lucide-react'
 
 interface JobDetailResponse extends JobPosting {
@@ -126,6 +127,14 @@ export default function StudentJobDetail() {
       })
       success('Application submitted successfully!')
     } catch (err) {
+      const apiErr = err instanceof ApiClientError ? err : null
+      if (apiErr?.data?.isZoneLocked) {
+        const reason = apiErr.data.zoneLockReason as import('@/types').ZoneLockReason | undefined
+        if (reason) {
+          setJob((prev) => prev ? { ...prev, isZoneLocked: true, zoneLockReason: reason } : prev)
+        }
+        return
+      }
       const message = err instanceof Error ? err.message : 'Failed to submit application'
       if (
         message === 'Free tier allows only 2 job applications' ||
@@ -153,11 +162,20 @@ export default function StudentJobDetail() {
   const lockedDescriptionPreview = getDescriptionPreview(job?.description)
   const isQuotaReached =
     typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isZoneLocked = job?.isZoneLocked === true
   const isLocked = job?.isDescriptionLocked === true || isQuotaReached
   const canApply =
     (!job?.hasApplied || hasWithdrawn) &&
     !stats?.isHired &&
-    !isQuotaReached
+    !isQuotaReached &&
+    !isZoneLocked
+
+  const handleJobUnlocked = async () => {
+    try {
+      const jobData = await api.get<JobDetailsApiResponse>(`/student/jobs/${jobId}`)
+      setJob(normalizeJobDetailsResponse(jobData, jobId))
+    } catch { /* best-effort */ }
+  }
 
   if (isLoading) {
     return (
@@ -217,61 +235,72 @@ export default function StudentJobDetail() {
             </div>
 
             <div className="space-y-6">
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                  {isLocked && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
-                      <Lock className="h-3.5 w-3.5" />
-                      Job Description Locked
-                    </span>
-                  )}
-                </div>
-
-                {isLocked ? (
-                  <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-amber-50/70 p-4 min-h-[220px]">
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none select-none rounded-lg bg-white/80 p-4 h-full"
-                      style={{ filter: 'blur(6px)' }}
-                    >
-                      <p className="text-gray-900 whitespace-pre-wrap">{lockedDescriptionPreview}</p>
+              {isZoneLocked && job.zoneLockReason ? (
+                <ZoneUnlockPanel
+                  zoneLockReason={job.zoneLockReason}
+                  jobId={job.id}
+                  prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                  onUnlocked={handleJobUnlocked}
+                />
+              ) : (
+                <>
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                      {isLocked && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                          <Lock className="h-3.5 w-3.5" />
+                          Job Description Locked
+                        </span>
+                      )}
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center p-6">
-                      <div className="max-w-sm rounded-xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
-                        <div className="mb-3 flex items-center justify-center gap-2 text-amber-800">
-                          <Lock className="h-4 w-4 flex-shrink-0" />
-                          <p className="text-sm font-semibold">Job Description Locked</p>
-                        </div>
-                        <p className="text-sm text-gray-700">{LOCKED_DESCRIPTION_MESSAGE}</p>
-                        <Link
-                          to="/subscription"
-                          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+
+                    {isLocked ? (
+                      <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-amber-50/70 p-4 min-h-[220px]">
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none select-none rounded-lg bg-white/80 p-4 h-full"
+                          style={{ filter: 'blur(6px)' }}
                         >
-                          Upgrade Plan
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
+                          <p className="text-gray-900 whitespace-pre-wrap">{lockedDescriptionPreview}</p>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center p-6">
+                          <div className="max-w-sm rounded-xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
+                            <div className="mb-3 flex items-center justify-center gap-2 text-amber-800">
+                              <Lock className="h-4 w-4 flex-shrink-0" />
+                              <p className="text-sm font-semibold">Job Description Locked</p>
+                            </div>
+                            <p className="text-sm text-gray-700">{LOCKED_DESCRIPTION_MESSAGE}</p>
+                            <Link
+                              to="/subscription"
+                              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                            >
+                              Upgrade Plan
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-gray-900 whitespace-pre-wrap">{job.description}</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-gray-900 whitespace-pre-wrap">{job.description}</p>
-                )}
-              </div>
 
-              {job.requirements && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Requirements</h3>
-                  <p
-                    className={`whitespace-pre-wrap ${
-                      isLocked
-                        ? 'text-gray-400 blur-sm select-none pointer-events-none'
-                        : 'text-gray-900'
-                    }`}
+                  {job.requirements && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Requirements</h3>
+                      <p
+                        className={`whitespace-pre-wrap ${
+                          isLocked
+                            ? 'text-gray-400 blur-sm select-none pointer-events-none'
+                            : 'text-gray-900'
+                        }`}
                   >
                     {job.requirements}
                   </p>
                 </div>
+              )}
+                </>
               )}
 
               <div className="text-sm text-gray-500">
@@ -381,6 +410,12 @@ export default function StudentJobDetail() {
                       </div>
                     </Alert>
                   )}
+                  {isZoneLocked && (
+                    <Alert variant="warning" className="mb-4">
+                      <p className="text-sm font-medium">Unlock this job to apply</p>
+                      <p className="text-sm mt-1">See the unlock options below for pricing details.</p>
+                    </Alert>
+                  )}
                   {!user?.student?.profileLink && (
                     <Alert variant="warning" className="mb-4">
                       Add a profile link before applying.
@@ -394,6 +429,8 @@ export default function StudentJobDetail() {
                   >
                     {stats?.isHired
                       ? 'Already Hired'
+                      : isZoneLocked
+                      ? 'Unlock to Apply'
                       : isQuotaReached
                       ? 'Limit Reached'
                       : hasWithdrawn

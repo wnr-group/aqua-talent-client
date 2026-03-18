@@ -8,6 +8,7 @@ export const jobCreateSchema = z.object({
   jobType: z.string().min(2, 'Job type is required').max(50),
   salaryRange: z.string().min(1, 'Salary range is required').max(50),
   deadline: z.string().min(1, 'Application deadline is required'),
+  countryId: z.string().optional().or(z.literal('')),
 })
 
 export type JobCreateFormData = z.infer<typeof jobCreateSchema>
@@ -21,6 +22,7 @@ export const jobDraftSchema = z.object({
   jobType: z.string().max(50).optional().or(z.literal('')),
   salaryRange: z.string().max(50).optional().or(z.literal('')),
   deadline: z.string().optional().or(z.literal('')),
+  countryId: z.string().optional().or(z.literal('')),
 })
 
 export type JobDraftFormData = z.infer<typeof jobDraftSchema>

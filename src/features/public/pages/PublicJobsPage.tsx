@@ -11,6 +11,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Globe,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
@@ -273,6 +274,12 @@ export default function PublicJobsPage() {
                       <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         {job.jobType}
                       </span>
+                      {job.isZoneLocked && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
+                          <Globe className="w-3 h-3" />
+                          Zone Locked
+                        </span>
+                      )}
                     </div>
 
                     <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
