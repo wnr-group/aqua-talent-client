@@ -27,6 +27,8 @@ import {
   ExternalLink,
   Download,
   Play,
+  Globe,
+  Ticket,
 } from 'lucide-react'
 
 interface Education {
@@ -81,13 +83,27 @@ interface StudentProfile {
 
   payments: {
     id: string
+    type: 'plan' | 'zone-addon' | 'pay-per-job'
+    typeLabel: string
     amount: number
     currency: string
     status: 'pending' | 'completed' | 'failed' | 'refunded'
     paymentDate: string
-    paymentMethod: string
+    paymentMethod: string | null
+    razorpayOrderId: string | null
+    razorpayPaymentId: string | null
     transactionId: string
-    plan: { name: string; price: number } | null
+    details: {
+      planId?: string
+      planName?: string
+      planPrice?: number
+      addonId?: string
+      addonName?: string
+      jobId?: string
+      jobTitle?: string
+    } | null
+    // Legacy field for backwards compatibility
+    plan?: { name: string; price: number } | null
   }[]
 
   applications: {
@@ -180,19 +196,9 @@ export default function AdminStudentDetail() {
     }
   }
 
-  const getIndianPrice = (plan: SubscriptionPlan) => {
-    return plan.indianPrice ?? (plan.currency === 'INR' ? plan.price : null)
-  }
-
-  const getInternationalPrice = (plan: SubscriptionPlan) => {
-    return plan.internationalPrice ?? (plan.currency === 'USD' ? plan.price : null)
-  }
-
   const formatDualPricing = (plan: SubscriptionPlan) => {
-    const indianPrice = getIndianPrice(plan)
-    const internationalPrice = getInternationalPrice(plan)
-    const indianLabel = indianPrice === null ? 'INR not set' : `₹${indianPrice}`
-    const internationalLabel = internationalPrice === null ? 'USD not set' : `$${internationalPrice}`
+    const indianLabel = `₹${plan.priceINR ?? plan.price ?? 0}`
+    const internationalLabel = `$${plan.priceUSD ?? 0}`
 
     return `${indianLabel} • ${internationalLabel}`
   }
@@ -576,35 +582,109 @@ export default function AdminStudentDetail() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Details</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Amount</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Transaction ID</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Method</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {student.payments.map((payment) => (
-                      <tr key={payment.id} className="border-b border-gray-100">
-                        <td className="py-3 px-4 text-gray-900">
-                          {format(new Date(payment.paymentDate), 'MMM d, yyyy')}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">{payment.plan?.name || 'N/A'}</td>
-                        <td className="py-3 px-4 text-gray-900">
-                          {payment.currency} {payment.amount}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={paymentStatusColors[payment.status]}>
-                            {payment.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600 font-mono text-xs">
-                          {payment.transactionId}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">{payment.paymentMethod}</td>
-                      </tr>
-                    ))}
+                    {student.payments.map((payment) => {
+                      // Determine payment type (with backwards compatibility)
+                      const paymentType = payment.type || 'plan'
+                      const typeConfig = {
+                        plan: { label: 'Plan Purchase', icon: CreditCard, color: 'bg-blue-100 text-blue-700' },
+                        'zone-addon': { label: 'Zone Addon', icon: Globe, color: 'bg-purple-100 text-purple-700' },
+                        'pay-per-job': { label: 'Pay Per Job', icon: Ticket, color: 'bg-green-100 text-green-700' },
+                      }
+                      const config = typeConfig[paymentType] || typeConfig.plan
+                      const TypeIcon = config.icon
+
+                      // Get display details
+                      const getDetailsDisplay = () => {
+                        if (payment.details) {
+                          if (paymentType === 'plan' && payment.details.planName) {
+                            return (
+                              <div>
+                                <span className="font-medium text-gray-900">{payment.details.planName}</span>
+                                {payment.details.planPrice && (
+                                  <span className="text-gray-500 ml-1 text-xs">
+                                    (₹{payment.details.planPrice})
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          }
+                          if (paymentType === 'zone-addon' && payment.details.addonName) {
+                            return <span className="font-medium text-gray-900">{payment.details.addonName}</span>
+                          }
+                          if (paymentType === 'pay-per-job' && payment.details.jobTitle) {
+                            return (
+                              <span className="font-medium text-gray-900">{payment.details.jobTitle}</span>
+                            )
+                          }
+                        }
+                        // Fallback to legacy plan field
+                        if (payment.plan?.name) {
+                          return (
+                            <div>
+                              <span className="font-medium text-gray-900">{payment.plan.name}</span>
+                              {payment.plan.price && (
+                                <span className="text-gray-500 ml-1 text-xs">
+                                  (₹{payment.plan.price})
+                                </span>
+                              )}
+                            </div>
+                          )
+                        }
+                        return <span className="text-gray-400">—</span>
+                      }
+
+                      // Get transaction ID display (prefer razorpayPaymentId for completed)
+                      const getTransactionId = () => {
+                        if (payment.status === 'completed' && payment.razorpayPaymentId) {
+                          return payment.razorpayPaymentId
+                        }
+                        if (payment.razorpayOrderId) {
+                          return payment.razorpayOrderId
+                        }
+                        return payment.transactionId || '—'
+                      }
+
+                      return (
+                        <tr key={payment.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
+                              <TypeIcon className="w-3 h-3" />
+                              {payment.typeLabel || config.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            {getDetailsDisplay()}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono font-medium text-gray-900">
+                              {payment.currency} {payment.amount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge variant={paymentStatusColors[payment.status]}>
+                              {payment.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {format(new Date(payment.paymentDate), 'MMM d, yyyy')}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-xs text-gray-500">
+                              {getTransactionId()}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
