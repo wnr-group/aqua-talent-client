@@ -67,6 +67,14 @@ export interface Admin {
 
 export type UnlockOptionType = 'pay-per-job' | 'zone-addon' | 'upgrade-plan'
 
+export type AccessSource =
+  | 'pay-per-job'
+  | 'subscription'
+  | 'all-zones'
+  | 'applied'
+  | 'no-zone-restriction'
+  | null
+
 export interface UnlockOption {
   type: UnlockOptionType
   label: string
@@ -80,8 +88,12 @@ export interface UnlockOption {
 }
 
 export interface ZoneLockReason {
-  zoneId: string
-  zoneName: string
+  zoneId?: string
+  zoneName?: string
+  zone?: {
+    id: string
+    name: string
+  }
   message: string
   unlockOptions: UnlockOption[]
 }
@@ -105,8 +117,8 @@ export interface ZoneAddon {
   name: string
   description: string
   price: number
-  indianPrice?: number | null
-  internationalPrice?: number | null
+  priceINR?: number | null
+  priceUSD?: number | null
   currency: string
   zonesIncluded: number
   isFlexible: boolean
@@ -129,8 +141,11 @@ export interface JobPosting {
   isDescriptionLocked?: boolean
   isZoneLocked?: boolean
   zoneLockReason?: ZoneLockReason | null
+  accessSource?: AccessSource
   countryId?: string | null
   countryName?: string | null
+  zoneId?: string | null
+  zoneName?: string | null
   requirements?: string | null
   location: string
   jobType: string
@@ -204,9 +219,8 @@ export interface SubscriptionPlan {
   description: string
   maxApplications: number | null // null = unlimited
   price: number
-  indianPrice?: number | null
-  nonIndianPrice?: number | null
-  internationalPrice?: number | null
+  priceINR: number
+  priceUSD: number
   currency: SubscriptionCurrency
   discount: number // 0-100
   features: string[]
@@ -221,6 +235,8 @@ export interface SubscriptionPlan {
   profileBoost: boolean
   applicationHighlight: boolean
   isActive: boolean
+  allZonesIncluded?: boolean
+  zones?: Array<{ id: string; name: string; description?: string }>
   createdAt: string
   updatedAt: string
 }

@@ -8,7 +8,12 @@ import { api } from '@/services/api/client'
 import { startPayPerJobPayment, startZoneAddonPayment } from '@/services/payment/studentPayment'
 import ZoneSelectionModal from './ZoneSelectionModal'
 import type { ZoneLockReason, UnlockOption, StudentSubscriptionZones } from '@/types/entities'
-import type { RazorpayPrefill } from '@/services/payment/razorpay'
+
+interface RazorpayPrefill {
+  name?: string
+  email?: string
+  contact?: string
+}
 
 interface ZoneUnlockPanelProps {
   zoneLockReason: ZoneLockReason
@@ -75,9 +80,13 @@ export default function ZoneUnlockPanel({
           return
         } else {
           // Single-zone addon — use the locked zone directly
+          const lockedZoneId = zoneLockReason.zone?.id ?? zoneLockReason.zoneId
+          if (!lockedZoneId) {
+            throw new Error('Zone ID not found. Please refresh and try again.')
+          }
           await startZoneAddonPayment({
             addonId: option.addonId,
-            zoneIds: [zoneLockReason.zoneId],
+            zoneIds: [lockedZoneId],
             currency: 'INR',
             prefill,
           })

@@ -8,17 +8,47 @@ import Badge from '@/components/common/Badge'
 import Alert from '@/components/common/Alert'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
-import { JobPosting } from '@/types'
+import ZoneBadge from '@/features/student/components/ZoneBadge'
+import { JobPosting, ZoneInfo } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe } from 'lucide-react'
+import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe, Filter, Ticket } from 'lucide-react'
+
+interface ZoneWithCount extends ZoneInfo {
+  jobCount?: number
+  isAccessible?: boolean
+}
 
 export default function StudentJobSearch() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  const [zoneFilter, setZoneFilter] = useState<string>('')
+  const [zones, setZones] = useState<ZoneWithCount[]>([])
   const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
+
+  // Fetch zones and accessible zones
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const [zonesData, accessData] = await Promise.all([
+          api.get<{ zones: ZoneInfo[] }>('/admin/zones').catch(() => ({ zones: [] })),
+          api.get<{ accessibleZones: ZoneInfo[]; allZonesIncluded: boolean }>('/student/subscription/zones').catch(() => null),
+        ])
+
+        const accessibleIds = new Set(
+          accessData?.allZonesIncluded
+            ? zonesData.zones.map((z) => z.id)
+            : accessData?.accessibleZones.map((z) => z.id) ?? []
+        )
+        setZones(zonesData.zones.map((z) => ({ ...z, isAccessible: accessibleIds.has(z.id) })))
+      } catch {
+        // Non-critical
+      }
+    }
+    fetchZones()
+  }, [])
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -30,7 +60,14 @@ export default function StudentJobSearch() {
         const data = await api.get<{ jobs: JobPosting[] }>(
           `/student/jobs?${params.toString()}`
         )
-        setJobs(data.jobs)
+
+        // Apply zone filter locally
+        if (zoneFilter) {
+          setJobs(data.jobs.filter((job) => (job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId) === zoneFilter ||
+            (job.countryId && zones.find((z) => z.countries?.includes(job.countryName || ''))?.id === zoneFilter)))
+        } else {
+          setJobs(data.jobs)
+        }
       } catch {
         // Jobs will remain empty
       } finally {
@@ -40,7 +77,7 @@ export default function StudentJobSearch() {
 
     const debounce = setTimeout(fetchJobs, 300)
     return () => clearTimeout(debounce)
-  }, [searchTerm, locationFilter])
+  }, [searchTerm, locationFilter, zoneFilter, zones])
 
   useEffect(() => {
     api
@@ -56,19 +93,73 @@ export default function StudentJobSearch() {
 
   return (
     <PageContainer title="Browse Jobs" description="Find your perfect job opportunity">
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          placeholder="Search by title or keywords..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
-        <Input
-          placeholder="Filter by location..."
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          leftIcon={<MapPin className="w-4 h-4" />}
-        />
+      {/* Filters */}
+      <div className="mb-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input
+            placeholder="Search by title or keywords..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftIcon={<Search className="w-4 h-4" />}
+          />
+          <Input
+            placeholder="Filter by location..."
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            leftIcon={<MapPin className="w-4 h-4" />}
+          />
+          <div>
+            <select
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+              className="w-full h-10 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Zones</option>
+              {zones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name} {zone.isAccessible ? '✓' : '🔒'}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Zone Pills */}
+        {zones.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setZoneFilter('')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                zoneFilter === ''
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              All
+            </button>
+            {zones.map((zone) => (
+              <button
+                key={zone.id}
+                onClick={() => setZoneFilter(zone.id === zoneFilter ? '' : zone.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  zoneFilter === zone.id
+                    ? 'bg-blue-600 text-white'
+                    : zone.isAccessible
+                    ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                }`}
+              >
+                {zone.isAccessible ? (
+                  <Globe className="w-3.5 h-3.5" />
+                ) : (
+                  <Lock className="w-3.5 h-3.5" />
+                )}
+                {zone.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isQuotaReached && (
@@ -131,7 +222,7 @@ export default function StudentJobSearch() {
                       />
                       <div className="flex-1 min-w-0">
                         <Link
-                          to={`/jobs/${job.id}`}
+                          to={`/student/jobs/${job.id}`}
                           className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
                         >
                           {job.title}
@@ -184,9 +275,23 @@ export default function StudentJobSearch() {
                               Deadline: {format(new Date(job.deadline), 'MMM d')}
                             </Badge>
                           )}
-                          {job.isZoneLocked && (
+                          {job.countryName && (
+                            <ZoneBadge
+                              zoneName={job.countryName}
+                              zoneId={job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId}
+                              isLocked={job.isZoneLocked}
+                              size="sm"
+                            />
+                          )}
+                          {job.accessSource === 'pay-per-job' && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                              <Ticket className="w-3 h-3" />
+                              Purchased
+                            </span>
+                          )}
+                          {job.isZoneLocked && !job.countryName && (
                             <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
-                              <Globe className="w-3 h-3" />
+                              <Lock className="w-3 h-3" />
                               Zone Locked
                             </span>
                           )}
@@ -195,7 +300,7 @@ export default function StudentJobSearch() {
                     </div>
                   </div>
                   <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                    <Link to={`/jobs/${job.id}`}>
+                    <Link to={`/student/jobs/${job.id}`}>
                       <Button
                         variant="outline"
                         size="sm"

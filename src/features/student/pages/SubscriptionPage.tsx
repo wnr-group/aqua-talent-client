@@ -25,6 +25,13 @@ import { startZoneAddonPayment } from '@/services/payment/studentPayment'
 
 type SupportedCurrency = 'INR' | 'USD'
 
+// Zone info included in service response
+interface ServiceZoneInfo {
+  id: string
+  name: string
+  description?: string
+}
+
 // Service from GET /api/services endpoint (quota-based, one-time purchase)
 interface SubscriptionService {
   _id: string
@@ -33,8 +40,8 @@ interface SubscriptionService {
   description: string
   maxApplications: number | null
   price: number
-  indianPrice?: number | null
-  internationalPrice?: number | null
+  priceINR: number
+  priceUSD: number
   currency: string
   discount: number
   features: string[]
@@ -45,6 +52,9 @@ interface SubscriptionService {
   prioritySupport: boolean
   profileBoost: boolean
   applicationHighlight: boolean
+  // Zone information included directly in service
+  allZonesIncluded?: boolean
+  zones?: ServiceZoneInfo[]
 }
 
 interface ServicesResponse {
@@ -72,8 +82,8 @@ interface CurrentSubscriptionResponse {
       name: string
       tier: string
       price: number
-      indianPrice?: number | null
-      internationalPrice?: number | null
+      priceINR?: number | null
+      priceUSD?: number | null
       currency: string
       discount: number
       badge: string | null
@@ -93,7 +103,7 @@ interface CurrentSubscriptionResponse {
 }
 
 // Helper to format price with currency (quota-based, no recurring billing)
-function formatPrice(price: number, currency: string): string {
+function formatPrice(price: number | null | undefined, currency: string): string {
   const currencySymbols: Record<string, string> = {
     USD: '$',
     EUR: '€',
@@ -104,26 +114,28 @@ function formatPrice(price: number, currency: string): string {
   }
 
   const symbol = currencySymbols[currency] || currency
+  const safePrice = price ?? 0
 
-  if (price === 0) {
+  if (safePrice === 0) {
     return 'Free'
   }
 
-  return `${symbol}${price.toLocaleString()}`
+  return `${symbol}${safePrice.toLocaleString()}`
 }
 
 // Helper to calculate original price before discount
-function calculateOriginalPrice(price: number, discount: number): number {
-  if (discount <= 0 || discount >= 100) return price
-  return Math.round(price / (1 - discount / 100))
+function calculateOriginalPrice(price: number | null | undefined, discount: number): number {
+  const safePrice = price ?? 0
+  if (discount <= 0 || discount >= 100) return safePrice
+  return Math.round(safePrice / (1 - discount / 100))
 }
 
-function getIndianPrice(service: Pick<SubscriptionService, 'indianPrice' | 'price' | 'currency'>): number | null {
-  return service.indianPrice ?? (service.currency === 'INR' ? service.price : null)
+function getIndianPrice(service: { priceINR?: number | null; price?: number }): number {
+  return service.priceINR ?? service.price ?? 0
 }
 
-function getInternationalPrice(service: Pick<SubscriptionService, 'internationalPrice' | 'price' | 'currency'>): number | null {
-  return service.internationalPrice ?? (service.currency === 'USD' ? service.price : null)
+function getInternationalPrice(service: { priceUSD?: number | null }): number {
+  return service.priceUSD ?? 0
 }
 
 function resolveCurrency(geoLocation?: GeoLocationResponse | null): SupportedCurrency {
@@ -145,49 +157,29 @@ function resolveCurrency(geoLocation?: GeoLocationResponse | null): SupportedCur
 }
 
 function getDisplayPrice(
-  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  service: { priceINR?: number | null; priceUSD?: number | null; price?: number },
   preferredCurrency: SupportedCurrency
 ): { amount: number; currency: string } {
   if (preferredCurrency === 'USD') {
-    const internationalPrice = getInternationalPrice(service)
-    if (internationalPrice !== null) {
-      return { amount: internationalPrice, currency: 'USD' }
-    }
+    return { amount: getInternationalPrice(service), currency: 'USD' }
   }
 
-  if (preferredCurrency === 'INR') {
-    const indianPrice = getIndianPrice(service)
-    if (indianPrice !== null) {
-      return { amount: indianPrice, currency: 'INR' }
-    }
-  }
-
-  return { amount: service.price, currency: service.currency }
+  return { amount: getIndianPrice(service), currency: 'INR' }
 }
 
 function getAlternatePrice(
-  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  service: { priceINR?: number | null; priceUSD?: number | null; price?: number },
   preferredCurrency: SupportedCurrency
-): { amount: number; currency: string } | null {
+): { amount: number; currency: string } {
   if (preferredCurrency === 'USD') {
-    const indianPrice = getIndianPrice(service)
-    if (indianPrice !== null) {
-      return { amount: indianPrice, currency: 'INR' }
-    }
+    return { amount: getIndianPrice(service), currency: 'INR' }
   }
 
-  if (preferredCurrency === 'INR') {
-    const internationalPrice = getInternationalPrice(service)
-    if (internationalPrice !== null) {
-      return { amount: internationalPrice, currency: 'USD' }
-    }
-  }
-
-  return null
+  return { amount: getInternationalPrice(service), currency: 'USD' }
 }
 
 function getPrimaryPriceLabel(
-  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  service: { priceINR?: number | null; priceUSD?: number | null; price?: number },
   preferredCurrency: SupportedCurrency
 ): string {
   const displayPrice = getDisplayPrice(service, preferredCurrency)
@@ -195,14 +187,10 @@ function getPrimaryPriceLabel(
 }
 
 function getSecondaryPriceLabel(
-  service: Pick<SubscriptionService, 'indianPrice' | 'internationalPrice' | 'price' | 'currency'>,
+  service: { priceINR?: number | null; priceUSD?: number | null; price?: number },
   preferredCurrency: SupportedCurrency
-): string | null {
+): string {
   const alternatePrice = getAlternatePrice(service, preferredCurrency)
-  if (!alternatePrice) {
-    return null
-  }
-
   const suffix = alternatePrice.currency === 'USD' ? 'International' : 'India'
   return `${formatPrice(alternatePrice.amount, alternatePrice.currency)} ${suffix}`
 }
@@ -236,7 +224,6 @@ export default function SubscriptionPage() {
   const [currency, setCurrency] = useState<SupportedCurrency>('USD')
   const [zonesData, setZonesData] = useState<StudentSubscriptionZones | null>(null)
   const [zoneAddons, setZoneAddons] = useState<ZoneAddon[]>([])
-  const [planZoneData, setPlanZoneData] = useState<Record<string, { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }>>({})
   const [selectedLockedZoneId, setSelectedLockedZoneId] = useState<string | null>(null)
   const [isUnlockingZone, setIsUnlockingZone] = useState(false)
 
@@ -269,26 +256,7 @@ export default function SubscriptionPage() {
       setCurrency(resolveCurrency(geoLocation))
       if (zonesResponse) setZonesData(zonesResponse)
       if (addonsResponse) setZoneAddons(addonsResponse.addons)
-
-      // Fetch zone coverage per plan
-      const zoneResults = await Promise.allSettled(
-        sortedServices.map(async (s) => {
-          const d = await api.get<{ allZonesIncluded: boolean; zoneIds: string[]; availableZones: { id: string; name: string }[] }>(
-            `/admin/plans/${s._id}/zones`
-          )
-          const zones = d.allZonesIncluded
-            ? d.availableZones
-            : d.availableZones.filter((z) => d.zoneIds.includes(z.id))
-          return { id: s._id, info: { allZonesIncluded: d.allZonesIncluded, zones } }
-        })
-      )
-      const zoneDataMap: Record<string, { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }> = {}
-      for (const result of zoneResults) {
-        if (result.status === 'fulfilled') {
-          zoneDataMap[result.value.id] = result.value.info
-        }
-      }
-      setPlanZoneData(zoneDataMap)
+      // Zone data is now included directly in the /services response - no need for additional API calls
     } catch {
       setErrorMessage('Unable to load subscription details. Please try again.')
     } finally {
@@ -316,9 +284,6 @@ export default function SubscriptionPage() {
   const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
   const hasLimitedApplications = hasPositiveApplicationLimit(applicationLimit)
 
-  // Separate free and paid plans for display
-  const freeServices = services.filter((s) => s.tier === 'free')
-  const paidServices = services.filter((s) => s.tier === 'paid')
 
   // Quota-based subscription (all plans are now quota-based, one-time purchase)
   const applicationsRemaining = currentSubscription?.applicationsRemaining ?? 0
@@ -328,29 +293,106 @@ export default function SubscriptionPage() {
     email: user?.student?.email,
   }
 
-  // Build comparison data - use applicationLimit pattern (2 for free, unlimited for paid)
-  const comparisonFeatures = [
-    {
-      label: 'Active applications',
-      free: freeServices.length > 0 ? '2' : null,
-      paid: paidServices.length > 0 ? 'Unlimited' : null,
-    },
-    {
+  // Build comparison data dynamically from all services
+  type FeatureValue = string | number | boolean | null
+  interface ComparisonFeature {
+    label: string
+    icon?: typeof Check
+    values: Record<string, FeatureValue>
+  }
+
+  const buildComparisonFeatures = (): ComparisonFeature[] => {
+    if (services.length === 0) return []
+
+    const features: ComparisonFeature[] = []
+
+    // Applications
+    features.push({
+      label: 'Job applications',
+      values: Object.fromEntries(
+        services.map((s) => [
+          s._id,
+          s.maxApplications === null ? 'Unlimited' : s.maxApplications,
+        ])
+      ),
+    })
+
+    // Zone access
+    features.push({
+      label: 'Zone access',
+      values: Object.fromEntries(
+        services.map((s) => {
+          if (s.allZonesIncluded) return [s._id, 'All zones']
+          if (s.zones && s.zones.length > 0) return [s._id, `${s.zones.length} zone${s.zones.length > 1 ? 's' : ''}`]
+          return [s._id, 'View only']
+        })
+      ),
+    })
+
+    // Resume downloads
+    const hasResumeDownloads = services.some((s) => s.resumeDownloads !== null && s.resumeDownloads !== undefined)
+    if (hasResumeDownloads) {
+      features.push({
+        label: 'Resume downloads',
+        values: Object.fromEntries(
+          services.map((s) => [
+            s._id,
+            s.resumeDownloads === null ? 'Unlimited' : s.resumeDownloads ?? false,
+          ])
+        ),
+      })
+    }
+
+    // Video profile views
+    const hasVideoViews = services.some((s) => s.videoViews !== null && s.videoViews !== undefined)
+    if (hasVideoViews) {
+      features.push({
+        label: 'Video profile views',
+        values: Object.fromEntries(
+          services.map((s) => [
+            s._id,
+            s.videoViews === null ? 'Unlimited' : s.videoViews ?? false,
+          ])
+        ),
+      })
+    }
+
+    // Priority support
+    features.push({
       label: 'Priority support',
-      free: freeServices[0]?.prioritySupport,
-      paid: paidServices[0]?.prioritySupport,
-    },
-    {
-      label: 'Profile boost',
-      free: freeServices[0]?.profileBoost,
-      paid: paidServices[0]?.profileBoost,
-    },
-    {
+      values: Object.fromEntries(services.map((s) => [s._id, s.prioritySupport])),
+    })
+
+    // Profile boost
+    features.push({
+      label: 'Profile boost in search',
+      values: Object.fromEntries(services.map((s) => [s._id, s.profileBoost])),
+    })
+
+    // Application highlight
+    features.push({
       label: 'Application highlight',
-      free: freeServices[0]?.applicationHighlight,
-      paid: paidServices[0]?.applicationHighlight,
-    },
-  ].filter((f) => f.free !== null && f.free !== undefined || f.paid !== null && f.paid !== undefined)
+      values: Object.fromEntries(services.map((s) => [s._id, s.applicationHighlight])),
+    })
+
+    return features
+  }
+
+  const comparisonFeatures = buildComparisonFeatures()
+
+  const renderFeatureValue = (value: FeatureValue | undefined) => {
+    if (typeof value === 'boolean') {
+      return value ? (
+        <Check className="inline w-5 h-5 text-green-600" />
+      ) : (
+        <Minus className="inline w-5 h-5 text-gray-300" />
+      )
+    }
+    if (value === null || value === undefined || value === 0) {
+      return <Minus className="inline w-5 h-5 text-gray-300" />
+    }
+    return <span className="text-gray-900 font-medium">{value}</span>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -565,7 +607,7 @@ export default function SubscriptionPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-2">Accessible Zones</p>
                     <div className="flex flex-wrap gap-2">
-                      {zonesData.accessibleZones.map((zone) => (
+                      {(zonesData.accessibleZones ?? []).map((zone) => (
                         <span
                           key={zone.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-full text-sm font-medium"
@@ -574,18 +616,18 @@ export default function SubscriptionPage() {
                           {zone.name}
                         </span>
                       ))}
-                      {zonesData.accessibleZones.length === 0 && (
+                      {(!zonesData.accessibleZones || zonesData.accessibleZones.length === 0) && (
                         <p className="text-sm text-gray-500">No zones currently accessible.</p>
                       )}
                     </div>
                   </div>
 
                   {/* Locked zones */}
-                  {zonesData.lockedZones.length > 0 && (
+                  {(zonesData.lockedZones ?? []).length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">Locked Zones</p>
                       <div className="flex flex-wrap gap-2">
-                        {zonesData.lockedZones.map((zone) => (
+                        {(zonesData.lockedZones ?? []).map((zone) => (
                           <button
                             key={zone.id}
                             onClick={() =>
@@ -636,7 +678,8 @@ export default function SubscriptionPage() {
                                     : undefined
                                 await startZoneAddonPayment({
                                   addonId: addon.id,
-                                  zoneIds,
+                                  zoneIds: zoneIds ?? [],
+                                  currency,
                                   prefill: paymentPrefill,
                                 })
                                 setSelectedLockedZoneId(null)
@@ -691,9 +734,24 @@ export default function SubscriptionPage() {
                 ? (currentService._id === service._id || currentService.name === service.name)
                 : false
               const shouldShowPaymentAction = service.tier !== 'free'
-              // Only allow buying any plan when quota is exhausted
-              // No reason to buy if user still has applications remaining
-              const canBuy = isQuotaExhausted
+
+              // V2 Business Rules:
+              // Rule 1: Same plan with remaining apps - BLOCKED
+              const isSamePlanWithRemainingApps = isCurrentPlan && applicationsRemaining > 0
+              // Rule 5: Free to paid - ALWAYS ALLOWED
+              const isUpgradeFromFree = isFree && service.tier === 'paid'
+              // Allow buying if: quota exhausted OR upgrading from free OR switching to different plan
+              const canBuy = isQuotaExhausted || isUpgradeFromFree || (!isCurrentPlan && !isSamePlanWithRemainingApps)
+
+              // Determine if this is a downgrade (for warning)
+              const currentMaxApps = currentService?.maxApplications ?? 2
+              const newMaxApps = service.maxApplications
+              const isDowngrade =
+                !isFree &&
+                service.tier === 'paid' &&
+                newMaxApps !== null &&
+                (currentMaxApps === null || newMaxApps < currentMaxApps)
+
               const displayPrice = getDisplayPrice(service, currency)
 
               const originalPrice =
@@ -714,10 +772,14 @@ export default function SubscriptionPage() {
                   features={getPlanCardFeatures(service)}
                   isCurrentPlan={isCurrentPlan && !canBuy}
                   ctaLabel={
-                    isCurrentPlan && !canBuy
+                    isSamePlanWithRemainingApps
+                      ? `${applicationsRemaining} apps remaining`
+                      : isCurrentPlan
                       ? 'Current Plan'
-                      : service.tier === 'free'
+                      : isDowngrade
                       ? 'Downgrade'
+                      : service.tier === 'free'
+                      ? 'Free Tier'
                       : 'Buy'
                   }
                   onCtaClick={undefined}
@@ -736,63 +798,112 @@ export default function SubscriptionPage() {
                   discount={service.discount > 0 ? service.discount : undefined}
                   originalPrice={originalPrice}
                   maxApplications={service.maxApplications}
-                  zoneInfo={planZoneData[service._id]}
+                  zoneInfo={
+                    service.zones || service.allZonesIncluded !== undefined
+                      ? {
+                          allZonesIncluded: service.allZonesIncluded ?? false,
+                          zones: (service.zones ?? []).map((z) => ({ id: z.id, name: z.name })),
+                        }
+                      : undefined
+                  }
                 />
               )
             })}
           </div>
         </div>
 
-        {/* Feature Comparison Table - Only show if we have data from both tiers */}
-        {freeServices.length > 0 && paidServices.length > 0 && comparisonFeatures.length > 0 && (
+        {/* Feature Comparison Table - Show if we have multiple services */}
+        {services.length > 1 && comparisonFeatures.length > 0 && (
           <Card className="mb-6" padding="lg">
             <CardContent>
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-6 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-blue-600" />
                 <CardTitle className="text-xl font-display text-gray-900">
                   Feature Comparison
                 </CardTitle>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
+              <div className="overflow-x-auto -mx-4 px-4">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 text-left text-gray-500">
-                      <th className="py-3 pr-4 font-semibold">Feature</th>
-                      <th className="px-4 py-3 font-semibold">{freeServices[0]?.name}</th>
-                      <th className="px-4 py-3 font-semibold">{paidServices[0]?.name}</th>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="py-4 pr-4 text-left font-semibold text-gray-600 min-w-[180px]">
+                        Feature
+                      </th>
+                      {services.map((service) => {
+                        const isCurrentPlan = currentService
+                          ? currentService._id === service._id || currentService.name === service.name
+                          : false
+                        return (
+                          <th
+                            key={service._id}
+                            className={`px-4 py-4 text-center font-semibold min-w-[120px] ${
+                              isCurrentPlan ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <div className="flex flex-col items-center gap-1">
+                              <span>{service.name}</span>
+                              {isCurrentPlan && (
+                                <span className="text-xs font-normal text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                                  Current
+                                </span>
+                              )}
+                              {service.badge && !isCurrentPlan && (
+                                <span className="text-xs font-normal text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                                  {service.badge}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
-                    {comparisonFeatures.map((feature) => (
-                      <tr key={feature.label} className="border-b border-gray-200">
-                        <td className="py-3 pr-4 font-medium text-gray-900">{feature.label}</td>
-                        <td className="px-4 py-3">
-                          {typeof feature.free === 'boolean' ? (
-                            feature.free ? (
-                              <Check className="inline w-4 h-4 text-blue-600" />
-                            ) : (
-                              <Minus className="inline w-4 h-4 text-gray-400" />
-                            )
-                          ) : feature.free !== null ? (
-                            <span className="text-gray-900">{feature.free}</span>
-                          ) : (
-                            <Minus className="inline w-4 h-4 text-gray-400" />
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {typeof feature.paid === 'boolean' ? (
-                            feature.paid ? (
-                              <Check className="inline w-4 h-4 text-blue-600" />
-                            ) : (
-                              <Minus className="inline w-4 h-4 text-gray-400" />
-                            )
-                          ) : feature.paid !== null ? (
-                            <span className="text-gray-900">{feature.paid}</span>
-                          ) : (
-                            <Minus className="inline w-4 h-4 text-gray-400" />
-                          )}
-                        </td>
+                    {/* Price row */}
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <td className="py-4 pr-4 font-semibold text-gray-900">Price</td>
+                      {services.map((service) => {
+                        const isCurrentPlan = currentService
+                          ? currentService._id === service._id || currentService.name === service.name
+                          : false
+                        return (
+                          <td
+                            key={service._id}
+                            className={`px-4 py-4 text-center ${isCurrentPlan ? 'bg-blue-50' : ''}`}
+                          >
+                            <div className="font-bold text-gray-900">
+                              {getPrimaryPriceLabel(service, currency)}
+                            </div>
+                            {service.tier !== 'free' && (
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {getSecondaryPriceLabel(service, currency)}
+                              </div>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                    {/* Feature rows */}
+                    {comparisonFeatures.map((feature, idx) => (
+                      <tr
+                        key={feature.label}
+                        className={`border-b border-gray-100 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}
+                      >
+                        <td className="py-4 pr-4 font-medium text-gray-700">{feature.label}</td>
+                        {services.map((service) => {
+                          const isCurrentPlan = currentService
+                            ? currentService._id === service._id || currentService.name === service.name
+                            : false
+                          return (
+                            <td
+                              key={service._id}
+                              className={`px-4 py-4 text-center ${isCurrentPlan ? 'bg-blue-50' : ''}`}
+                            >
+                              {renderFeatureValue(feature.values[service._id])}
+                            </td>
+                          )
+                        })}
                       </tr>
                     ))}
                   </tbody>

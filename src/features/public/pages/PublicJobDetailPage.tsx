@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
-import { JobPosting, UserType, ApplicationStatus } from '@/types'
+import { JobPosting, UserType, ApplicationStatus, AccessSource } from '@/types'
 import {
   ArrowLeft,
   MapPin,
@@ -19,6 +19,9 @@ import {
   Twitter,
   Lock,
   ArrowRight,
+  Ticket,
+  Check,
+  Info,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
@@ -26,6 +29,7 @@ import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
+import ZoneBadge from '@/features/student/components/ZoneBadge'
 
 const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
 const DESCRIPTION_PREVIEW_PLACEHOLDER = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Upgrade your plan to unlock the full job description and keep exploring the role details.'
@@ -35,6 +39,39 @@ type PublicJobDetailsPayload = JobPosting & {
   hasApplied?: boolean
   applicationStatus?: ApplicationStatus
   application?: { status?: ApplicationStatus }
+  accessSource?: AccessSource
+}
+
+function getAccessMessage(accessSource: AccessSource, zoneName?: string | null): { message: string; variant: 'success' | 'info' } | null {
+  switch (accessSource) {
+    case 'pay-per-job':
+      return {
+        message: 'You purchased one-time access to this job.',
+        variant: 'success'
+      }
+    case 'subscription':
+      return {
+        message: `You have access to ${zoneName || 'this zone'} and can apply to this job.`,
+        variant: 'success'
+      }
+    case 'all-zones':
+      return {
+        message: 'You have access to all zones.',
+        variant: 'success'
+      }
+    case 'applied':
+      return {
+        message: 'You have already applied to this job.',
+        variant: 'info'
+      }
+    case 'no-zone-restriction':
+      return {
+        message: 'This job is available to all users.',
+        variant: 'info'
+      }
+    default:
+      return null
+  }
 }
 
 type PublicJobDetailsResponse =
@@ -77,7 +114,7 @@ export default function PublicJobDetailPage() {
   const { user, isAuthenticated } = useAuthContext()
   const { success, error: showError } = useNotification()
 
-  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }) | null>(null)
+  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus; accessSource?: AccessSource }) | null>(null)
   const [dashboard, setDashboard] = useState<{ isHired: boolean } | null>(null)
   const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -244,6 +281,15 @@ export default function PublicJobDetailPage() {
                             <Badge variant="secondary" className="text-xs">
                               {job.company.industry}
                             </Badge>
+                          )}
+                          {/* Zone Badge */}
+                          {(job.zoneName || job.countryName) && (
+                            <ZoneBadge
+                              zoneName={job.zoneName || job.countryName}
+                              zoneId={job.zoneId}
+                              isLocked={job.isZoneLocked}
+                              size="sm"
+                            />
                           )}
                         </div>
                       </div>
@@ -551,6 +597,59 @@ export default function PublicJobDetailPage() {
                 )}
 
               </div>
+
+              {/* Zone Info Card */}
+              {(job.zoneName || job.countryName || job.accessSource) && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-fade-in-up stagger-2">
+                  <h3 className="font-display font-semibold text-gray-900 mb-3 sm:mb-4">Zone Information</h3>
+                  <div className="space-y-3">
+                    {(job.zoneName || job.countryName) && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-gray-500">Region:</span>
+                        <ZoneBadge
+                          zoneName={job.zoneName || job.countryName}
+                          zoneId={job.zoneId}
+                          isLocked={job.isZoneLocked}
+                          size="md"
+                        />
+                      </div>
+                    )}
+                    {job.countryName && job.zoneName && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span>{job.countryName}</span>
+                      </div>
+                    )}
+                    {isStudent && (() => {
+                      const accessMessage = getAccessMessage(job.accessSource ?? null, job.zoneName)
+                      if (accessMessage) {
+                        const isSuccess = accessMessage.variant === 'success'
+                        return (
+                          <div className={`flex items-start gap-2 text-sm rounded-lg p-3 border ${
+                            isSuccess
+                              ? 'text-green-700 bg-green-50 border-green-200'
+                              : 'text-blue-700 bg-blue-50 border-blue-200'
+                          }`}>
+                            {job.accessSource === 'pay-per-job' && <Ticket className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'subscription' && <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'all-zones' && <Globe className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {(job.accessSource === 'applied' || job.accessSource === 'no-zone-restriction') && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            <span>{accessMessage.message}</span>
+                          </div>
+                        )
+                      }
+                      if (job.isZoneLocked) {
+                        return (
+                          <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                            You don't have access to this zone. Unlock it through a subscription upgrade, zone add-on, or pay-per-job option.
+                          </p>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Quick info */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-fade-in-up stagger-2">

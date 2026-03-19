@@ -13,7 +13,8 @@ import { format } from 'date-fns'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
-import { Globe, Linkedin, Twitter, ArrowRight, Lock } from 'lucide-react'
+import ZoneBadge from '@/features/student/components/ZoneBadge'
+import { Globe, Linkedin, Twitter, ArrowRight, Lock, MapPin } from 'lucide-react'
 
 interface JobDetailResponse extends JobPosting {
   hasApplied: boolean
@@ -94,7 +95,7 @@ export default function StudentJobDetail() {
         setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
       } catch {
         showError('Failed to load job details')
-        navigate('/jobs')
+        navigate('/student/jobs')
       } finally {
         setIsLoading(false)
       }
@@ -224,6 +225,18 @@ export default function StudentJobDetail() {
                 {job.company?.industry && (
                   <div className="mt-2">
                     <Badge variant="secondary">{job.company.industry}</Badge>
+                  </div>
+                )}
+                {/* Zone Information */}
+                {(job.countryName || job.zoneLockReason?.zone?.name || job.zoneLockReason?.zoneName) && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <ZoneBadge
+                      zoneName={job.countryName || job.zoneLockReason?.zone?.name || job.zoneLockReason?.zoneName}
+                      zoneId={job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId}
+                      isLocked={job.isZoneLocked}
+                      size="md"
+                    />
                   </div>
                 )}
                 {job.company?.description && (
@@ -363,7 +376,36 @@ export default function StudentJobDetail() {
           </Card>
         </div>
 
-        <div>
+        <div className="space-y-6">
+          {/* Zone Info Card */}
+          {(job.countryName || job.zoneLockReason) && (
+            <Card>
+              <CardTitle>Zone Information</CardTitle>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">This job is in:</span>
+                    <ZoneBadge
+                      zoneName={job.countryName || job.zoneLockReason?.zone?.name || job.zoneLockReason?.zoneName}
+                      zoneId={job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId}
+                      isLocked={job.isZoneLocked}
+                      size="md"
+                    />
+                  </div>
+                  {job.isZoneLocked ? (
+                    <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                      You don't have access to this zone. Unlock it through a subscription upgrade, zone add-on, or pay-per-job option below.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+                      You have access to this zone and can apply to this job.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardTitle>Apply</CardTitle>
             <CardContent>
