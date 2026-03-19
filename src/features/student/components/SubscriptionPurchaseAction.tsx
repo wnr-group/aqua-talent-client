@@ -64,6 +64,14 @@ export default function SubscriptionPurchaseAction({
         return
       }
 
+      // Handle SAME_PLAN_ACTIVE error from backend
+      if (/same.*plan.*active/i.test(message) || /already have.*subscription/i.test(message)) {
+        setInlineVariant('warning')
+        setInlineMessage('You already have this plan with remaining applications. Use your current quota or upgrade to a different plan.')
+        warning('You already have this plan with remaining applications.')
+        return
+      }
+
       setInlineVariant('error')
       setInlineMessage(message)
       setShowRetry(true)

@@ -45,8 +45,8 @@ interface PlanFormData {
   tier: SubscriptionTier;
   description: string;
   price: number;
-  indianPrice: number;
-  nonIndianPrice: number;
+  priceINR: number;
+  priceUSD: number;
   currency: SubscriptionCurrency;
   discount: number;
   maxApplications: string; // required for paid plans
@@ -66,8 +66,8 @@ const defaultFormData: PlanFormData = {
   tier: "paid",
   description: "",
   price: 0,
-  indianPrice: 0,
-  nonIndianPrice: 0,
+  priceINR: 0,
+  priceUSD: 0,
   currency: "INR",
   discount: 0,
   maxApplications: "",
@@ -110,16 +110,8 @@ export default function AdminSubscriptionPlans() {
       const normalized = (data.plans || []).map((p) => ({
         ...p,
         id: p.id || p._id,
-        indianPrice:
-          p.indianPrice ??
-          p.indian_price ??
-          (p.currency === "INR" ? p.price : null),
-        nonIndianPrice:
-          p.nonIndianPrice ??
-          p.non_indian_price ??
-          p.internationalPrice ??
-          p.international_price ??
-          null,
+        priceINR: p.priceINR ?? p.price ?? 0,
+        priceUSD: p.priceUSD ?? 0,
       }));
       setPlans(normalized);
     } catch {
@@ -194,12 +186,8 @@ const loadZonesForModal = async (planId?: string) => {
       tier: plan.tier,
       description: plan.description,
       price: plan.price,
-      indianPrice:
-        plan.indianPrice ?? (plan.currency === "INR" ? plan.price : 0),
-      nonIndianPrice:
-        plan.nonIndianPrice ??
-        plan.internationalPrice ??
-        (plan.currency === "USD" ? plan.price : 0),
+      priceINR: plan.priceINR ?? plan.price ?? 0,
+      priceUSD: plan.priceUSD ?? 0,
       currency: plan.currency,
       discount: plan.discount ?? 0,
       maxApplications: plan.tier === 'free'
@@ -231,12 +219,9 @@ const loadZonesForModal = async (planId?: string) => {
         name: formData.name.trim(),
         tier: formData.tier,
         description: formData.description.trim(),
-        price:
-          formData.tier === "free" ? 0 : formData.indianPrice || formData.price,
-        indianPrice: formData.tier === "free" ? 0 : formData.indianPrice,
-        nonIndianPrice: formData.tier === "free" ? 0 : formData.nonIndianPrice,
-        internationalPrice:
-          formData.tier === "free" ? 0 : formData.nonIndianPrice,
+        price: formData.tier === "free" ? 0 : formData.priceINR || formData.price,
+        priceINR: formData.tier === "free" ? 0 : formData.priceINR,
+        priceUSD: formData.tier === "free" ? 0 : formData.priceUSD,
         currency: formData.currency,
         discount: formData.discount || 0,
         maxApplications: formData.tier === 'free'
@@ -331,22 +316,11 @@ const loadZonesForModal = async (planId?: string) => {
   };
 
   const getIndianPrice = (plan: SubscriptionPlan) => {
-    return plan.indianPrice ?? (plan.currency === "INR" ? plan.price : null);
+    return plan.priceINR ?? plan.price ?? 0;
   };
 
-  const getNonIndianPrice = (plan: SubscriptionPlan) => {
-    if (plan.nonIndianPrice !== null && plan.nonIndianPrice !== undefined) {
-      return plan.nonIndianPrice;
-    }
-
-    if (
-      plan.internationalPrice !== null &&
-      plan.internationalPrice !== undefined
-    ) {
-      return plan.internationalPrice;
-    }
-
-    return null;
+  const getUSDPrice = (plan: SubscriptionPlan) => {
+    return plan.priceUSD ?? 0;
   };
 
   const formatCurrencyAmount = (
@@ -467,13 +441,13 @@ const loadZonesForModal = async (planId?: string) => {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500">
-                        Non-Indian Pricing
+                        International Pricing (USD)
                       </p>
                       <div className="flex items-baseline gap-1">
                         <span className="text-lg font-semibold text-gray-900">
                           {formatCurrencyAmount(
                             getDiscountedPrice(
-                              getNonIndianPrice(plan),
+                              getUSDPrice(plan),
                               plan.discount,
                             ),
                             "USD",
@@ -648,35 +622,35 @@ const loadZonesForModal = async (planId?: string) => {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Indian Price (₹)"
+              label="Price (INR)"
               type="number"
-              value={formData.indianPrice}
+              value={formData.priceINR}
               onChange={(e) =>
                 setFormData((p) => ({
                   ...p,
-                  indianPrice: parseFloat(e.target.value) || 0,
+                  priceINR: parseFloat(e.target.value) || 0,
                   price: parseFloat(e.target.value) || 0,
                 }))
               }
               disabled={formData.tier === "free"}
               min={0}
               step={0.01}
-              placeholder="Enter Indian price"
+              placeholder="Enter price in INR"
             />
             <Input
-              label="International Price (USD)"
+              label="Price (USD)"
               type="number"
-              value={formData.nonIndianPrice}
+              value={formData.priceUSD}
               onChange={(e) =>
                 setFormData((p) => ({
                   ...p,
-                  nonIndianPrice: parseFloat(e.target.value) || 0,
+                  priceUSD: parseFloat(e.target.value) || 0,
                 }))
               }
               disabled={formData.tier === "free"}
               min={0}
               step={0.01}
-              placeholder="Enter international price"
+              placeholder="Enter price in USD"
             />
           </div>
 

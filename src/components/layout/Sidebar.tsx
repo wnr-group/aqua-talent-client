@@ -32,8 +32,9 @@ const companyNavItems: NavItem[] = [
 // Student portal routes (on main domain)
 const studentNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Browse Jobs', path: '/jobs', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'Browse Jobs', path: '/student/jobs', icon: <Briefcase className="w-5 h-5" /> },
   { label: 'My Applications', path: '/my-applications', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Subscription', path: '/subscription', icon: <Crown className="w-5 h-5" /> },
   { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
 ]
 
