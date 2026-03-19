@@ -41,9 +41,11 @@ export const studentRegisterSchema = z.object({
     .max(30)
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   email: z.string().email('Invalid email address'),
+  isDGShipping: z.enum(['yes', 'no']),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   profileLink: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
+  
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],

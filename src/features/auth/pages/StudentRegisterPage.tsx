@@ -29,9 +29,13 @@ export default function StudentRegisterPage() {
     formState: { errors },
   } = useForm<StudentRegisterFormData>({
     resolver: zodResolver(studentRegisterSchema),
+    defaultValues: {
+    isDGShipping: 'no',
+  },
   })
 
   const onSubmit = async (data: StudentRegisterFormData) => {
+    console.log("FORM DATA:", data);
     setIsLoading(true)
     try {
       await api.post('/auth/register/student', data)
@@ -229,6 +233,39 @@ export default function StudentRegisterPage() {
                 <p className="mt-1.5 text-sm text-red-600">{errors.profileLink.message}</p>
               )}
             </div>
+             <div>
+  <label className="block text-sm font-medium text-gray-900 mb-3">
+    Are you a Directorate General of Shipping?
+  </label>
+
+  <div className="flex items-center gap-6">
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="yes"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      Yes
+    </label>
+
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="no"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      No
+    </label>
+  </div>
+
+  {errors.isDGShipping && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.isDGShipping.message}
+    </p>
+  )}
+</div>
 
             <button
               type="submit"

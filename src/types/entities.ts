@@ -44,6 +44,7 @@ export interface Student {
   username: string
   fullName: string
   email: string
+  isDGShipping?: 'yes' | 'no'
   profileLink?: string | null
   resumeUrl?: string | null
   introVideoUrl?: string | null
