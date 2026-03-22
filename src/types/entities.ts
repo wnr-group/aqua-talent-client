@@ -65,11 +65,99 @@ export interface Admin {
   createdAt: string
 }
 
+export type UnlockOptionType = 'pay-per-job' | 'zone-addon' | 'upgrade-plan' | 'jobs-addon'
+
+export type AccessSource =
+  | 'pay-per-job'
+  | 'subscription'
+  | 'all-zones'
+  | 'applied'
+  | 'no-zone-restriction'
+  | null
+
+export interface UnlockOption {
+  type: UnlockOptionType
+  label: string
+  description?: string
+  price?: number
+  currency?: string
+  priceINR?: number
+  priceUSD?: number
+  addonId?: string
+  planId?: string
+  zonesIncluded?: number
+  unlockAllZones?: boolean
+  jobCredits?: number
+  url?: string
+}
+
+export interface ZoneLockReason {
+  zoneId?: string
+  zoneName?: string
+  zone?: {
+    id: string
+    name: string
+  }
+  message: string
+  unlockOptions: UnlockOption[]
+}
+
+export interface QuotaLockReason {
+  applicationsUsed: number
+  applicationLimit: number
+  unlockOptions: UnlockOption[]
+}
+
+export interface ZoneInfo {
+  id: string
+  name: string
+  description?: string
+  countries: string[]
+}
+
+export interface StudentSubscriptionZones {
+  allZonesIncluded: boolean
+  homeZoneId: string | null
+  accessibleZones: ZoneInfo[]
+  lockedZones: ZoneInfo[]
+}
+
+export interface ZoneAddon {
+  id: string
+  name: string
+  description: string
+  price: number
+  priceINR?: number | null
+  priceUSD?: number | null
+  currency: string
+  zonesIncluded: number
+  isFlexible: boolean
+  zones?: ZoneInfo[]
+}
+
+export interface Country {
+  id: string
+  name: string
+  code: string
+  zoneId: string
+  zoneName: string
+}
+
 export interface JobPosting {
   id: string
   companyId: string
   title: string
   description: string
+  isDescriptionLocked?: boolean
+  isZoneLocked?: boolean
+  isQuotaExhausted?: boolean
+  zoneLockReason?: ZoneLockReason | null
+  quotaLockReason?: QuotaLockReason | null
+  accessSource?: AccessSource
+  countryId?: string | null
+  countryName?: string | null
+  zoneId?: string | null
+  zoneName?: string | null
   requirements?: string | null
   location: string
   jobType: string
@@ -79,6 +167,9 @@ export interface JobPosting {
   rejectionReason?: string | null
   createdAt: string
   approvedAt?: string | null
+  // Application-related fields (populated when fetching jobs for authenticated students)
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
   company?: {
     id: string
     name: string
@@ -133,8 +224,8 @@ export interface InAppNotification {
 // Subscription Plans
 export type SubscriptionTier = 'free' | 'paid'
 export type SubscriptionCurrency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
-export type BillingCycle = 'monthly' | 'quarterly' | 'yearly' | 'one-time'
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled'
+export type BillingCycle = 'one-time' // Quota-based only
+export type SubscriptionStatus = 'active' | 'exhausted' | 'cancelled' | 'expired' | 'pending'
 
 export interface SubscriptionPlan {
   id: string
@@ -143,19 +234,24 @@ export interface SubscriptionPlan {
   description: string
   maxApplications: number | null // null = unlimited
   price: number
+  priceINR: number
+  priceUSD: number
   currency: SubscriptionCurrency
-  billingCycle: BillingCycle
-  trialDays: number
   discount: number // 0-100
   features: string[]
   badge: string | null // "Popular", "Best Value"
   displayOrder: number
-  resumeDownloadsPerMonth: number | null
-  videoViewsPerMonth: number | null
+  resumeDownloads: number | null
+  videoViews: number | null
+  // Legacy field names for backwards compatibility
+  resumeDownloadsPerMonth?: number | null
+  videoViewsPerMonth?: number | null
   prioritySupport: boolean
   profileBoost: boolean
   applicationHighlight: boolean
   isActive: boolean
+  allZonesIncluded?: boolean
+  zones?: Array<{ id: string; name: string; description?: string }>
   createdAt: string
   updatedAt: string
 }
@@ -163,8 +259,8 @@ export interface SubscriptionPlan {
 export interface FreeTierConfig {
   maxApplications: number | null
   features: string[]
-  resumeDownloadsPerMonth: number | null
-  videoViewsPerMonth: number | null
+  resumeDownloads: number | null
+  videoViews: number | null
 }
 
 export interface StudentSubscription {
@@ -178,8 +274,7 @@ export interface StudentSubscription {
   }
   status: SubscriptionStatus
   startDate: string
-  endDate: string
-  autoRenew: boolean
+  endDate: string | null // null for quota-based plans
 }
 
 export interface SubscriptionUsage {

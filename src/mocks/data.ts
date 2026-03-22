@@ -1,4 +1,4 @@
-import { Company, Student, Admin, JobPosting, Application } from '@/types/entities'
+import { Company, Student, Admin, JobPosting, Application, ZoneInfo, ZoneAddon, Country } from '@/types/entities'
 import { CompanyStatus, JobStatus, ApplicationStatus, UserType } from '@/types/enums'
 
 // Test credentials:
@@ -100,6 +100,8 @@ export const mockJobs: JobPosting[] = [
     salaryRange: '$25-35/hour',
     deadline: '2024-06-01T00:00:00Z',
     status: JobStatus.APPROVED,
+    countryId: 'country-us',
+    countryName: 'United States',
     createdAt: '2024-02-01T00:00:00Z',
     approvedAt: '2024-02-02T00:00:00Z',
     company: { id: 'company-1', name: 'Acme Corporation' },
@@ -172,6 +174,50 @@ export const mockJobs: JobPosting[] = [
     approvedAt: '2024-01-22T00:00:00Z',
     company: { id: 'company-1', name: 'Acme Corporation' },
   },
+  {
+    id: 'job-7',
+    companyId: 'company-1',
+    title: 'Backend Engineer Intern',
+    description: 'Work on scalable REST APIs using Node.js and Express. Collaborate with senior engineers to design and ship backend features for our core platform.',
+    requirements: 'Familiarity with Node.js, REST APIs, and SQL databases. Currently pursuing a CS or related degree.',
+    location: 'Bangalore, India',
+    jobType: 'Internship',
+    salaryRange: '₹20,000-30,000/month',
+    status: JobStatus.APPROVED,
+    countryId: 'country-in',
+    countryName: 'India',
+    createdAt: '2024-03-01T00:00:00Z',
+    approvedAt: '2024-03-02T00:00:00Z',
+    company: { id: 'company-1', name: 'Acme Corporation' },
+  },
+  {
+    id: 'job-8',
+    companyId: 'company-1',
+    title: 'ML Research Intern',
+    description: 'Join our AI team to build and evaluate machine learning models. Work with real datasets and contribute to research publications.',
+    requirements: 'Familiarity with Python, NumPy, and PyTorch or TensorFlow. Interest in ML/AI research.',
+    location: 'Remote',
+    jobType: 'Internship',
+    salaryRange: '₹25,000-35,000/month',
+    status: JobStatus.APPROVED,
+    createdAt: '2024-03-05T00:00:00Z',
+    approvedAt: '2024-03-06T00:00:00Z',
+    company: { id: 'company-1', name: 'Acme Corporation' },
+  },
+  {
+    id: 'job-9',
+    companyId: 'company-1',
+    title: 'Technical Writer Intern',
+    description: 'Help us create clear and engaging developer documentation, API guides, and tutorials. Work closely with engineering and product teams.',
+    requirements: 'Strong written English skills. Familiarity with Markdown and developer tools is a plus.',
+    location: 'Remote',
+    jobType: 'Internship',
+    salaryRange: '₹15,000-20,000/month',
+    status: JobStatus.APPROVED,
+    createdAt: '2024-03-08T00:00:00Z',
+    approvedAt: '2024-03-09T00:00:00Z',
+    company: { id: 'company-1', name: 'Acme Corporation' },
+  },
 ]
 
 export const mockApplications: Application[] = [
@@ -222,6 +268,8 @@ export interface MockSubscriptionPlan {
   description: string
   maxApplications: number | null
   price: number
+  priceINR?: number | null
+  priceUSD?: number | null
   currency: 'USD' | 'EUR' | 'GBP' | 'INR' | 'AUD' | 'CAD'
   billingCycle: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
   trialDays: number
@@ -266,6 +314,8 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'Great for getting started with your job search.',
     maxApplications: 2,
     price: 0,
+    priceINR: 0,
+    priceUSD: 0,
     currency: 'INR',
     billingCycle: 'monthly',
     trialDays: 0,
@@ -287,6 +337,36 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
+    id: 'starter',
+    _id: 'starter',
+    name: 'Starter',
+    tier: 'paid',
+    description: 'Starter plan with up to 5 job applications.',
+    maxApplications: 5,
+    price: 199,
+    priceINR: 199,
+    priceUSD: 5,
+    currency: 'INR',
+    billingCycle: 'monthly',
+    trialDays: 0,
+    discount: 0,
+    features: [
+      'Up to 5 active applications',
+      'Basic profile visibility',
+      'Standard email notifications',
+    ],
+    badge: null,
+    displayOrder: 2,
+    resumeDownloadsPerMonth: 10,
+    videoViewsPerMonth: 20,
+    prioritySupport: false,
+    profileBoost: false,
+    applicationHighlight: false,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
     id: 'plan-pro-monthly',
     _id: 'service-pro-monthly', // Keep old ID for backwards compatibility
     name: 'Pro Monthly',
@@ -294,6 +374,8 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'For serious job seekers who want unlimited applications.',
     maxApplications: null,
     price: 499,
+    priceINR: 599,
+    priceUSD: 20,
     currency: 'INR',
     billingCycle: 'monthly',
     trialDays: 7,
@@ -305,7 +387,7 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
       'Early access to premium jobs',
     ],
     badge: 'Popular',
-    displayOrder: 2,
+    displayOrder: 3,
     resumeDownloadsPerMonth: null,
     videoViewsPerMonth: null,
     prioritySupport: true,
@@ -323,6 +405,8 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'Best value for committed job seekers. Save 20%!',
     maxApplications: null,
     price: 4790,
+    priceINR: 1699,
+    priceUSD: 35,
     currency: 'INR',
     billingCycle: 'yearly',
     trialDays: 14,
@@ -335,7 +419,7 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
       'Resume review by experts',
     ],
     badge: 'Best Value',
-    displayOrder: 3,
+    displayOrder: 4,
     resumeDownloadsPerMonth: null,
     videoViewsPerMonth: null,
     prioritySupport: true,
@@ -353,6 +437,8 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
     description: 'One-time payment for lifetime access. Never pay again!',
     maxApplications: null,
     price: 9999,
+    priceINR: 3250,
+    priceUSD: 60,
     currency: 'INR',
     billingCycle: 'one-time',
     trialDays: 0,
@@ -366,7 +452,7 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
       'Lifetime access - never expires',
     ],
     badge: 'Lifetime',
-    displayOrder: 4,
+    displayOrder: 5,
     resumeDownloadsPerMonth: null,
     videoViewsPerMonth: null,
     prioritySupport: true,
@@ -380,6 +466,69 @@ export const mockSubscriptionPlans: MockSubscriptionPlan[] = [
 
 // Legacy alias for backwards compatibility
 export const mockServices = mockSubscriptionPlans
+
+// ── Zonal Pricing Data ─────────────────────────────────────────────────────
+
+export const mockZones: ZoneInfo[] = [
+  { id: 'zone-apac', name: 'Asia-Pacific', countries: ['India', 'Singapore', 'Australia', 'Japan'] },
+  { id: 'zone-na', name: 'North America', countries: ['United States', 'Canada'] },
+  { id: 'zone-eu', name: 'Europe', countries: ['United Kingdom', 'Germany', 'France', 'Netherlands'] },
+]
+
+export const mockCountries: Country[] = [
+  { id: 'country-in', name: 'India', code: 'IN', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-sg', name: 'Singapore', code: 'SG', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-au', name: 'Australia', code: 'AU', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-jp', name: 'Japan', code: 'JP', zoneId: 'zone-apac', zoneName: 'Asia-Pacific' },
+  { id: 'country-us', name: 'United States', code: 'US', zoneId: 'zone-na', zoneName: 'North America' },
+  { id: 'country-ca', name: 'Canada', code: 'CA', zoneId: 'zone-na', zoneName: 'North America' },
+  { id: 'country-gb', name: 'United Kingdom', code: 'GB', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-de', name: 'Germany', code: 'DE', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-fr', name: 'France', code: 'FR', zoneId: 'zone-eu', zoneName: 'Europe' },
+  { id: 'country-nl', name: 'Netherlands', code: 'NL', zoneId: 'zone-eu', zoneName: 'Europe' },
+]
+
+export const mockZoneAddons: ZoneAddon[] = [
+  {
+    id: 'addon-zone-single',
+    name: '1 Extra Zone',
+    description: 'Unlock job opportunities in one additional geographic zone of your choice.',
+    price: 299,
+    priceINR: 299,
+    priceUSD: 5,
+    currency: 'INR',
+    zonesIncluded: 1,
+    isFlexible: true,
+  },
+  {
+    id: 'addon-zone-all',
+    name: 'All Zones Access',
+    description: 'Unlock job opportunities in all geographic zones worldwide.',
+    price: 699,
+    priceINR: 699,
+    priceUSD: 10,
+    currency: 'INR',
+    zonesIncluded: 3,
+    isFlexible: false,
+    zones: mockZones,
+  },
+]
+
+// Tracks zone unlocks per student: addonZoneIds = zone IDs unlocked via addon, payPerJobIds = job IDs unlocked via pay-per-job
+export const mockStudentZoneAccess: Record<string, { addonZoneIds: string[]; payPerJobIds: string[] }> = {}
+
+// Plans that include all zones
+export const PLANS_WITH_ALL_ZONES = ['plan-pro-monthly', 'plan-pro-yearly', 'plan-lifetime', 'service-pro-monthly']
+
+// Per-plan zone configuration (admin-managed). Initialised from PLANS_WITH_ALL_ZONES.
+export const mockPlanZones: Record<string, { allZonesIncluded: boolean; zoneIds: string[] }> = {
+  'plan-free':         { allZonesIncluded: true,  zoneIds: [] },
+  'starter':           { allZonesIncluded: false, zoneIds: ['zone-apac'] },
+  'plan-pro-monthly':  { allZonesIncluded: true,  zoneIds: [] },
+  'plan-pro-yearly':   { allZonesIncluded: true,  zoneIds: [] },
+  'plan-lifetime':     { allZonesIncluded: true,  zoneIds: [] },
+  'service-pro-monthly': { allZonesIncluded: true, zoneIds: [] },
+}
 
 type StudentSubscription = {
   subscriptionTier: 'free' | 'paid'
@@ -554,7 +703,7 @@ export const mockStudentSubscriptions: Record<string, StudentSubscription> = {
   },
   'student-2': {
     subscriptionTier: 'paid',
-    serviceId: 'service-pro-monthly',
+    serviceId: 'starter',           // Starter plan (limit 5) — for testing description lock on paid plans
     endDate: '2026-12-31T00:00:00.000Z',
   },
   'student-3': {

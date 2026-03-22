@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { api } from '@/services/api/client'
+import { api, ApiClientError } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
-import { JobPosting, UserType, ApplicationStatus } from '@/types'
+import { JobPosting, UserType, ApplicationStatus, AccessSource, QuotaLockReason } from '@/types'
 import {
   ArrowLeft,
   MapPin,
@@ -17,12 +17,109 @@ import {
   Globe,
   Linkedin,
   Twitter,
+  Lock,
+  ArrowRight,
+  Ticket,
+  Check,
+  Info,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
+import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
+import QuotaUnlockPanel from '@/features/student/components/QuotaUnlockPanel'
+import ZoneBadge from '@/features/student/components/ZoneBadge'
+
+const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
+const DESCRIPTION_PREVIEW_PLACEHOLDER = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Upgrade your plan to unlock the full job description and keep exploring the role details.'
+
+type PublicJobDetailsPayload = JobPosting & {
+  _id?: string
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
+  application?: { status?: ApplicationStatus }
+  accessSource?: AccessSource
+  isQuotaExhausted?: boolean
+  quotaLockReason?: QuotaLockReason | null
+}
+
+function getAccessMessage(
+  accessSource: AccessSource,
+  zoneName?: string | null,
+  isWithdrawn?: boolean
+): { message: string; variant: 'success' | 'info' | 'warning' } | null {
+  switch (accessSource) {
+    case 'pay-per-job':
+      return {
+        message: 'You purchased one-time access to this job.',
+        variant: 'success'
+      }
+    case 'subscription':
+      return {
+        message: `You have access to ${zoneName || 'this zone'} and can apply to this job.`,
+        variant: 'success'
+      }
+    case 'all-zones':
+      return {
+        message: 'You have access to all zones.',
+        variant: 'success'
+      }
+    case 'applied':
+      if (isWithdrawn) {
+        return {
+          message: 'You withdrew your application. Your previous access was through that application. To reapply, you may need to unlock this zone based on your current subscription.',
+          variant: 'warning'
+        }
+      }
+      return {
+        message: 'You have already applied to this job.',
+        variant: 'info'
+      }
+    case 'no-zone-restriction':
+      return {
+        message: 'This job is available to all users.',
+        variant: 'info'
+      }
+    default:
+      return null
+  }
+}
+
+type PublicJobDetailsResponse =
+  | PublicJobDetailsPayload
+  | {
+      data?: PublicJobDetailsPayload
+      job?: PublicJobDetailsPayload
+    }
+
+function getDescriptionPreview(description?: string | null): string {
+  const trimmedDescription = description?.trim()
+
+  if (!trimmedDescription) {
+    return DESCRIPTION_PREVIEW_PLACEHOLDER
+  }
+
+  return trimmedDescription
+}
+
+function normalizePublicJobDetailsResponse(
+  response: PublicJobDetailsResponse,
+  jobId?: string
+) {
+  const payload = (
+    ('data' in response && response.data)
+    || ('job' in response && response.job)
+    || response
+  ) as PublicJobDetailsPayload
+
+  return {
+    ...payload,
+    id: payload.id || payload._id || jobId || '',
+    applicationStatus: payload.applicationStatus || payload.application?.status,
+  }
+}
 
 export default function PublicJobDetailPage() {
   const { jobId } = useParams<{ jobId: string }>()
@@ -30,8 +127,9 @@ export default function PublicJobDetailPage() {
   const { user, isAuthenticated } = useAuthContext()
   const { success, error: showError } = useNotification()
 
-  const [job, setJob] = useState<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus } | null>(null)
-  const [dashboard, setDashboard] = useState<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean } | null>(null)
+  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus; accessSource?: AccessSource; isQuotaExhausted?: boolean; quotaLockReason?: QuotaLockReason | null }) | null>(null)
+  const [dashboard, setDashboard] = useState<{ isHired: boolean } | null>(null)
+  const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
 
@@ -43,12 +141,18 @@ export default function PublicJobDetailPage() {
       if (!jobId) return
       setIsLoading(true)
       try {
-        const data = await api.get<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }>(`/student/jobs/${jobId}`)
-        setJob(data)
+        const data = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+        const normalizedJob = normalizePublicJobDetailsResponse(data, jobId)
+        console.log('DESCRIPTION LOCK:', normalizedJob.isDescriptionLocked)
+        setJob(normalizedJob)
 
         if (isStudent) {
-          const dashboardData = await api.get<{ applicationsUsed: number; applicationLimit?: number | null; isHired: boolean }>('/student/dashboard')
+          const [dashboardData, subData] = await Promise.all([
+            api.get<{ isHired: boolean }>('/student/dashboard'),
+            api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription'),
+          ])
           setDashboard(dashboardData)
+          setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
         }
       } catch {
         showError('Job not found')
@@ -59,10 +163,6 @@ export default function PublicJobDetailPage() {
     }
     fetchJob()
   }, [jobId, navigate, showError, isStudent])
-
-  const applicationLimit = dashboard?.applicationLimit
-  const hasUnlimitedApplications = applicationLimit === null || applicationLimit === undefined
-  const hasReachedFreeLimit = !hasUnlimitedApplications && (dashboard?.applicationsUsed ?? 0) >= applicationLimit
 
   const handleApply = async () => {
     if (!isAuthenticated) {
@@ -80,20 +180,41 @@ export default function PublicJobDetailPage() {
       return
     }
 
-    if (hasReachedFreeLimit) {
-      showError(`Application limit reached (${applicationLimit}). Upgrade to apply to unlimited jobs.`)
-      return
-    }
-
     setIsApplying(true)
     try {
       await api.post(`/student/jobs/${jobId}/apply`)
+      // Immediately update quota so UI re-renders without a page refresh
+      const newUsed = (quota?.applicationsUsed ?? 0) + 1
+      const newQuota = quota ? { ...quota, applicationsUsed: newUsed } : null
+      setQuota(newQuota)
       success('Application submitted successfully!')
       // Refetch job data to get accurate application status
-      const updatedJob = await api.get<JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus }>(`/student/jobs/${jobId}`)
-      setJob(updatedJob)
+      const updatedJob = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+      const normalizedJob = normalizePublicJobDetailsResponse(updatedJob, jobId)
+      setJob(normalizedJob)
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to apply')
+      const apiErr = err instanceof ApiClientError ? err : null
+      if (apiErr?.data?.isZoneLocked) {
+        const reason = apiErr.data.zoneLockReason as import('@/types').ZoneLockReason | undefined
+        if (reason) {
+          setJob((prev) => prev ? { ...prev, isZoneLocked: true, zoneLockReason: reason } : prev)
+        }
+        return
+      }
+      const message = err instanceof Error ? err.message : 'Failed to apply'
+      if (
+        message.toLowerCase().includes('application limit reached') ||
+        message === 'Free tier allows only 2 job applications'
+      ) {
+        // Sync quota so blur/lock triggers immediately
+        try {
+          const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+          setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
+        } catch { /* best-effort */ }
+        showError('You have reached your application limit. Upgrade your plan to continue applying.')
+      } else {
+        showError(message)
+      }
     } finally {
       setIsApplying(false)
     }
@@ -112,11 +233,33 @@ export default function PublicJobDetailPage() {
   }
 
   const isDeadlinePassed = job.deadline ? new Date(job.deadline) < new Date() : false
+  const lockedDescriptionPreview = getDescriptionPreview(job.description)
+  const isQuotaReached =
+    typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isQuotaExhausted = job?.isQuotaExhausted === true
+  const isZoneLocked = job?.isZoneLocked === true
+  // Trust API's isDescriptionLocked for applied jobs; use local quota check only for non-applied jobs
+  const isLocked = job?.hasApplied
+    ? job?.isDescriptionLocked === true || isQuotaExhausted
+    : job?.isDescriptionLocked === true || isQuotaReached || isQuotaExhausted
 
   // Check application status - only withdrawn can reapply (not rejected)
   const isWithdrawn = (job?.applicationStatus as string) === 'withdrawn'
   const isRejected = (job?.applicationStatus as string) === 'rejected'
   const hasActiveApplication = job?.hasApplied && !isWithdrawn
+
+  const handleJobUnlocked = async () => {
+    if (!jobId) return
+    try {
+      const data = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
+      setJob(normalizePublicJobDetailsResponse(data, jobId))
+      // Also refresh quota
+      if (isStudent) {
+        const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+        setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
+      }
+    } catch { /* best-effort */ }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,6 +304,15 @@ export default function PublicJobDetailPage() {
                               {job.company.industry}
                             </Badge>
                           )}
+                          {/* Zone Badge */}
+                          {(job.zoneName || job.countryName) && (
+                            <ZoneBadge
+                              zoneName={job.zoneName || job.countryName}
+                              zoneId={job.zoneId}
+                              isLocked={job.isZoneLocked}
+                              size="sm"
+                            />
+                          )}
                         </div>
                       </div>
                       <span className="self-start px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
@@ -189,25 +341,87 @@ export default function PublicJobDetailPage() {
 
               {/* Job description */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-1">
-                <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                  <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  About the Role
-                </h2>
-                <div className="prose prose-gray max-w-none">
-                  <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {job.description}
-                  </p>
+                <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4 sm:gap-3">
+                  <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 flex items-center gap-2 sm:gap-3">
+                    <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    About the Role
+                  </h2>
+                  {isLocked && !isZoneLocked && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                      <Lock className="h-3.5 w-3.5" />
+                      Job Description Locked
+                    </span>
+                  )}
                 </div>
+
+                {isZoneLocked && job.zoneLockReason ? (
+                  <div className="space-y-4">
+                    <ZoneUnlockPanel
+                      zoneLockReason={job.zoneLockReason}
+                      jobId={job.id}
+                      prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                      onUnlocked={handleJobUnlocked}
+                    />
+                    {/* Show quota panel too if both zone locked AND quota exhausted */}
+                    {isQuotaExhausted && job.quotaLockReason && (
+                      <QuotaUnlockPanel
+                        quotaLockReason={job.quotaLockReason}
+                        prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                        onUnlocked={handleJobUnlocked}
+                      />
+                    )}
+                  </div>
+                ) : isQuotaExhausted && job.quotaLockReason ? (
+                  <QuotaUnlockPanel
+                    quotaLockReason={job.quotaLockReason}
+                    prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                    onUnlocked={handleJobUnlocked}
+                  />
+                ) : isLocked ? (
+                  <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 min-h-[240px]">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none select-none rounded-xl bg-white/80 p-4 sm:p-5 h-full"
+                      style={{ filter: 'blur(6px)' }}
+                    >
+                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {lockedDescriptionPreview}
+                      </p>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center p-6">
+                      <div className="max-w-sm rounded-2xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
+                        <div className="mb-3 flex items-center justify-center gap-2 text-amber-800">
+                          <Lock className="h-4 w-4 flex-shrink-0" />
+                          <p className="text-sm sm:text-base font-semibold">Job Description Locked</p>
+                        </div>
+                        <p className="text-sm sm:text-base text-gray-700">{LOCKED_DESCRIPTION_MESSAGE}</p>
+                        <Link
+                          to="/subscription"
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+                        >
+                          Upgrade Plan
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="prose prose-gray max-w-none">
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {job.description}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Requirements */}
-              {job.requirements && (
+              {job.requirements && !isZoneLocked && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 animate-fade-in-up stagger-2">
                   <h2 className="text-lg sm:text-xl font-display font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
                     <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     Requirements
                   </h2>
-                  <div className="prose prose-gray max-w-none">
+                  <div className={`prose prose-gray max-w-none ${isLocked ? 'blur-sm select-none pointer-events-none opacity-60' : ''}`}>
                     <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                       {job.requirements}
                     </p>
@@ -370,7 +584,9 @@ export default function PublicJobDetailPage() {
                     </div>
                     <p className="text-gray-900 font-medium mb-2">Application Withdrawn</p>
                     <p className="text-sm text-gray-500 mb-4">
-                      Your previous application was withdrawn. You can reapply if you'd like.
+                      {job.accessSource === 'applied'
+                        ? 'Your previous application was withdrawn. Your zone access was through that application—you may need to unlock this zone to reapply.'
+                        : 'Your previous application was withdrawn. You can reapply if you\'d like.'}
                     </p>
                     {!isDeadlinePassed && (
                       <button
@@ -391,45 +607,23 @@ export default function PublicJobDetailPage() {
                   </button>
                 ) : (
                   <>
-                    {isStudent && dashboard && (
-                      <div className="mb-4 text-sm">
-                        {hasUnlimitedApplications ? (
-                          <p className="text-blue-600">Unlimited applications available.</p>
-                        ) : (
-                          <p className="text-gray-500">
-                            {dashboard.applicationsUsed}/{applicationLimit} applications used
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {isStudent && hasReachedFreeLimit ? (
-                      <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                        <p className="text-sm text-yellow-700 mb-3">
-                          Free tier limit reached. Upgrade to apply to unlimited jobs.
-                        </p>
-                        <Link
-                          to="/subscription"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 transition-all"
-                        >
-                          Upgrade to Unlimited
-                        </Link>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleApply}
-                        disabled={isApplying || (isStudent && !!dashboard?.isHired)}
-                        className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
-                      >
-                        {isApplying
-                          ? 'Applying...'
-                          : dashboard?.isHired
-                          ? 'Already Hired'
-                          : isAuthenticated
-                          ? 'Apply Now'
-                          : 'Sign In to Apply'}
-                      </button>
-                    )}
+                    <button
+                      onClick={handleApply}
+                      disabled={isApplying || (isStudent && !!dashboard?.isHired) || isQuotaReached || isZoneLocked}
+                      className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm"
+                    >
+                      {isApplying
+                        ? 'Applying...'
+                        : dashboard?.isHired
+                        ? 'Already Hired'
+                        : isZoneLocked
+                        ? 'Unlock to Apply'
+                        : isQuotaReached
+                        ? 'Limit Reached'
+                        : isAuthenticated
+                        ? 'Apply Now'
+                        : 'Sign In to Apply'}
+                    </button>
                   </>
                 )}
 
@@ -443,6 +637,64 @@ export default function PublicJobDetailPage() {
                 )}
 
               </div>
+
+              {/* Zone Info Card */}
+              {(job.zoneName || job.countryName || job.accessSource) && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-fade-in-up stagger-2">
+                  <h3 className="font-display font-semibold text-gray-900 mb-3 sm:mb-4">Zone Information</h3>
+                  <div className="space-y-3">
+                    {(job.zoneName || job.countryName) && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-gray-500">Region:</span>
+                        <ZoneBadge
+                          zoneName={job.zoneName || job.countryName}
+                          zoneId={job.zoneId}
+                          isLocked={job.isZoneLocked}
+                          size="md"
+                        />
+                      </div>
+                    )}
+                    {job.countryName && job.zoneName && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span>{job.countryName}</span>
+                      </div>
+                    )}
+                    {isStudent && (() => {
+                      const accessMessage = getAccessMessage(job.accessSource ?? null, job.zoneName, isWithdrawn)
+                      if (accessMessage) {
+                        const isSuccess = accessMessage.variant === 'success'
+                        const isWarning = accessMessage.variant === 'warning'
+                        return (
+                          <div className={`flex items-start gap-2 text-sm rounded-lg p-3 border ${
+                            isSuccess
+                              ? 'text-green-700 bg-green-50 border-green-200'
+                              : isWarning
+                              ? 'text-amber-700 bg-amber-50 border-amber-200'
+                              : 'text-blue-700 bg-blue-50 border-blue-200'
+                          }`}>
+                            {job.accessSource === 'pay-per-job' && <Ticket className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'subscription' && <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'all-zones' && <Globe className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'applied' && isWithdrawn && <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'applied' && !isWithdrawn && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'no-zone-restriction' && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            <span>{accessMessage.message}</span>
+                          </div>
+                        )
+                      }
+                      if (job.isZoneLocked) {
+                        return (
+                          <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                            You don't have access to this zone. Unlock it through a subscription upgrade, zone add-on, or pay-per-job option.
+                          </p>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Quick info */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-fade-in-up stagger-2">

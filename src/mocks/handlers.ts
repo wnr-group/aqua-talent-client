@@ -7,6 +7,12 @@ import {
   mockSubscriptionPlans,
   mockStudentSubscriptions,
   mockFreeTierConfig,
+  mockCountries,
+  mockZones,
+  mockZoneAddons,
+  mockStudentZoneAccess,
+  PLANS_WITH_ALL_ZONES,
+  mockPlanZones,
   auth,
   findUser,
 } from './data'
@@ -65,6 +71,377 @@ function updateStudentRecord(studentId: string, updates: Partial<Student>): Stud
   const updated = { ...mockStudents[index]!, ...updates } as Student
   mockStudents[index] = updated
   return updated
+}
+
+interface MockPaymentOrder {
+  id: string
+  planId: string
+  amount: number
+  currency: string
+  studentId: string
+  companyId?: string
+}
+
+const mockPaymentOrders = new Map<string, MockPaymentOrder>()
+
+function findSubscriptionPlan(planIdentifier?: string) {
+  if (!planIdentifier) {
+    return undefined
+  }
+
+  return mockSubscriptionPlans.find(
+    (item) => item.id === planIdentifier || item._id === planIdentifier
+  )
+}
+
+function getNormalizedNonIndianPrice(plan: {
+  priceUSD?: number | null
+  price: number
+  currency: string
+}) {
+  return plan.priceUSD ?? (plan.currency === 'USD' ? plan.price : null)
+}
+
+function getNormalizedIndianPrice(plan: {
+  priceINR?: number | null
+  price: number
+  currency: string
+}) {
+  return plan.priceINR ?? (plan.currency === 'INR' ? plan.price : null)
+}
+
+function withPricingAliases<T extends {
+  priceINR?: number | null
+  priceUSD?: number | null
+  price: number
+  currency: string
+}>(plan: T) {
+  const priceINR = getNormalizedIndianPrice(plan)
+  const priceUSD = getNormalizedNonIndianPrice(plan)
+
+  return {
+    ...plan,
+    priceINR,
+    priceUSD,
+  }
+}
+
+function calculateSubscriptionEndDate(billingCycle: string): string {
+  const endDate = new Date()
+
+  switch (billingCycle) {
+    case 'yearly':
+      endDate.setFullYear(endDate.getFullYear() + 1)
+      break
+    case 'quarterly':
+      endDate.setMonth(endDate.getMonth() + 3)
+      break
+    case 'one-time':
+      endDate.setFullYear(2099, 11, 31)
+      break
+    default:
+      endDate.setMonth(endDate.getMonth() + 1)
+      break
+  }
+
+  return endDate.toISOString()
+}
+
+function getOrderAmount(plan: {
+  priceINR?: number | null
+  priceUSD?: number | null
+  price: number
+  currency: string
+}, currency?: string) {
+  const normalizedCurrency = currency?.toUpperCase()
+
+  if (normalizedCurrency === 'USD') {
+    return plan.priceUSD ?? plan.price
+  }
+
+  if (normalizedCurrency === 'INR') {
+    return plan.priceINR ?? plan.price
+  }
+
+  return plan.price
+}
+
+async function verifyPaymentRequest(request: Request) {
+  await delay(DELAY_MS)
+  const user = auth.getCurrentUser()
+  if (!user || user.userType !== UserType.STUDENT) {
+    return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+  }
+
+  const body = (await request.json()) as {
+    serviceId?: string
+    companyId?: string
+    razorpay_order_id?: string
+    razorpay_payment_id?: string
+    razorpay_signature?: string
+  }
+
+  if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+    return HttpResponse.json({ message: 'Invalid payment verification payload' }, { status: 400 })
+  }
+
+  const order = mockPaymentOrders.get(body.razorpay_order_id)
+
+  if (!order) {
+    return HttpResponse.json({ message: 'Payment order not found' }, { status: 404 })
+  }
+
+  if (order.studentId !== user.id) {
+    return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+  }
+
+  if (body.serviceId && body.serviceId !== order.planId) {
+    const matchingPlan = findSubscriptionPlan(body.serviceId)
+    if (!matchingPlan || matchingPlan.id !== order.planId) {
+      return HttpResponse.json({ message: 'Payment verification failed' }, { status: 400 })
+    }
+  }
+
+  if (order.companyId && body.companyId && order.companyId !== body.companyId) {
+    return HttpResponse.json({ message: 'Payment verification failed' }, { status: 400 })
+  }
+
+  const plan = findSubscriptionPlan(order.planId)
+  if (!plan) {
+    return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+  }
+
+  mockStudentSubscriptions[user.id] = {
+    subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
+    serviceId: plan.tier === 'free' ? undefined : plan.id,
+    endDate: plan.tier === 'free' ? undefined : calculateSubscriptionEndDate(plan.billingCycle),
+  }
+
+  return HttpResponse.json({ success: true })
+}
+
+function buildStudentSubscriptionResponse(studentId: string) {
+  const current = mockStudentSubscriptions[studentId] || { subscriptionTier: 'free' as const }
+  const freePlan = mockSubscriptionPlans.find((item) => item.tier === 'free' && item.isActive)
+  const applicationsUsed = mockApplications.filter(
+    (application) =>
+      application.studentId === studentId && application.status !== ApplicationStatus.WITHDRAWN
+  ).length
+
+  if (current.subscriptionTier === 'paid' && current.serviceId) {
+    const plan = findSubscriptionPlan(current.serviceId)
+
+    if (plan) {
+      const applicationLimit = plan.maxApplications
+
+      return {
+        subscriptionTier: 'paid' as const,
+        status: 'active',
+        isActive: true,
+        inGracePeriod: false,
+        currentSubscription: {
+          id: `subscription-${studentId}`,
+          service: {
+            _id: plan._id,
+            name: plan.name,
+            tier: plan.tier,
+            price: plan.price,
+            priceINR: plan.priceINR,
+            priceUSD: plan.priceUSD ?? getNormalizedNonIndianPrice(plan),
+            currency: plan.currency,
+            billingCycle: plan.billingCycle,
+            trialDays: plan.trialDays,
+            discount: plan.discount,
+            badge: plan.badge,
+            features: plan.features,
+            prioritySupport: plan.prioritySupport,
+            profileBoost: plan.profileBoost,
+            applicationHighlight: plan.applicationHighlight,
+          },
+          startDate: new Date().toISOString(),
+          endDate: current.endDate || calculateSubscriptionEndDate(plan.billingCycle),
+          status: 'active',
+          autoRenew: plan.billingCycle !== 'one-time',
+        },
+        applicationLimit,
+        applicationsUsed,
+        applicationsRemaining:
+          applicationLimit === null ? null : Math.max(applicationLimit - applicationsUsed, 0),
+      }
+    }
+  }
+
+  const applicationLimit = freePlan?.maxApplications ?? 2
+
+  return {
+    subscriptionTier: 'free' as const,
+    status: 'active',
+    isActive: true,
+    inGracePeriod: false,
+    currentSubscription: null,
+    applicationLimit,
+    applicationsUsed,
+    applicationsRemaining:
+      applicationLimit === null ? null : Math.max(applicationLimit - applicationsUsed, 0),
+  }
+}
+
+// ── Description lock helper ──────────────────────────────────────────────────
+// Determines whether a student's job description should be locked based on
+// their current subscription plan limit vs. total applications submitted.
+function getStudentPlanUsage(studentId: string): {
+  planName: string
+  planLimit: number | null
+  totalApplications: number
+  isLimitReached: boolean
+} {
+  const current = mockStudentSubscriptions[studentId] || { subscriptionTier: 'free' as const }
+
+  let planName = 'Free'
+  let planLimit: number | null = null  // null = unlimited; a number = finite cap
+
+  if (current.subscriptionTier === 'paid' && current.serviceId) {
+    const plan = findSubscriptionPlan(current.serviceId)
+    if (plan) {
+      planName = plan.name
+      planLimit = plan.maxApplications ?? null  // null = unlimited paid plan
+    } else {
+      // Paid record found but plan missing — fall back to Free limit
+      const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free' && p.isActive)
+      planLimit = freePlan?.maxApplications ?? mockFreeTierConfig.free_tier_max_applications
+    }
+  } else {
+    const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free' && p.isActive)
+    planLimit = freePlan?.maxApplications ?? mockFreeTierConfig.free_tier_max_applications
+  }
+
+  // Count ALL applications (excluding only WITHDRAWN — student explicitly opted out)
+  const totalApplications = mockApplications.filter(
+    (a) => a.studentId === studentId && a.status !== ApplicationStatus.WITHDRAWN
+  ).length
+
+  // typeof guard: correctly handles null (unlimited) and any unexpected undefined state
+  const isLimitReached = typeof planLimit === 'number' && totalApplications >= planLimit
+
+  console.log({
+    studentId,
+    plan: planName,
+    planLimit,
+    totalApplications,
+    isLimitReached,
+  })
+
+  return { planName, planLimit, totalApplications, isLimitReached }
+}
+
+// ── Zone access helper ───────────────────────────────────────────────────────
+// Returns zone IDs the student can access (home zone + addon zones + plan zones)
+function getStudentAccessibleZoneIds(studentId: string): string[] {
+  const current = mockStudentSubscriptions[studentId] || { subscriptionTier: 'free' as const }
+  const zoneAccess = mockStudentZoneAccess[studentId] || { addonZoneIds: [], payPerJobIds: [] }
+
+  // Determine active service ID (use 'plan-free' for free tier)
+  const serviceId =
+    current.subscriptionTier === 'paid' && current.serviceId ? current.serviceId : 'plan-free'
+
+  // Check admin-managed plan zone config first (source of truth)
+  const planConfig = mockPlanZones[serviceId]
+  if (planConfig?.allZonesIncluded || PLANS_WITH_ALL_ZONES.includes(serviceId)) {
+    return mockZones.map((z) => z.id)
+  }
+  if (planConfig && planConfig.zoneIds.length > 0) {
+    const accessible = new Set<string>(planConfig.zoneIds)
+    for (const zoneId of zoneAccess.addonZoneIds) {
+      accessible.add(zoneId)
+    }
+    return Array.from(accessible)
+  }
+
+  // Default: home zone (India = zone-apac) + addon zones
+  const accessible = new Set<string>(['zone-apac'])
+  for (const zoneId of zoneAccess.addonZoneIds) {
+    accessible.add(zoneId)
+  }
+  return Array.from(accessible)
+}
+
+// Returns { isZoneLocked, zoneLockReason } for a job and student
+function buildZoneLockInfo(
+  job: { id: string; countryId?: string | null; countryName?: string | null },
+  studentId: string
+): { isZoneLocked: boolean; zoneLockReason: null | { zoneId: string; zoneName: string; message: string; unlockOptions: { type: string; label: string; description?: string; price?: number; currency?: string; addonId?: string; planId?: string }[] } } {
+  // Jobs without a countryId are globally accessible
+  if (!job.countryId) {
+    return { isZoneLocked: false, zoneLockReason: null }
+  }
+
+  const country = mockCountries.find((c) => c.id === job.countryId)
+  if (!country) {
+    return { isZoneLocked: false, zoneLockReason: null }
+  }
+
+  const accessibleZoneIds = getStudentAccessibleZoneIds(studentId)
+
+  // Check pay-per-job unlock
+  const zoneAccess = mockStudentZoneAccess[studentId] || { addonZoneIds: [], payPerJobIds: [] }
+  if (zoneAccess.payPerJobIds.includes(job.id)) {
+    return { isZoneLocked: false, zoneLockReason: null }
+  }
+
+  if (accessibleZoneIds.includes(country.zoneId)) {
+    return { isZoneLocked: false, zoneLockReason: null }
+  }
+
+  // Build unlock options
+  const zone = mockZones.find((z) => z.id === country.zoneId)!
+  const addonSingle = mockZoneAddons.find((a) => a.id === 'addon-zone-single')!
+  const addonAll = mockZoneAddons.find((a) => a.id === 'addon-zone-all')!
+
+  const unlockOptions = [
+    {
+      type: 'pay-per-job' as const,
+      label: 'Unlock this job',
+      description: 'One-time payment to view and apply to this specific job.',
+      price: 2500,
+      currency: 'INR',
+    },
+    {
+      type: 'zone-addon' as const,
+      label: `Unlock ${zone.name} zone`,
+      description: `Access all jobs in the ${zone.name} zone permanently.`,
+      price: addonSingle.priceINR ?? addonSingle.price,
+      currency: 'INR',
+      addonId: addonSingle.id,
+      zonesIncluded: addonSingle.zonesIncluded ?? 1,
+      unlockAllZones: false,
+    },
+    {
+      type: 'zone-addon' as const,
+      label: 'Unlock all zones',
+      description: 'Access jobs in all geographic zones worldwide.',
+      price: addonAll.priceINR ?? addonAll.price,
+      currency: 'INR',
+      addonId: addonAll.id,
+      zonesIncluded: undefined,
+      unlockAllZones: true,
+    },
+    {
+      type: 'upgrade-plan' as const,
+      label: 'Upgrade to Pro',
+      description: 'Get all zones + unlimited applications with a Pro plan.',
+      planId: 'plan-pro-monthly',
+    },
+  ]
+
+  return {
+    isZoneLocked: true,
+    zoneLockReason: {
+      zoneId: country.zoneId,
+      zoneName: zone.name,
+      message: `This job is in the ${zone.name} zone, which is not included in your current plan.`,
+      unlockOptions,
+    },
+  }
 }
 
 export const handlers = [
@@ -268,6 +645,65 @@ export const handlers = [
     return HttpResponse.json({ url: mockUrl })
   }),
 
+  // ============ PAYMENTS ============
+
+  http.post(`${API_URL}/payments/create-order`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      planId?: string
+      serviceId?: string
+      companyId?: string
+      currency?: string
+    }
+    const planIdentifier = body.planId || body.serviceId
+    const plan = findSubscriptionPlan(planIdentifier)
+
+    if (!plan) {
+      return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
+    }
+
+    if (plan.tier === 'free' || plan.price <= 0) {
+      return HttpResponse.json({ message: 'This plan does not require payment' }, { status: 400 })
+    }
+
+    const displayCurrency = body.currency?.toUpperCase() === 'USD' ? 'USD' : 'INR'
+    const displayAmount = getOrderAmount(plan, displayCurrency)
+
+    const orderId = `order_${Date.now()}`
+    const order: MockPaymentOrder = {
+      id: orderId,
+      planId: plan.id,
+      amount: Math.round(displayAmount * 100),
+      currency: displayCurrency,
+      studentId: user.id,
+      companyId: body.companyId,
+    }
+
+    mockPaymentOrders.set(orderId, order)
+
+    return HttpResponse.json({
+      orderId: order.id,
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: 'rzp_test_aqua_talent',
+      serviceName: plan.name,
+    })
+  }),
+
+  http.post(`${API_URL}/payments/verify-payment`, async ({ request }) => {
+    return verifyPaymentRequest(request)
+  }),
+
+  http.post(`${API_URL}/payments/verify`, async ({ request }) => {
+    return verifyPaymentRequest(request)
+  }),
+
   // ============ COMPANY ============
 
   // Company dashboard stats
@@ -315,6 +751,9 @@ export const handlers = [
     const company = user.data as Company
 
     const isDraft = (body as Record<string, unknown>).status === 'draft'
+    const countryData = body.countryId
+      ? mockCountries.find((c) => c.id === body.countryId)
+      : undefined
     const newJob: JobPosting = {
       id: `job-${Date.now()}`,
       companyId: user.id,
@@ -325,6 +764,8 @@ export const handlers = [
       jobType: body.jobType || 'Full-time',
       salaryRange: body.salaryRange || null,
       deadline: body.deadline || null,
+      countryId: body.countryId || null,
+      countryName: countryData?.name || null,
       status: isDraft ? JobStatus.DRAFT : JobStatus.PENDING,
       createdAt: new Date().toISOString(),
       company: { id: company.id, name: company.name },
@@ -590,6 +1031,26 @@ export const handlers = [
     return HttpResponse.json({ plans: activePlans })
   }),
 
+  http.get(`${API_URL}/geo-location`, async () => {
+    await delay(DELAY_MS)
+    return HttpResponse.json({
+      countryCode: 'IN',
+      currency: 'INR',
+    })
+  }),
+
+  http.get(`${API_URL}/companies`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const url = new URL(request.url)
+    const activeOnly = url.searchParams.get('active') === 'true'
+
+    const companies = activeOnly
+      ? mockCompanies.filter((company) => company.status === CompanyStatus.APPROVED)
+      : mockCompanies
+
+    return HttpResponse.json({ companies })
+  }),
+
   // Student subscription details
   http.get(`${API_URL}/student/subscription`, async () => {
     await delay(DELAY_MS)
@@ -598,31 +1059,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const current = mockStudentSubscriptions[user.id] || { subscriptionTier: 'free' as const }
-
-    if (current.subscriptionTier === 'paid' && current.serviceId && current.endDate) {
-      // Find plan by either id or _id for backwards compatibility
-      const plan = mockSubscriptionPlans.find(
-        (item) => item.id === current.serviceId || item._id === current.serviceId
-      )
-
-      return HttpResponse.json({
-        subscriptionTier: 'paid',
-        currentSubscription: {
-          plan: plan
-            ? { id: plan.id, name: plan.name, tier: plan.tier, maxApplications: plan.maxApplications }
-            : undefined,
-          // Keep service for backwards compatibility
-          service: plan ? { _id: plan._id, name: plan.name } : undefined,
-          endDate: current.endDate,
-        },
-      })
-    }
-
-    return HttpResponse.json({
-      subscriptionTier: 'free',
-      currentSubscription: null,
-    })
+    return HttpResponse.json(buildStudentSubscriptionResponse(user.id))
   }),
 
   // Upgrade student subscription
@@ -640,30 +1077,15 @@ export const handlers = [
     }
 
     // Find plan by either id or _id for backwards compatibility
-    const plan = mockSubscriptionPlans.find(
-      (item) => item.id === planIdentifier || item._id === planIdentifier
-    )
+    const plan = findSubscriptionPlan(planIdentifier)
     if (!plan) {
       return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
     }
 
-    // Calculate end date based on billing cycle
-    const endDate = new Date()
-    switch (plan.billingCycle) {
-      case 'yearly':
-        endDate.setFullYear(endDate.getFullYear() + 1)
-        break
-      case 'quarterly':
-        endDate.setMonth(endDate.getMonth() + 3)
-        break
-      default:
-        endDate.setMonth(endDate.getMonth() + 1)
-    }
-
     mockStudentSubscriptions[user.id] = {
       subscriptionTier: plan.tier === 'free' ? 'free' : 'paid',
-      serviceId: plan.id,
-      endDate: endDate.toISOString(),
+      serviceId: plan.tier === 'free' ? undefined : plan.id,
+      endDate: plan.tier === 'free' ? undefined : calculateSubscriptionEndDate(plan.billingCycle),
     }
 
     return HttpResponse.json({ success: true })
@@ -682,28 +1104,8 @@ export const handlers = [
       (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
     )
 
-    const currentSubscription = mockStudentSubscriptions[user.id]
-
-    // Get application limit from subscription plan
-    let applicationLimit: number | null = 2 // Default free tier limit
-    if (currentSubscription?.serviceId) {
-      const plan = mockSubscriptionPlans.find(
-        (p) => p.id === currentSubscription.serviceId || p._id === currentSubscription.serviceId
-      )
-      if (plan) {
-        applicationLimit = plan.maxApplications
-      }
-    } else {
-      // No subscription, use free tier defaults
-      const freePlan = mockSubscriptionPlans.find((p) => p.tier === 'free')
-      if (freePlan) {
-        applicationLimit = freePlan.maxApplications
-      }
-    }
-
     return HttpResponse.json({
       applicationsUsed: studentApps.length,
-      applicationLimit,
       pendingApplications: studentApps.filter((a) => a.status === ApplicationStatus.PENDING).length,
       isHired: student.isHired,
     })
@@ -715,6 +1117,7 @@ export const handlers = [
     const url = new URL(request.url)
     const search = url.searchParams.get('search')?.toLowerCase()
     const location = url.searchParams.get('location')?.toLowerCase()
+    const user = auth.getCurrentUser()
 
     let jobs = mockJobs.filter((j) => j.status === JobStatus.APPROVED)
 
@@ -730,7 +1133,15 @@ export const handlers = [
       jobs = jobs.filter((j) => j.location.toLowerCase().includes(location))
     }
 
-    return HttpResponse.json({ jobs })
+    const jobsWithZoneLock = jobs.map((job) => {
+      if (user && user.userType === UserType.STUDENT) {
+        const { isZoneLocked } = buildZoneLockInfo(job, user.id)
+        return { ...job, isZoneLocked }
+      }
+      return job
+    })
+
+    return HttpResponse.json({ jobs: jobsWithZoneLock })
   }),
 
   // Get job detail (student)
@@ -757,8 +1168,24 @@ export const handlers = [
         )
       : null
 
+    // Step 2-8: Determine description lock status from student's plan usage
+    const { isLimitReached } =
+      user && user.userType === UserType.STUDENT
+        ? getStudentPlanUsage(user.id)
+        : { isLimitReached: false }
+
+    // Zone lock
+    const { isZoneLocked, zoneLockReason } =
+      user && user.userType === UserType.STUDENT
+        ? buildZoneLockInfo(job, user.id)
+        : { isZoneLocked: false, zoneLockReason: null }
+
     return HttpResponse.json({
       ...job,
+      description: isLimitReached || isZoneLocked ? null : job.description,
+      isDescriptionLocked: isLimitReached,
+      isZoneLocked,
+      zoneLockReason,
       hasApplied,
       applicationStatus: application?.status,
     })
@@ -777,19 +1204,46 @@ export const handlers = [
       return HttpResponse.json({ message: 'You are already hired' }, { status: 400 })
     }
 
-    const activeApps = mockApplications.filter(
-      (a) => a.studentId === user.id && a.status !== ApplicationStatus.WITHDRAWN
-    )
-
-    const currentSubscription = mockStudentSubscriptions[user.id]
-    const isPaidTier = currentSubscription?.subscriptionTier === 'paid'
-    if (!isPaidTier && activeApps.length >= 2) {
-      return HttpResponse.json({ message: 'Application limit reached (2)' }, { status: 400 })
-    }
-
     const job = mockJobs.find((j) => j.id === params.jobId)
     if (!job) {
       return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
+    }
+
+    // Guard: prevent duplicate applications to the same job
+    const alreadyApplied = mockApplications.some(
+      (a) => a.studentId === user.id && a.jobPostingId === params.jobId
+    )
+    if (alreadyApplied) {
+      return HttpResponse.json(
+        { message: 'You have already applied to this job.' },
+        { status: 400 }
+      )
+    }
+
+    // Guard: enforce subscription plan application limit before creating the application
+    const { planLimit, totalApplications, isLimitReached } = getStudentPlanUsage(user.id)
+    if (isLimitReached) {
+      return HttpResponse.json(
+        {
+          message: 'Application limit reached for your current plan.',
+          applicationsUsed: totalApplications,
+          applicationLimit: planLimit,
+        },
+        { status: 403 }
+      )
+    }
+
+    // Guard: zone lock check
+    const { isZoneLocked, zoneLockReason } = buildZoneLockInfo(job, user.id)
+    if (isZoneLocked) {
+      return HttpResponse.json(
+        {
+          message: 'This job is in a zone not included in your current plan.',
+          isZoneLocked: true,
+          zoneLockReason,
+        },
+        { status: 403 }
+      )
     }
 
     const newApp: Application = {
@@ -833,7 +1287,10 @@ export const handlers = [
       createdAt: now,
     })
 
-    return HttpResponse.json(newApp)
+    return HttpResponse.json({
+      success: true,
+      message: 'Application submitted successfully',
+    })
   }),
 
   // Get student applications
@@ -1737,7 +2194,9 @@ export const handlers = [
     }
 
     // Return all plans (including inactive) sorted by displayOrder
-    const plans = [...mockSubscriptionPlans].sort((a, b) => a.displayOrder - b.displayOrder)
+    const plans = [...mockSubscriptionPlans]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((plan) => withPricingAliases(plan))
     return HttpResponse.json({ plans })
   }),
 
@@ -1754,7 +2213,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'Plan not found' }, { status: 404 })
     }
 
-    return HttpResponse.json(plan)
+    return HttpResponse.json(withPricingAliases(plan))
   }),
 
   // Admin subscription plans - Create
@@ -1773,6 +2232,8 @@ export const handlers = [
     const now = new Date().toISOString()
     const newPlan = {
       ...body,
+      priceINR: getNormalizedIndianPrice(body),
+      priceUSD: body.priceUSD ?? getNormalizedNonIndianPrice(body),
       id: `plan-${Date.now()}`,
       _id: `plan-${Date.now()}`,
       createdAt: now,
@@ -1780,7 +2241,7 @@ export const handlers = [
     }
 
     mockSubscriptionPlans.push(newPlan)
-    return HttpResponse.json(newPlan, { status: 201 })
+    return HttpResponse.json(withPricingAliases(newPlan), { status: 201 })
   }),
 
   // Admin subscription plans - Update
@@ -1805,6 +2266,8 @@ export const handlers = [
     if (body.description !== undefined) plan.description = body.description
     if (body.maxApplications !== undefined) plan.maxApplications = body.maxApplications
     if (body.price !== undefined) plan.price = body.price
+    if (body.priceINR !== undefined) plan.priceINR = body.priceINR
+    if (body.priceUSD !== undefined) plan.priceUSD = body.priceUSD
     if (body.currency !== undefined) plan.currency = body.currency
     if (body.billingCycle !== undefined) plan.billingCycle = body.billingCycle
     if (body.trialDays !== undefined) plan.trialDays = body.trialDays
@@ -1818,9 +2281,11 @@ export const handlers = [
     if (body.profileBoost !== undefined) plan.profileBoost = body.profileBoost
     if (body.applicationHighlight !== undefined) plan.applicationHighlight = body.applicationHighlight
     if (body.isActive !== undefined) plan.isActive = body.isActive
+    plan.priceINR = getNormalizedIndianPrice(plan)
+    plan.priceUSD = getNormalizedNonIndianPrice(plan)
     plan.updatedAt = new Date().toISOString()
 
-    return HttpResponse.json(plan)
+    return HttpResponse.json(withPricingAliases(plan))
   }),
 
   // Admin subscription plans - Delete (soft delete by deactivating)
@@ -1946,5 +2411,416 @@ export const handlers = [
     )
 
     return HttpResponse.json({ hasApplied })
+  }),
+
+  // ============ ZONAL PRICING ============
+
+  // Get countries (company + public)
+  http.get(`${API_URL}/company/countries`, async () => {
+    await delay(DELAY_MS)
+    return HttpResponse.json({ countries: mockCountries })
+  }),
+
+  // Get student subscription zone access
+  http.get(`${API_URL}/student/subscription/zones`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const current = mockStudentSubscriptions[user.id] || { subscriptionTier: 'free' as const }
+    const zoneAccess = mockStudentZoneAccess[user.id] || { addonZoneIds: [], payPerJobIds: [] }
+
+    const serviceId =
+      current.subscriptionTier === 'paid' && current.serviceId ? current.serviceId : 'plan-free'
+    const planCfg = mockPlanZones[serviceId]
+    const allZonesIncluded =
+      planCfg?.allZonesIncluded === true || PLANS_WITH_ALL_ZONES.includes(serviceId)
+
+    const accessibleZoneIds = getStudentAccessibleZoneIds(user.id)
+    const accessibleZones = mockZones.filter((z) => accessibleZoneIds.includes(z.id))
+    const lockedZones = mockZones.filter((z) => !accessibleZoneIds.includes(z.id))
+
+    return HttpResponse.json({
+      allZonesIncluded,
+      homeZoneId: 'zone-apac',
+      addonZoneIds: zoneAccess.addonZoneIds,
+      accessibleZones,
+      lockedZones,
+    })
+  }),
+
+  // Get available zone addons
+  http.get(`${API_URL}/student/zone-addons`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    return HttpResponse.json({ addons: mockZoneAddons })
+  }),
+
+  // Create pay-per-job payment order
+  http.post(`${API_URL}/payment/pay-per-job/:jobId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const job = mockJobs.find((j) => j.id === params.jobId)
+    if (!job) {
+      return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
+    }
+
+    const orderId = `order_ppj_${Date.now()}`
+    const order: MockPaymentOrder = {
+      id: orderId,
+      planId: `pay-per-job:${params.jobId}`,
+      amount: 250000, // ₹2500 in paise
+      currency: 'INR',
+      studentId: user.id,
+    }
+    mockPaymentOrders.set(orderId, order)
+
+    return HttpResponse.json({
+      orderId,
+      id: orderId,
+      amount: order.amount,
+      currency: order.currency,
+      key: 'rzp_test_aqua_talent',
+      jobTitle: job.title,
+    })
+  }),
+
+  // Verify pay-per-job payment
+  http.post(`${API_URL}/payment/pay-per-job/:jobId/verify`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      razorpay_order_id?: string
+      razorpay_payment_id?: string
+      razorpay_signature?: string
+    }
+
+    if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+      return HttpResponse.json({ message: 'Invalid verification payload' }, { status: 400 })
+    }
+
+    const order = mockPaymentOrders.get(body.razorpay_order_id)
+    if (!order || order.studentId !== user.id) {
+      return HttpResponse.json({ message: 'Order not found' }, { status: 404 })
+    }
+
+    // Record pay-per-job unlock
+    if (!mockStudentZoneAccess[user.id]) {
+      mockStudentZoneAccess[user.id] = { addonZoneIds: [], payPerJobIds: [] }
+    }
+    const jobId = params.jobId as string
+    if (!mockStudentZoneAccess[user.id]!.payPerJobIds.includes(jobId)) {
+      mockStudentZoneAccess[user.id]!.payPerJobIds.push(jobId)
+    }
+
+    mockPaymentOrders.delete(body.razorpay_order_id)
+
+    return HttpResponse.json({ success: true })
+  }),
+
+  // Create zone addon payment order
+  http.post(`${API_URL}/payment/zone-addon/purchase`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      addonId: string
+      zoneIds?: string[]
+      currency?: string
+    }
+
+    const addon = mockZoneAddons.find((a) => a.id === body.addonId)
+    if (!addon) {
+      return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    }
+
+    const currency = (body.currency?.toUpperCase() === 'USD') ? 'USD' : 'INR'
+    const amount = currency === 'INR'
+      ? Math.round((addon.priceINR ?? addon.price) * 100)
+      : Math.round((addon.priceUSD ?? addon.price) * 100)
+
+    const orderId = `order_za_${Date.now()}`
+    const order: MockPaymentOrder = {
+      id: orderId,
+      planId: `zone-addon:${body.addonId}:${(body.zoneIds || []).join(',')}`,
+      amount,
+      currency,
+      studentId: user.id,
+    }
+    mockPaymentOrders.set(orderId, order)
+
+    return HttpResponse.json({
+      orderId,
+      id: orderId,
+      amount: order.amount,
+      currency: order.currency,
+      key: 'rzp_test_aqua_talent',
+      addonName: addon.name,
+    })
+  }),
+
+  // Verify zone addon payment
+  http.post(`${API_URL}/payment/zone-addon/verify`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      razorpay_order_id?: string
+      razorpay_payment_id?: string
+      razorpay_signature?: string
+    }
+
+    if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+      return HttpResponse.json({ message: 'Invalid verification payload' }, { status: 400 })
+    }
+
+    const order = mockPaymentOrders.get(body.razorpay_order_id)
+    if (!order || order.studentId !== user.id) {
+      return HttpResponse.json({ message: 'Order not found' }, { status: 404 })
+    }
+
+    // Parse plan ID to extract addonId and zoneIds
+    // Format: zone-addon:<addonId>:<zoneId1,zoneId2,...>
+    const parts = order.planId.split(':')
+    const addonId = parts[1]
+    const zoneIds = parts[2] ? parts[2].split(',').filter(Boolean) : []
+
+    const addon = mockZoneAddons.find((a) => a.id === addonId)
+    if (!addon) {
+      return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    }
+
+    if (!mockStudentZoneAccess[user.id]) {
+      mockStudentZoneAccess[user.id] = { addonZoneIds: [], payPerJobIds: [] }
+    }
+
+    if (addon.isFlexible) {
+      // For flexible addon (1 extra zone), add the specific selected zones
+      for (const zoneId of zoneIds) {
+        if (!mockStudentZoneAccess[user.id]!.addonZoneIds.includes(zoneId)) {
+          mockStudentZoneAccess[user.id]!.addonZoneIds.push(zoneId)
+        }
+      }
+    } else {
+      // For all-zones addon, add all zones
+      for (const zone of mockZones) {
+        if (!mockStudentZoneAccess[user.id]!.addonZoneIds.includes(zone.id)) {
+          mockStudentZoneAccess[user.id]!.addonZoneIds.push(zone.id)
+        }
+      }
+    }
+
+    mockPaymentOrders.delete(body.razorpay_order_id)
+
+    return HttpResponse.json({ success: true })
+  }),
+
+  // ============ ADMIN: ZONE MANAGEMENT ============
+
+  // List all zones with their countries
+  http.get(`${API_URL}/admin/zones`, async () => {
+    await delay(DELAY_MS)
+    const zones = mockZones.map((zone) => ({
+      id: zone.id,
+      name: zone.name,
+      description: zone.description ?? '',
+      countries: mockCountries
+        .filter((c) => c.zoneId === zone.id)
+        .map((c) => ({ id: c.id, name: c.name, code: c.code })),
+    }))
+    return HttpResponse.json({ zones })
+  }),
+
+  // Create zone
+  http.post(`${API_URL}/admin/zones`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const body = (await request.json()) as { name: string; description?: string }
+    const newZone = { id: `zone-${Date.now()}`, name: body.name, description: body.description ?? '', countries: [] as string[] }
+    mockZones.push(newZone)
+    return HttpResponse.json(newZone, { status: 201 })
+  }),
+
+  // Update zone
+  http.patch(`${API_URL}/admin/zones/:zoneId`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const zone = mockZones.find((z) => z.id === params.zoneId)
+    if (!zone) return HttpResponse.json({ message: 'Zone not found' }, { status: 404 })
+    const body = (await request.json()) as { name?: string; description?: string }
+    if (body.name) zone.name = body.name
+    zone.description = body.description ?? zone.description ?? ''
+    return HttpResponse.json(zone)
+  }),
+
+  // Delete zone
+  http.delete(`${API_URL}/admin/zones/:zoneId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const zoneId = params.zoneId as string
+    const jobsInZone = mockJobs.filter((j) => {
+      const country = mockCountries.find((c) => c.id === j.countryId)
+      return country?.zoneId === zoneId
+    })
+    if (jobsInZone.length > 0) {
+      return HttpResponse.json(
+        { message: `Cannot delete zone: ${jobsInZone.length} job(s) are currently assigned to this zone.` },
+        { status: 400 },
+      )
+    }
+    // Check if zone is assigned to any plan
+    const plansUsingZone = Object.entries(mockPlanZones)
+      .filter(([, cfg]) => !cfg.allZonesIncluded && cfg.zoneIds.includes(zoneId))
+      .map(([planId]) => planId)
+    if (plansUsingZone.length > 0) {
+      return HttpResponse.json(
+        { message: `Cannot delete zone: it is assigned to ${plansUsingZone.length} plan(s).` },
+        { status: 400 },
+      )
+    }
+    const idx = mockZones.findIndex((z) => z.id === zoneId)
+    if (idx === -1) return HttpResponse.json({ message: 'Zone not found' }, { status: 404 })
+    mockZones.splice(idx, 1)
+    return HttpResponse.json({ success: true })
+  }),
+
+  // Add country to zone
+  http.post(`${API_URL}/admin/zones/:zoneId/countries`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const zoneId = params.zoneId as string
+    const zone = mockZones.find((z) => z.id === zoneId)
+    if (!zone) return HttpResponse.json({ message: 'Zone not found' }, { status: 404 })
+    const body = (await request.json()) as { name: string; code: string; countryId?: string }
+    const existing = mockCountries.find((c) => c.code.toUpperCase() === body.code.toUpperCase())
+    if (existing) {
+      existing.zoneId = zoneId
+      existing.zoneName = zone.name
+      return HttpResponse.json({ country: existing })
+    }
+    const newCountry = {
+      id: body.countryId ?? `country-${body.code.toLowerCase()}`,
+      name: body.name,
+      code: body.code.toUpperCase(),
+      zoneId,
+      zoneName: zone.name,
+    }
+    mockCountries.push(newCountry)
+    return HttpResponse.json({ country: newCountry }, { status: 201 })
+  }),
+
+  // Remove country from zone
+  http.delete(`${API_URL}/admin/zones/:zoneId/countries/:countryId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const idx = mockCountries.findIndex(
+      (c) => c.id === params.countryId && c.zoneId === params.zoneId,
+    )
+    if (idx === -1) return HttpResponse.json({ message: 'Country not found in zone' }, { status: 404 })
+    mockCountries.splice(idx, 1)
+    return HttpResponse.json({ success: true })
+  }),
+
+  // ============ ADMIN: PLAN ZONE ASSIGNMENT ============
+
+  // Get plan zone config
+  http.get(`${API_URL}/admin/plans/:planId/zones`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const planId = params.planId as string
+    const config = mockPlanZones[planId] ?? { allZonesIncluded: false, zoneIds: ['zone-apac'] }
+    const allZones = mockZones.map((z) => ({
+      id: z.id,
+      name: z.name,
+      countries: mockCountries.filter((c) => c.zoneId === z.id).map((c) => c.name),
+    }))
+    return HttpResponse.json({
+      allZonesIncluded: config.allZonesIncluded,
+      zoneIds: config.zoneIds,
+      availableZones: allZones,
+    })
+  }),
+
+  // Update plan zone config
+  http.patch(`${API_URL}/admin/plans/:planId/zones`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const planId = params.planId as string
+    const body = (await request.json()) as { allZonesIncluded: boolean; zoneIds?: string[] }
+    mockPlanZones[planId] = {
+      allZonesIncluded: Boolean(body.allZonesIncluded),
+      zoneIds: body.allZonesIncluded ? [] : (body.zoneIds ?? []),
+    }
+    // Keep PLANS_WITH_ALL_ZONES in sync for backward compat
+    const pwazIdx = PLANS_WITH_ALL_ZONES.indexOf(planId)
+    if (body.allZonesIncluded && pwazIdx === -1) {
+      PLANS_WITH_ALL_ZONES.push(planId)
+    } else if (!body.allZonesIncluded && pwazIdx !== -1) {
+      PLANS_WITH_ALL_ZONES.splice(pwazIdx, 1)
+    }
+    return HttpResponse.json(mockPlanZones[planId])
+  }),
+
+  // ============ ADMIN: ADDON MANAGEMENT ============
+
+  // List addons
+  http.get(`${API_URL}/admin/addons`, async () => {
+    await delay(DELAY_MS)
+    return HttpResponse.json({ addons: mockZoneAddons })
+  }),
+
+  // Create addon
+  http.post(`${API_URL}/admin/addons`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const body = (await request.json()) as {
+      name: string; description?: string; priceINR?: number; priceUSD?: number
+      price?: number; currency?: string; zonesIncluded?: number; isFlexible?: boolean
+    }
+    const newAddon = {
+      id: `addon-${Date.now()}`,
+      name: body.name,
+      description: body.description ?? '',
+      price: body.priceINR ?? body.price ?? 0,
+      priceINR: body.priceINR ?? body.price ?? 0,
+      priceUSD: body.priceUSD ?? null,
+      currency: body.currency ?? 'INR',
+      zonesIncluded: body.zonesIncluded ?? 1,
+      isFlexible: Boolean(body.isFlexible),
+    }
+    mockZoneAddons.push(newAddon)
+    return HttpResponse.json(newAddon, { status: 201 })
+  }),
+
+  // Update addon
+  http.patch(`${API_URL}/admin/addons/:addonId`, async ({ params, request }) => {
+    await delay(DELAY_MS)
+    const addon = mockZoneAddons.find((a) => a.id === params.addonId)
+    if (!addon) return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    const body = (await request.json()) as Partial<typeof addon>
+    Object.assign(addon, body)
+    if (addon.priceINR != null) addon.price = addon.priceINR
+    return HttpResponse.json(addon)
+  }),
+
+  // Delete addon
+  http.delete(`${API_URL}/admin/addons/:addonId`, async ({ params }) => {
+    await delay(DELAY_MS)
+    const idx = mockZoneAddons.findIndex((a) => a.id === params.addonId)
+    if (idx === -1) return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    mockZoneAddons.splice(idx, 1)
+    return HttpResponse.json({ success: true })
   }),
 ]

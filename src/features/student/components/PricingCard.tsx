@@ -1,4 +1,5 @@
-import { ArrowRight } from 'lucide-react'
+import { ReactNode } from 'react'
+import { ArrowRight, Globe } from 'lucide-react'
 import Card, { CardContent, CardDescription, CardFooter, CardTitle } from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Badge from '@/components/common/Badge'
@@ -8,6 +9,7 @@ import FeatureList from './FeatureList'
 interface PricingCardProps {
   name: string
   price: string
+  secondaryPrice?: string | null
   description: string
   features: string[]
   isCurrentPlan: boolean
@@ -16,14 +18,16 @@ interface PricingCardProps {
   isProcessing?: boolean
   badge?: string | null
   discount?: number
-  trialDays?: number
   originalPrice?: string
-  billingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'one-time'
+  maxApplications?: number | null
+  actionButton?: ReactNode
+  zoneInfo?: { allZonesIncluded: boolean; zones: Array<{ id: string; name: string }> }
 }
 
 export default function PricingCard({
   name,
   price,
+  secondaryPrice,
   description,
   features,
   isCurrentPlan,
@@ -32,13 +36,13 @@ export default function PricingCard({
   isProcessing = false,
   badge,
   discount,
-  trialDays,
   originalPrice,
-  billingCycle,
+  maxApplications,
+  actionButton,
+  zoneInfo,
 }: PricingCardProps) {
   const isActionable = !isCurrentPlan && !!onCtaClick
   const hasDiscount = discount && discount > 0
-  const isOneTime = billingCycle === 'one-time'
 
   return (
     <Card
@@ -73,24 +77,44 @@ export default function PricingCard({
           )}
         </div>
 
+        {secondaryPrice && (
+          <p className="mt-1 text-sm font-medium text-gray-500">{secondaryPrice}</p>
+        )}
+
         {hasDiscount && (
           <span className="mt-1 text-sm font-medium text-blue-600">
             Save {discount}%
           </span>
         )}
 
-        {isOneTime && (
+        {maxApplications && maxApplications > 0 && (
           <span className="mt-1 text-sm font-medium text-purple-600">
-            One-time payment • Lifetime access
+            {maxApplications} applications included
           </span>
         )}
 
         <CardDescription className="text-gray-500 mt-1">{description}</CardDescription>
 
-        {trialDays && trialDays > 0 && !isOneTime && (
-          <p className="mt-2 text-sm font-medium text-blue-600">
-            {trialDays}-day free trial
-          </p>
+        {zoneInfo && (
+          <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
+            <Globe className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div>
+              {zoneInfo.allZonesIncluded ? (
+                <span className="text-blue-600 font-medium">All Zones Included</span>
+              ) : zoneInfo.zones.length > 0 ? (
+                <>
+                  <span className="text-gray-700 font-medium">
+                    {zoneInfo.zones.length} Zone{zoneInfo.zones.length > 1 ? 's' : ''} Included
+                  </span>
+                  <ul className="mt-1 space-y-0.5">
+                    {zoneInfo.zones.map((z) => (
+                      <li key={z.id} className="text-xs text-gray-500">• {z.name}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          </div>
         )}
 
         <div className="mt-6 flex-1">
@@ -98,17 +122,19 @@ export default function PricingCard({
         </div>
 
         <CardFooter className="mt-6 border-gray-200 px-0 pb-0 pt-4">
-          <Button
-            variant={isActionable ? 'primary' : 'secondary'}
-            size="md"
-            className="w-full"
-            rightIcon={isActionable ? <ArrowRight className="w-4 h-4" /> : undefined}
-            onClick={onCtaClick}
-            disabled={!isActionable || isProcessing}
-            isLoading={isProcessing}
-          >
-            {isCurrentPlan ? 'Current Plan' : ctaLabel}
-          </Button>
+          {actionButton || (
+            <Button
+              variant={isActionable ? 'primary' : 'secondary'}
+              size="md"
+              className="w-full"
+              rightIcon={isActionable ? <ArrowRight className="w-4 h-4" /> : undefined}
+              onClick={onCtaClick}
+              disabled={!isActionable || isProcessing}
+              isLoading={isProcessing}
+            >
+              {isCurrentPlan ? 'Current Plan' : ctaLabel}
+            </Button>
+          )}
         </CardFooter>
       </CardContent>
     </Card>

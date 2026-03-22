@@ -5,18 +5,50 @@ import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Badge from '@/components/common/Badge'
+import Alert from '@/components/common/Alert'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
-import { JobPosting } from '@/types'
+import ZoneBadge from '@/features/student/components/ZoneBadge'
+import { JobPosting, ZoneInfo } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight } from 'lucide-react'
+import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe, Filter, Ticket, Undo2 } from 'lucide-react'
+
+interface ZoneWithCount extends ZoneInfo {
+  jobCount?: number
+  isAccessible?: boolean
+}
 
 export default function StudentJobSearch() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  const [zoneFilter, setZoneFilter] = useState<string>('')
+  const [zones, setZones] = useState<ZoneWithCount[]>([])
+  const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
+
+  // Fetch zones and accessible zones
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const [zonesData, accessData] = await Promise.all([
+          api.get<{ zones: ZoneInfo[] }>('/admin/zones').catch(() => ({ zones: [] })),
+          api.get<{ accessibleZones: ZoneInfo[]; allZonesIncluded: boolean }>('/student/subscription/zones').catch(() => null),
+        ])
+
+        const accessibleIds = new Set(
+          accessData?.allZonesIncluded
+            ? zonesData.zones.map((z) => z.id)
+            : accessData?.accessibleZones.map((z) => z.id) ?? []
+        )
+        setZones(zonesData.zones.map((z) => ({ ...z, isAccessible: accessibleIds.has(z.id) })))
+      } catch {
+        // Non-critical
+      }
+    }
+    fetchZones()
+  }, [])
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -28,7 +60,14 @@ export default function StudentJobSearch() {
         const data = await api.get<{ jobs: JobPosting[] }>(
           `/student/jobs?${params.toString()}`
         )
-        setJobs(data.jobs)
+
+        // Apply zone filter locally
+        if (zoneFilter) {
+          setJobs(data.jobs.filter((job) => (job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId) === zoneFilter ||
+            (job.countryId && zones.find((z) => z.countries?.includes(job.countryName || ''))?.id === zoneFilter)))
+        } else {
+          setJobs(data.jobs)
+        }
       } catch {
         // Jobs will remain empty
       } finally {
@@ -38,24 +77,111 @@ export default function StudentJobSearch() {
 
     const debounce = setTimeout(fetchJobs, 300)
     return () => clearTimeout(debounce)
-  }, [searchTerm, locationFilter])
+  }, [searchTerm, locationFilter, zoneFilter, zones])
+
+  useEffect(() => {
+    api
+      .get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+      .then((data) =>
+        setQuota({ applicationsUsed: data.applicationsUsed, applicationLimit: data.applicationLimit })
+      )
+      .catch(() => {})
+  }, [])
+
+  const isQuotaReached =
+    typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
 
   return (
     <PageContainer title="Browse Jobs" description="Find your perfect job opportunity">
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          placeholder="Search by title or keywords..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
-        <Input
-          placeholder="Filter by location..."
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          leftIcon={<MapPin className="w-4 h-4" />}
-        />
+      {/* Filters */}
+      <div className="mb-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input
+            placeholder="Search by title or keywords..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftIcon={<Search className="w-4 h-4" />}
+          />
+          <Input
+            placeholder="Filter by location..."
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            leftIcon={<MapPin className="w-4 h-4" />}
+          />
+          <div>
+            <select
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+              className="w-full h-10 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Zones</option>
+              {zones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name} {zone.isAccessible ? '✓' : '🔒'}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Zone Pills */}
+        {zones.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setZoneFilter('')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                zoneFilter === ''
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              All
+            </button>
+            {zones.map((zone) => (
+              <button
+                key={zone.id}
+                onClick={() => setZoneFilter(zone.id === zoneFilter ? '' : zone.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  zoneFilter === zone.id
+                    ? 'bg-blue-600 text-white'
+                    : zone.isAccessible
+                    ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                }`}
+              >
+                {zone.isAccessible ? (
+                  <Globe className="w-3.5 h-3.5" />
+                ) : (
+                  <Lock className="w-3.5 h-3.5" />
+                )}
+                {zone.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {isQuotaReached && (
+        <Alert variant="warning" className="mb-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-medium">Application quota reached</p>
+              <p className="text-sm mt-0.5">
+                You have used all {quota?.applicationsUsed} of {quota?.applicationLimit} allowed
+                applications. Upgrade your plan to continue applying.
+              </p>
+            </div>
+            <Link
+              to="/subscription"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            >
+              Upgrade Plan
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </Alert>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -78,83 +204,142 @@ export default function StudentJobSearch() {
       ) : (
         <div className="space-y-4">
           {jobs.map((job) => (
-            <Card key={job.id} hover className="group">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-4">
-                    <CompanyAvatar
-                      name={job.company?.name ?? 'Company'}
-                      logoUrl={job.company?.logo}
-                      size="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/jobs/${job.id}`}
-                        className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-                      >
-                        {job.title}
-                      </Link>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-blue-600 font-medium">
-                          {job.company?.name ?? 'Unknown Company'}
-                        </p>
-                        {job.company?.industry && (
-                          <Badge variant="secondary" className="text-xs">
-                            {job.company.industry}
-                          </Badge>
+            <div key={job.id} className="relative">
+              <Card hover={!isQuotaReached} className="group overflow-hidden">
+                <div
+                  className={
+                    isQuotaReached
+                      ? 'flex items-start justify-between gap-4 blur-sm opacity-60 select-none pointer-events-none'
+                      : 'flex items-start justify-between gap-4'
+                  }
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-4">
+                      <CompanyAvatar
+                        name={job.company?.name ?? 'Company'}
+                        logoUrl={job.company?.logo}
+                        size="md"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          to={`/student/jobs/${job.id}`}
+                          className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                        >
+                          {job.title}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-blue-600 font-medium">
+                            {job.company?.name ?? 'Unknown Company'}
+                          </p>
+                          {job.company?.industry && (
+                            <Badge variant="secondary" className="text-xs">
+                              {job.company.industry}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {job.company?.description && (
+                          <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+                            {job.company.description}
+                          </p>
                         )}
-                      </div>
 
-                      {job.company?.description && (
-                        <p className="mt-2 text-sm text-gray-500 line-clamp-2">
-                          {job.company.description}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-3 mt-3">
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                          <MapPin className="w-4 h-4" />
-                          {job.location}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                          <Briefcase className="w-4 h-4" />
-                          {job.jobType}
-                        </div>
-                        {job.salaryRange && (
+                        <div className="flex flex-wrap items-center gap-3 mt-3">
                           <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                            <DollarSign className="w-4 h-4" />
-                            {job.salaryRange}
+                            <MapPin className="w-4 h-4" />
+                            {job.location}
                           </div>
-                        )}
-                      </div>
-
-                      <p className="mt-3 text-gray-600 text-sm line-clamp-2">{job.description}</p>
-
-                      <div className="flex items-center gap-3 mt-3">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <Calendar className="w-3.5 h-3.5" />
-                          Posted {format(new Date(job.createdAt), 'MMM d, yyyy')}
+                          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                            <Briefcase className="w-4 h-4" />
+                            {job.jobType}
+                          </div>
+                          {job.salaryRange && (
+                            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <DollarSign className="w-4 h-4" />
+                              {job.salaryRange}
+                            </div>
+                          )}
                         </div>
-                        {job.deadline && (
-                          <Badge variant="warning">
-                            Deadline: {format(new Date(job.deadline), 'MMM d')}
-                          </Badge>
-                        )}
+
+                        <p className="mt-3 text-sm line-clamp-2 text-gray-600">
+                          {job.description}
+                        </p>
+
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <Calendar className="w-3.5 h-3.5" />
+                            Posted {format(new Date(job.createdAt), 'MMM d, yyyy')}
+                          </div>
+                          {job.deadline && (
+                            <Badge variant="warning">
+                              Deadline: {format(new Date(job.deadline), 'MMM d')}
+                            </Badge>
+                          )}
+                          {job.countryName && (
+                            <ZoneBadge
+                              zoneName={job.countryName}
+                              zoneId={job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId}
+                              isLocked={job.isZoneLocked}
+                              size="sm"
+                            />
+                          )}
+                          {job.accessSource === 'pay-per-job' && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                              <Ticket className="w-3 h-3" />
+                              Purchased
+                            </span>
+                          )}
+                          {job.applicationStatus === 'withdrawn' && job.accessSource === 'applied' && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 border border-yellow-200">
+                              <Undo2 className="w-3 h-3" />
+                              Withdrawn
+                            </span>
+                          )}
+                          {job.isZoneLocked && !job.countryName && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
+                              <Lock className="w-3 h-3" />
+                              Zone Locked
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                    <Link to={`/student/jobs/${job.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
+                      >
+                        View
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <Link to={`/jobs/${job.id}`} className="flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
-                  >
-                    View
-                  </Button>
-                </Link>
-              </div>
-            </Card>
+              </Card>
+
+              {isQuotaReached && (
+                <div className="absolute inset-0 rounded-lg flex items-center justify-center z-10 bg-white/20 backdrop-blur-sm">
+                  <div className="rounded-xl border border-amber-200 bg-white/95 px-5 py-4 text-center shadow-sm">
+                    <div className="mb-2 flex items-center justify-center gap-2 text-amber-800">
+                      <Lock className="h-4 w-4 flex-shrink-0" />
+                      <p className="text-sm font-semibold">Application quota exhausted.</p>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upgrade your plan to continue applying.
+                    </p>
+                    <Link
+                      to="/subscription"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Upgrade Plan
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
