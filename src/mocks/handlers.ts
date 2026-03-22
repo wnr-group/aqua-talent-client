@@ -1449,11 +1449,21 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const student = user.data as Student
+    const student = mockStudents.find((s) => s.id === user.id) || (user.data as Student)
     return HttpResponse.json({
+      studentId: student.studentId,
       fullName: student.fullName,
       email: student.email,
+      isDGShipping: student.isDGShipping || 'no',
       profileLink: student.profileLink || '',
+      bio: student.bio || '',
+      location: student.location || '',
+      availableFrom: student.availableFrom || '',
+      introVideoUrl: student.introVideoUrl || '',
+      resumeUrl: student.resumeUrl || '',
+      skills: student.skills || [],
+      education: student.education || [],
+      experience: student.experience || [],
     })
   }),
 
@@ -2079,8 +2089,10 @@ export const handlers = [
 
     return HttpResponse.json({
       id: student.id,
+      studentId: student.studentId,
       fullName: student.fullName,
       email: student.email,
+      isDGShipping: student.isDGShipping || 'no',
       profileLink: student.profileLink,
       bio: student.bio,
       location: student.location,

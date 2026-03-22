@@ -49,8 +49,10 @@ interface Experience {
 
 interface StudentProfile {
   id: string
+  studentId?: string
   fullName: string
   email: string
+  isDGShipping?: 'yes' | 'no'
   profileLink: string | null
   bio: string | null
   location: string | null
@@ -283,10 +285,32 @@ export default function AdminStudentDetail() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">Student ID</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {student.studentId || <span className="text-gray-400 font-normal">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-xs text-gray-500">Email</p>
                       <p className="text-sm text-gray-900">{student.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">DG Shipping</p>
+                      {student.isDGShipping === 'yes' ? (
+                        <Badge variant="success" className="bg-teal-100 text-teal-700 border border-teal-200">
+                          DGS Certified
+                        </Badge>
+                      ) : (
+                        <p className="text-sm text-gray-900">No</p>
+                      )}
                     </div>
                   </div>
                   {student.location && (
