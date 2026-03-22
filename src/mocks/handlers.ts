@@ -95,37 +95,34 @@ function findSubscriptionPlan(planIdentifier?: string) {
 }
 
 function getNormalizedNonIndianPrice(plan: {
-  nonIndianPrice?: number | null
-  internationalPrice?: number | null
+  priceUSD?: number | null
   price: number
   currency: string
 }) {
-  return plan.nonIndianPrice ?? plan.internationalPrice ?? (plan.currency === 'USD' ? plan.price : null)
+  return plan.priceUSD ?? (plan.currency === 'USD' ? plan.price : null)
 }
 
 function getNormalizedIndianPrice(plan: {
-  indianPrice?: number | null
+  priceINR?: number | null
   price: number
   currency: string
 }) {
-  return plan.indianPrice ?? (plan.currency === 'INR' ? plan.price : null)
+  return plan.priceINR ?? (plan.currency === 'INR' ? plan.price : null)
 }
 
 function withPricingAliases<T extends {
-  indianPrice?: number | null
-  nonIndianPrice?: number | null
-  internationalPrice?: number | null
+  priceINR?: number | null
+  priceUSD?: number | null
   price: number
   currency: string
 }>(plan: T) {
-  const indianPrice = getNormalizedIndianPrice(plan)
-  const nonIndianPrice = getNormalizedNonIndianPrice(plan)
+  const priceINR = getNormalizedIndianPrice(plan)
+  const priceUSD = getNormalizedNonIndianPrice(plan)
 
   return {
     ...plan,
-    indianPrice,
-    nonIndianPrice,
-    internationalPrice: plan.internationalPrice ?? nonIndianPrice,
+    priceINR,
+    priceUSD,
   }
 }
 
@@ -151,20 +148,19 @@ function calculateSubscriptionEndDate(billingCycle: string): string {
 }
 
 function getOrderAmount(plan: {
-  indianPrice?: number | null
-  nonIndianPrice?: number | null
-  internationalPrice?: number | null
+  priceINR?: number | null
+  priceUSD?: number | null
   price: number
   currency: string
 }, currency?: string) {
   const normalizedCurrency = currency?.toUpperCase()
 
   if (normalizedCurrency === 'USD') {
-    return plan.internationalPrice ?? plan.nonIndianPrice ?? plan.price
+    return plan.priceUSD ?? plan.price
   }
 
   if (normalizedCurrency === 'INR') {
-    return plan.indianPrice ?? plan.price
+    return plan.priceINR ?? plan.price
   }
 
   return plan.price
@@ -250,9 +246,8 @@ function buildStudentSubscriptionResponse(studentId: string) {
             name: plan.name,
             tier: plan.tier,
             price: plan.price,
-            indianPrice: plan.indianPrice,
-            nonIndianPrice: getNormalizedNonIndianPrice(plan),
-            internationalPrice: plan.internationalPrice,
+            priceINR: plan.priceINR,
+            priceUSD: plan.priceUSD ?? getNormalizedNonIndianPrice(plan),
             currency: plan.currency,
             billingCycle: plan.billingCycle,
             trialDays: plan.trialDays,
@@ -414,7 +409,7 @@ function buildZoneLockInfo(
       type: 'zone-addon' as const,
       label: `Unlock ${zone.name} zone`,
       description: `Access all jobs in the ${zone.name} zone permanently.`,
-      price: addonSingle.indianPrice ?? addonSingle.price,
+      price: addonSingle.priceINR ?? addonSingle.price,
       currency: 'INR',
       addonId: addonSingle.id,
       zonesIncluded: addonSingle.zonesIncluded ?? 1,
@@ -424,7 +419,7 @@ function buildZoneLockInfo(
       type: 'zone-addon' as const,
       label: 'Unlock all zones',
       description: 'Access jobs in all geographic zones worldwide.',
-      price: addonAll.indianPrice ?? addonAll.price,
+      price: addonAll.priceINR ?? addonAll.price,
       currency: 'INR',
       addonId: addonAll.id,
       zonesIncluded: undefined,
@@ -2235,12 +2230,10 @@ export const handlers = [
     >
 
     const now = new Date().toISOString()
-    const nonIndianPrice = getNormalizedNonIndianPrice(body)
     const newPlan = {
       ...body,
-      indianPrice: getNormalizedIndianPrice(body),
-      nonIndianPrice,
-      internationalPrice: body.internationalPrice ?? nonIndianPrice,
+      priceINR: getNormalizedIndianPrice(body),
+      priceUSD: body.priceUSD ?? getNormalizedNonIndianPrice(body),
       id: `plan-${Date.now()}`,
       _id: `plan-${Date.now()}`,
       createdAt: now,
@@ -2273,9 +2266,8 @@ export const handlers = [
     if (body.description !== undefined) plan.description = body.description
     if (body.maxApplications !== undefined) plan.maxApplications = body.maxApplications
     if (body.price !== undefined) plan.price = body.price
-    if (body.indianPrice !== undefined) plan.indianPrice = body.indianPrice
-    if (body.nonIndianPrice !== undefined) plan.nonIndianPrice = body.nonIndianPrice
-    if (body.internationalPrice !== undefined) plan.internationalPrice = body.internationalPrice
+    if (body.priceINR !== undefined) plan.priceINR = body.priceINR
+    if (body.priceUSD !== undefined) plan.priceUSD = body.priceUSD
     if (body.currency !== undefined) plan.currency = body.currency
     if (body.billingCycle !== undefined) plan.billingCycle = body.billingCycle
     if (body.trialDays !== undefined) plan.trialDays = body.trialDays
@@ -2289,9 +2281,8 @@ export const handlers = [
     if (body.profileBoost !== undefined) plan.profileBoost = body.profileBoost
     if (body.applicationHighlight !== undefined) plan.applicationHighlight = body.applicationHighlight
     if (body.isActive !== undefined) plan.isActive = body.isActive
-    plan.indianPrice = getNormalizedIndianPrice(plan)
-    plan.nonIndianPrice = getNormalizedNonIndianPrice(plan)
-    plan.internationalPrice = plan.internationalPrice ?? plan.nonIndianPrice
+    plan.priceINR = getNormalizedIndianPrice(plan)
+    plan.priceUSD = getNormalizedNonIndianPrice(plan)
     plan.updatedAt = new Date().toISOString()
 
     return HttpResponse.json(withPricingAliases(plan))
@@ -2562,8 +2553,8 @@ export const handlers = [
 
     const currency = (body.currency?.toUpperCase() === 'USD') ? 'USD' : 'INR'
     const amount = currency === 'INR'
-      ? Math.round((addon.indianPrice ?? addon.price) * 100)
-      : Math.round((addon.internationalPrice ?? addon.price) * 100)
+      ? Math.round((addon.priceINR ?? addon.price) * 100)
+      : Math.round((addon.priceUSD ?? addon.price) * 100)
 
     const orderId = `order_za_${Date.now()}`
     const order: MockPaymentOrder = {
@@ -2795,16 +2786,16 @@ export const handlers = [
   http.post(`${API_URL}/admin/addons`, async ({ request }) => {
     await delay(DELAY_MS)
     const body = (await request.json()) as {
-      name: string; description?: string; indianPrice?: number; internationalPrice?: number
+      name: string; description?: string; priceINR?: number; priceUSD?: number
       price?: number; currency?: string; zonesIncluded?: number; isFlexible?: boolean
     }
     const newAddon = {
       id: `addon-${Date.now()}`,
       name: body.name,
       description: body.description ?? '',
-      price: body.indianPrice ?? body.price ?? 0,
-      indianPrice: body.indianPrice ?? body.price ?? 0,
-      internationalPrice: body.internationalPrice ?? null,
+      price: body.priceINR ?? body.price ?? 0,
+      priceINR: body.priceINR ?? body.price ?? 0,
+      priceUSD: body.priceUSD ?? null,
       currency: body.currency ?? 'INR',
       zonesIncluded: body.zonesIncluded ?? 1,
       isFlexible: Boolean(body.isFlexible),
@@ -2820,7 +2811,7 @@ export const handlers = [
     if (!addon) return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
     const body = (await request.json()) as Partial<typeof addon>
     Object.assign(addon, body)
-    if (addon.indianPrice != null) addon.price = addon.indianPrice
+    if (addon.priceINR != null) addon.price = addon.priceINR
     return HttpResponse.json(addon)
   }),
 
