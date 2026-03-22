@@ -280,31 +280,37 @@ export default function AdminStudentDetail() {
                     <User className="w-5 h-5" />
                     Basic Information
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {student.isDGShipping === 'yes' && (
-                      <Badge variant="success" className="bg-teal-100 text-teal-700 border border-teal-200">
-                        DGS Certified
-                      </Badge>
-                    )}
-                    {student.isHired && <Badge variant="success">Hired</Badge>}
-                  </div>
+                  {student.isHired && <Badge variant="success">Hired</Badge>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {student.studentId && (
-                    <div className="flex items-center gap-3">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500">Student ID</p>
-                        <p className="text-sm font-medium text-gray-900">{student.studentId}</p>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">Student ID</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {student.studentId || <span className="text-gray-400 font-normal">Not provided</span>}
+                      </p>
                     </div>
-                  )}
+                  </div>
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-xs text-gray-500">Email</p>
                       <p className="text-sm text-gray-900">{student.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">DG Shipping</p>
+                      {student.isDGShipping === 'yes' ? (
+                        <Badge variant="success" className="bg-teal-100 text-teal-700 border border-teal-200">
+                          DGS Certified
+                        </Badge>
+                      ) : (
+                        <p className="text-sm text-gray-900">No</p>
+                      )}
                     </div>
                   </div>
                   {student.location && (
