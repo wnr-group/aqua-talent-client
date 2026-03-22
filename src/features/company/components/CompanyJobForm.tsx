@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -11,7 +11,8 @@ import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Alert from '@/components/common/Alert'
 import { jobCreateSchema, JobCreateFormData } from '@/types/schemas/job'
-import { JOB_TYPES } from '@/types'
+import { JOB_TYPES, Country } from '@/types'
+import { api } from '@/services/api/client'
 import { Save, Send } from 'lucide-react'
 
 const CARD_BASE_CLASSES = 'bg-white border border-gray-200 rounded-xl shadow-sm'
@@ -37,6 +38,13 @@ export default function CompanyJobForm({
 }: CompanyJobFormProps) {
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [countries, setCountries] = useState<Country[]>([])
+
+  useEffect(() => {
+    api.get<{ countries: Country[] }>('/company/countries')
+      .then((res) => setCountries(res.countries))
+      .catch(() => {/* non-critical — country select will just be empty */})
+  }, [])
 
   const {
     register,
@@ -54,6 +62,7 @@ export default function CompanyJobForm({
       jobType: initialValues?.jobType ?? '',
       salaryRange: initialValues?.salaryRange ?? '',
       deadline: initialValues?.deadline ?? '',
+      countryId: initialValues?.countryId ?? '',
     },
   })
 
@@ -164,6 +173,33 @@ export default function CompanyJobForm({
             error={errors.deadline?.message}
             className={COMPANY_INPUT_STYLES}
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Country <span className="text-gray-400 font-normal">(Optional — for geographic targeting)</span>
+          </label>
+          <select
+            {...register('countryId')}
+            className={COMPANY_SELECT_STYLES}
+          >
+            <option value="">— No specific country —</option>
+            {/* Group by zone */}
+            {Array.from(new Set(countries.map((c) => c.zoneName))).map((zoneName) => (
+              <optgroup key={zoneName} label={zoneName}>
+                {countries
+                  .filter((c) => c.zoneName === zoneName)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            Selecting a country restricts visibility to students with access to that zone.
+          </p>
         </div>
 
         <div>

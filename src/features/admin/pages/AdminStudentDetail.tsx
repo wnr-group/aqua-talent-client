@@ -27,6 +27,8 @@ import {
   ExternalLink,
   Download,
   Play,
+  Globe,
+  Ticket,
 } from 'lucide-react'
 
 interface Education {
@@ -67,14 +69,13 @@ interface StudentProfile {
       id: string
       status: 'active' | 'expired' | 'cancelled' | 'pending'
       startDate: string
-      endDate: string
-      autoRenew: boolean
+      endDate: string | null
       plan: {
         id: string
         name: string
         description: string
         price: number
-        billingCycle: string
+        maxApplications: number | null
         features: string[]
       } | null
     } | null
@@ -82,13 +83,27 @@ interface StudentProfile {
 
   payments: {
     id: string
+    type: 'plan' | 'zone-addon' | 'pay-per-job'
+    typeLabel: string
     amount: number
     currency: string
     status: 'pending' | 'completed' | 'failed' | 'refunded'
     paymentDate: string
-    paymentMethod: string
+    paymentMethod: string | null
+    razorpayOrderId: string | null
+    razorpayPaymentId: string | null
     transactionId: string
-    plan: { name: string; price: number } | null
+    details: {
+      planId?: string
+      planName?: string
+      planPrice?: number
+      addonId?: string
+      addonName?: string
+      jobId?: string
+      jobTitle?: string
+    } | null
+    // Legacy field for backwards compatibility
+    plan?: { name: string; price: number } | null
   }[]
 
   applications: {
@@ -181,7 +196,12 @@ export default function AdminStudentDetail() {
     }
   }
 
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId)
+  const formatDualPricing = (plan: SubscriptionPlan) => {
+    const indianLabel = `₹${plan.priceINR ?? plan.price ?? 0}`
+    const internationalLabel = `$${plan.priceUSD ?? 0}`
+
+    return `${indianLabel} • ${internationalLabel}`
+  }
 
   if (isLoading) {
     return (
@@ -506,7 +526,13 @@ export default function AdminStudentDetail() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Price</p>
                     <p className="text-gray-900">
-                      ${student.subscription.current.plan?.price || 0} / {student.subscription.current.plan?.billingCycle}
+                      ${student.subscription.current.plan?.price || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Applications</p>
+                    <p className="text-gray-900">
+                      {student.subscription.current.plan?.maxApplications || 'Unlimited'}
                     </p>
                   </div>
                   <div>
@@ -514,20 +540,6 @@ export default function AdminStudentDetail() {
                     <p className="text-gray-900">
                       {format(new Date(student.subscription.current.startDate), 'MMM d, yyyy')}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">End Date</p>
-                    <p className="text-gray-900">
-                      {student.subscription.current.plan?.billingCycle === 'one-time'
-                        ? 'Never expires'
-                        : format(new Date(student.subscription.current.endDate), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Auto-Renew</p>
-                    <Badge variant={student.subscription.current.autoRenew ? 'success' : 'secondary'}>
-                      {student.subscription.current.autoRenew ? 'Yes' : 'No'}
-                    </Badge>
                   </div>
 
                   {student.subscription.current.plan?.features && (
@@ -570,35 +582,109 @@ export default function AdminStudentDetail() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Details</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Amount</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Transaction ID</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Method</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {student.payments.map((payment) => (
-                      <tr key={payment.id} className="border-b border-gray-100">
-                        <td className="py-3 px-4 text-gray-900">
-                          {format(new Date(payment.paymentDate), 'MMM d, yyyy')}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">{payment.plan?.name || 'N/A'}</td>
-                        <td className="py-3 px-4 text-gray-900">
-                          {payment.currency} {payment.amount}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={paymentStatusColors[payment.status]}>
-                            {payment.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600 font-mono text-xs">
-                          {payment.transactionId}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">{payment.paymentMethod}</td>
-                      </tr>
-                    ))}
+                    {student.payments.map((payment) => {
+                      // Determine payment type (with backwards compatibility)
+                      const paymentType = payment.type || 'plan'
+                      const typeConfig = {
+                        plan: { label: 'Plan Purchase', icon: CreditCard, color: 'bg-blue-100 text-blue-700' },
+                        'zone-addon': { label: 'Zone Addon', icon: Globe, color: 'bg-purple-100 text-purple-700' },
+                        'pay-per-job': { label: 'Pay Per Job', icon: Ticket, color: 'bg-green-100 text-green-700' },
+                      }
+                      const config = typeConfig[paymentType] || typeConfig.plan
+                      const TypeIcon = config.icon
+
+                      // Get display details
+                      const getDetailsDisplay = () => {
+                        if (payment.details) {
+                          if (paymentType === 'plan' && payment.details.planName) {
+                            return (
+                              <div>
+                                <span className="font-medium text-gray-900">{payment.details.planName}</span>
+                                {payment.details.planPrice && (
+                                  <span className="text-gray-500 ml-1 text-xs">
+                                    (₹{payment.details.planPrice})
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          }
+                          if (paymentType === 'zone-addon' && payment.details.addonName) {
+                            return <span className="font-medium text-gray-900">{payment.details.addonName}</span>
+                          }
+                          if (paymentType === 'pay-per-job' && payment.details.jobTitle) {
+                            return (
+                              <span className="font-medium text-gray-900">{payment.details.jobTitle}</span>
+                            )
+                          }
+                        }
+                        // Fallback to legacy plan field
+                        if (payment.plan?.name) {
+                          return (
+                            <div>
+                              <span className="font-medium text-gray-900">{payment.plan.name}</span>
+                              {payment.plan.price && (
+                                <span className="text-gray-500 ml-1 text-xs">
+                                  (₹{payment.plan.price})
+                                </span>
+                              )}
+                            </div>
+                          )
+                        }
+                        return <span className="text-gray-400">—</span>
+                      }
+
+                      // Get transaction ID display (prefer razorpayPaymentId for completed)
+                      const getTransactionId = () => {
+                        if (payment.status === 'completed' && payment.razorpayPaymentId) {
+                          return payment.razorpayPaymentId
+                        }
+                        if (payment.razorpayOrderId) {
+                          return payment.razorpayOrderId
+                        }
+                        return payment.transactionId || '—'
+                      }
+
+                      return (
+                        <tr key={payment.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
+                              <TypeIcon className="w-3 h-3" />
+                              {payment.typeLabel || config.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            {getDetailsDisplay()}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono font-medium text-gray-900">
+                              {payment.currency} {payment.amount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge variant={paymentStatusColors[payment.status]}>
+                              {payment.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {format(new Date(payment.paymentDate), 'MMM d, yyyy')}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-xs text-gray-500">
+                              {getTransactionId()}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -675,45 +761,17 @@ export default function AdminStudentDetail() {
               value={selectedPlanId}
               onChange={(e) => {
                 setSelectedPlanId(e.target.value)
-                const plan = plans.find((p) => p.id === e.target.value)
-                setAutoRenew(plan?.billingCycle !== 'one-time')
               }}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="">Select a plan...</option>
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
-                  {plan.name} - ${plan.price}/{plan.billingCycle} ({plan.tier})
+                  {plan.name} - {formatDualPricing(plan)} ({plan.maxApplications || 'Unlimited'} applications)
                 </option>
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Custom End Date (optional)
-            </label>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to auto-calculate based on billing cycle
-            </p>
-          </div>
-
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={autoRenew}
-              onChange={(e) => setAutoRenew(e.target.checked)}
-              disabled={selectedPlan?.billingCycle === 'one-time'}
-              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-            />
-            <span className="text-sm text-gray-700">Auto-renew subscription</span>
-          </label>
 
           {student.subscription.current && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

@@ -30,10 +30,12 @@ import CompanyProfile from '@/features/company/pages/CompanyProfile'
 
 // Student portal pages
 import StudentDashboard from '@/features/student/pages/StudentDashboard'
+import StudentJobSearch from '@/features/student/pages/StudentJobSearch'
+import StudentJobDetail from '@/features/student/pages/StudentJobDetail'
 import StudentApplications from '@/features/student/pages/StudentApplications'
 import StudentProfile from '@/features/student/pages/StudentProfile'
 import SubscriptionPage from '@/features/student/pages/SubscriptionPage'
-// import PaymentSuccessPage from '@/features/student/pages/PaymentSuccessPage'
+import PaymentSuccessPage from '@/features/student/pages/PaymentSuccessPage'
 
 // Admin portal pages
 import AdminDashboard from '@/features/admin/pages/AdminDashboard'
@@ -43,6 +45,8 @@ import AdminApplications from '@/features/admin/pages/AdminApplications'
 import AdminSubscriptionPlans from '@/features/admin/pages/AdminSubscriptionPlans'
 import AdminStudents from '@/features/admin/pages/AdminStudents'
 import AdminStudentDetail from '@/features/admin/pages/AdminStudentDetail'
+import AdminZones from '@/features/admin/pages/AdminZones'
+import AdminAddons from '@/features/admin/pages/AdminAddons'
 
 // Portal-specific notification pages
 import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
@@ -68,6 +72,22 @@ function PublicRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Student portal routes (on main domain) */}
+      <Route
+        path="/student/jobs"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <StudentJobSearch />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/jobs/:jobId"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+            <StudentJobDetail />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
@@ -100,14 +120,14 @@ function PublicRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* <Route
+      <Route
         path="/subscription/success"
         element={
           <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
             <PaymentSuccessPage />
           </ProtectedRoute>
         }
-      /> */}
+      />
       <Route
         path="/notifications"
         element={
@@ -299,6 +319,22 @@ function AdminPortalRoutes() {
         element={
           <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
             <AdminNotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/zones"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminZones />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/addons"
+        element={
+          <ProtectedRoute allowedUserTypes={[UserType.ADMIN]}>
+            <AdminAddons />
           </ProtectedRoute>
         }
       />
