@@ -65,7 +65,7 @@ export interface Admin {
   createdAt: string
 }
 
-export type UnlockOptionType = 'pay-per-job' | 'zone-addon' | 'upgrade-plan'
+export type UnlockOptionType = 'pay-per-job' | 'zone-addon' | 'upgrade-plan' | 'jobs-addon'
 
 export type AccessSource =
   | 'pay-per-job'
@@ -81,10 +81,14 @@ export interface UnlockOption {
   description?: string
   price?: number
   currency?: string
+  priceINR?: number
+  priceUSD?: number
   addonId?: string
   planId?: string
   zonesIncluded?: number
   unlockAllZones?: boolean
+  jobCredits?: number
+  url?: string
 }
 
 export interface ZoneLockReason {
@@ -95,6 +99,12 @@ export interface ZoneLockReason {
     name: string
   }
   message: string
+  unlockOptions: UnlockOption[]
+}
+
+export interface QuotaLockReason {
+  applicationsUsed: number
+  applicationLimit: number
   unlockOptions: UnlockOption[]
 }
 
@@ -140,7 +150,9 @@ export interface JobPosting {
   description: string
   isDescriptionLocked?: boolean
   isZoneLocked?: boolean
+  isQuotaExhausted?: boolean
   zoneLockReason?: ZoneLockReason | null
+  quotaLockReason?: QuotaLockReason | null
   accessSource?: AccessSource
   countryId?: string | null
   countryName?: string | null
@@ -155,6 +167,9 @@ export interface JobPosting {
   rejectionReason?: string | null
   createdAt: string
   approvedAt?: string | null
+  // Application-related fields (populated when fetching jobs for authenticated students)
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
   company?: {
     id: string
     name: string

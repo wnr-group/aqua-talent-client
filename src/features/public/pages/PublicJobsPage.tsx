@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { JobPosting, UserType, JOB_TYPES } from '@/types'
+import { JobPosting, UserType, JOB_TYPES, ApplicationStatus, AccessSource } from '@/types'
 import {
   Search,
   MapPin,
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  Undo2,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import StudentNavbar from '@/components/layout/StudentNavbar'
@@ -26,15 +27,21 @@ interface Pagination {
   totalPages: number
 }
 
+interface JobWithApplication extends JobPosting {
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
+  accessSource?: AccessSource
+}
+
 interface PublicJobsResponse {
-  jobs: JobPosting[]
+  jobs: JobWithApplication[]
   pagination: Pagination
 }
 
 export default function PublicJobsPage() {
   const { user, isAuthenticated } = useAuthContext()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [jobs, setJobs] = useState<JobPosting[]>([])
+  const [jobs, setJobs] = useState<JobWithApplication[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
@@ -275,6 +282,12 @@ export default function PublicJobsPage() {
                         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                           {job.jobType}
                         </span>
+                        {job.applicationStatus === 'withdrawn' && job.accessSource === 'applied' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 border border-yellow-200 whitespace-nowrap">
+                            <Undo2 className="w-3 h-3 flex-shrink-0" />
+                            Withdrawn
+                          </span>
+                        )}
                         {job.isZoneLocked && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200 whitespace-nowrap">
                             <Globe className="w-3 h-3 flex-shrink-0" />

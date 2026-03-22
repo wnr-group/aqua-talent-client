@@ -7,18 +7,21 @@ import LoadingSpinner from '@/components/common/LoadingSpinner'
 import Alert from '@/components/common/Alert'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { JobPosting, ApplicationStatus } from '@/types'
+import { JobPosting, ApplicationStatus, QuotaLockReason } from '@/types'
 import { api, ApiClientError } from '@/services/api/client'
 import { format } from 'date-fns'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
+import QuotaUnlockPanel from '@/features/student/components/QuotaUnlockPanel'
 import ZoneBadge from '@/features/student/components/ZoneBadge'
 import { Globe, Linkedin, Twitter, ArrowRight, Lock, MapPin } from 'lucide-react'
 
 interface JobDetailResponse extends JobPosting {
   hasApplied: boolean
   applicationStatus?: ApplicationStatus
+  isQuotaExhausted?: boolean
+  quotaLockReason?: QuotaLockReason | null
 }
 
 interface StudentStats {
@@ -163,18 +166,27 @@ export default function StudentJobDetail() {
   const lockedDescriptionPreview = getDescriptionPreview(job?.description)
   const isQuotaReached =
     typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isQuotaExhausted = job?.isQuotaExhausted === true
   const isZoneLocked = job?.isZoneLocked === true
-  const isLocked = job?.isDescriptionLocked === true || isQuotaReached
+  // Trust API's isDescriptionLocked for applied jobs; use local quota check only for non-applied jobs
+  const isLocked = job?.hasApplied
+    ? job?.isDescriptionLocked === true || isQuotaExhausted
+    : job?.isDescriptionLocked === true || isQuotaReached || isQuotaExhausted
   const canApply =
     (!job?.hasApplied || hasWithdrawn) &&
     !stats?.isHired &&
     !isQuotaReached &&
+    !isQuotaExhausted &&
     !isZoneLocked
 
   const handleJobUnlocked = async () => {
     try {
-      const jobData = await api.get<JobDetailsApiResponse>(`/student/jobs/${jobId}`)
+      const [jobData, subData] = await Promise.all([
+        api.get<JobDetailsApiResponse>(`/student/jobs/${jobId}`),
+        api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription'),
+      ])
       setJob(normalizeJobDetailsResponse(jobData, jobId))
+      setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
     } catch { /* best-effort */ }
   }
 
@@ -249,9 +261,25 @@ export default function StudentJobDetail() {
 
             <div className="space-y-6">
               {isZoneLocked && job.zoneLockReason ? (
-                <ZoneUnlockPanel
-                  zoneLockReason={job.zoneLockReason}
-                  jobId={job.id}
+                <div className="space-y-4">
+                  <ZoneUnlockPanel
+                    zoneLockReason={job.zoneLockReason}
+                    jobId={job.id}
+                    prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                    onUnlocked={handleJobUnlocked}
+                  />
+                  {/* Show quota panel too if both zone locked AND quota exhausted */}
+                  {isQuotaExhausted && job.quotaLockReason && (
+                    <QuotaUnlockPanel
+                      quotaLockReason={job.quotaLockReason}
+                      prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                      onUnlocked={handleJobUnlocked}
+                    />
+                  )}
+                </div>
+              ) : isQuotaExhausted && job.quotaLockReason ? (
+                <QuotaUnlockPanel
+                  quotaLockReason={job.quotaLockReason}
                   prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
                   onUnlocked={handleJobUnlocked}
                 />
@@ -396,6 +424,10 @@ export default function StudentJobDetail() {
                     <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
                       You don't have access to this zone. Unlock it through a subscription upgrade, zone add-on, or pay-per-job option below.
                     </p>
+                  ) : isWithdrawnStatus && job.accessSource === 'applied' ? (
+                    <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                      You withdrew your application to this job. Your previous access was through your application. To apply again, you may need to unlock this zone based on your current subscription.
+                    </p>
                   ) : (
                     <p className="text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
                       You have access to this zone and can apply to this job.
@@ -429,8 +461,14 @@ export default function StudentJobDetail() {
               ) : (
                 <>
                   {hasWithdrawn && (
-                    <Alert variant="info" className="mb-4">
-                      Your previous application was withdrawn. You can reapply if you'd like.
+                    <Alert variant={job.accessSource === 'applied' ? 'warning' : 'info'} className="mb-4">
+                      {job.accessSource === 'applied' ? (
+                        <>
+                          Your previous application was withdrawn. Your access to this zone was through that application. To reapply, you may need to unlock this zone based on your current subscription.
+                        </>
+                      ) : (
+                        <>Your previous application was withdrawn. You can reapply if you'd like.</>
+                      )}
                     </Alert>
                   )}
                   {(isQuotaReached || showLimitReachedPrompt) && (

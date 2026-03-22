@@ -12,7 +12,7 @@ import ZoneBadge from '@/features/student/components/ZoneBadge'
 import { JobPosting, ZoneInfo } from '@/types'
 import { api } from '@/services/api/client'
 import { format } from 'date-fns'
-import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe, Filter, Ticket } from 'lucide-react'
+import { Search, MapPin, Briefcase, DollarSign, Calendar, ArrowRight, Lock, Globe, Filter, Ticket, Undo2 } from 'lucide-react'
 
 interface ZoneWithCount extends ZoneInfo {
   jobCount?: number
@@ -287,6 +287,12 @@ export default function StudentJobSearch() {
                             <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
                               <Ticket className="w-3 h-3" />
                               Purchased
+                            </span>
+                          )}
+                          {job.applicationStatus === 'withdrawn' && job.accessSource === 'applied' && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 border border-yellow-200">
+                              <Undo2 className="w-3 h-3" />
+                              Withdrawn
                             </span>
                           )}
                           {job.isZoneLocked && !job.countryName && (

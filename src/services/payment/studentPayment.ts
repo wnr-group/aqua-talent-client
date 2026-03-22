@@ -182,3 +182,57 @@ export async function startZoneAddonPayment(
     throw new Error(verifyResponse.message || 'Payment verification failed')
   }
 }
+
+interface JobsAddonOrderResponse {
+  orderId: string
+  amount: number
+  currency: string
+  key: string
+  addonName: string
+  jobCredits: number
+}
+
+interface JobsAddonPaymentOptions {
+  addonId: string
+  currency: StudentPaymentCurrency
+  prefill?: RazorpayPrefill
+}
+
+export async function startJobsAddonPayment(
+  options: JobsAddonPaymentOptions
+): Promise<void> {
+  const { addonId, currency, prefill } = options
+
+  // Step 1: Create jobs addon order
+  const orderResponse = await api.post<JobsAddonOrderResponse>(
+    '/payments/jobs-addon/create-order',
+    { addonId, currency }
+  )
+
+  // Step 2: Open Razorpay checkout
+  const paymentResult = await openRazorpayCheckout({
+    key: orderResponse.key,
+    amount: orderResponse.amount,
+    currency: orderResponse.currency,
+    name: 'Job Credits',
+    description: orderResponse.addonName,
+    orderId: orderResponse.orderId,
+    prefill,
+    notes: { addonId },
+    themeColor: '#2563eb',
+  })
+
+  // Step 3: Verify payment
+  const verifyResponse = await api.post<VerifyPaymentResponse>(
+    '/payments/jobs-addon/verify',
+    {
+      razorpay_order_id: paymentResult.orderId,
+      razorpay_payment_id: paymentResult.paymentId,
+      razorpay_signature: paymentResult.signature,
+    }
+  )
+
+  if (!verifyResponse.success) {
+    throw new Error(verifyResponse.message || 'Payment verification failed')
+  }
+}

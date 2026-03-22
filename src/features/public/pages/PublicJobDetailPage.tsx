@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '@/services/api/client'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useNotification } from '@/contexts/NotificationContext'
-import { JobPosting, UserType, ApplicationStatus, AccessSource } from '@/types'
+import { JobPosting, UserType, ApplicationStatus, AccessSource, QuotaLockReason } from '@/types'
 import {
   ArrowLeft,
   MapPin,
@@ -29,6 +29,7 @@ import PublicNavbar from '@/components/layout/PublicNavbar'
 import CompanyAvatar from '@/components/common/CompanyAvatar'
 import Badge from '@/components/common/Badge'
 import ZoneUnlockPanel from '@/features/student/components/ZoneUnlockPanel'
+import QuotaUnlockPanel from '@/features/student/components/QuotaUnlockPanel'
 import ZoneBadge from '@/features/student/components/ZoneBadge'
 
 const LOCKED_DESCRIPTION_MESSAGE = 'Application limit reached. Upgrade your plan to view full job description.'
@@ -40,9 +41,15 @@ type PublicJobDetailsPayload = JobPosting & {
   applicationStatus?: ApplicationStatus
   application?: { status?: ApplicationStatus }
   accessSource?: AccessSource
+  isQuotaExhausted?: boolean
+  quotaLockReason?: QuotaLockReason | null
 }
 
-function getAccessMessage(accessSource: AccessSource, zoneName?: string | null): { message: string; variant: 'success' | 'info' } | null {
+function getAccessMessage(
+  accessSource: AccessSource,
+  zoneName?: string | null,
+  isWithdrawn?: boolean
+): { message: string; variant: 'success' | 'info' | 'warning' } | null {
   switch (accessSource) {
     case 'pay-per-job':
       return {
@@ -60,6 +67,12 @@ function getAccessMessage(accessSource: AccessSource, zoneName?: string | null):
         variant: 'success'
       }
     case 'applied':
+      if (isWithdrawn) {
+        return {
+          message: 'You withdrew your application. Your previous access was through that application. To reapply, you may need to unlock this zone based on your current subscription.',
+          variant: 'warning'
+        }
+      }
       return {
         message: 'You have already applied to this job.',
         variant: 'info'
@@ -114,7 +127,7 @@ export default function PublicJobDetailPage() {
   const { user, isAuthenticated } = useAuthContext()
   const { success, error: showError } = useNotification()
 
-  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus; accessSource?: AccessSource }) | null>(null)
+  const [job, setJob] = useState<(JobPosting & { hasApplied?: boolean; applicationStatus?: ApplicationStatus; accessSource?: AccessSource; isQuotaExhausted?: boolean; quotaLockReason?: QuotaLockReason | null }) | null>(null)
   const [dashboard, setDashboard] = useState<{ isHired: boolean } | null>(null)
   const [quota, setQuota] = useState<{ applicationsUsed: number; applicationLimit: number | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -223,8 +236,12 @@ export default function PublicJobDetailPage() {
   const lockedDescriptionPreview = getDescriptionPreview(job.description)
   const isQuotaReached =
     typeof quota?.applicationLimit === 'number' && quota.applicationsUsed >= quota.applicationLimit
+  const isQuotaExhausted = job?.isQuotaExhausted === true
   const isZoneLocked = job?.isZoneLocked === true
-  const isLocked = job?.isDescriptionLocked === true || isQuotaReached
+  // Trust API's isDescriptionLocked for applied jobs; use local quota check only for non-applied jobs
+  const isLocked = job?.hasApplied
+    ? job?.isDescriptionLocked === true || isQuotaExhausted
+    : job?.isDescriptionLocked === true || isQuotaReached || isQuotaExhausted
 
   // Check application status - only withdrawn can reapply (not rejected)
   const isWithdrawn = (job?.applicationStatus as string) === 'withdrawn'
@@ -236,6 +253,11 @@ export default function PublicJobDetailPage() {
     try {
       const data = await api.get<PublicJobDetailsResponse>(`/student/jobs/${jobId}`)
       setJob(normalizePublicJobDetailsResponse(data, jobId))
+      // Also refresh quota
+      if (isStudent) {
+        const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')
+        setQuota({ applicationsUsed: subData.applicationsUsed, applicationLimit: subData.applicationLimit })
+      }
     } catch { /* best-effort */ }
   }
 
@@ -333,9 +355,25 @@ export default function PublicJobDetailPage() {
                 </div>
 
                 {isZoneLocked && job.zoneLockReason ? (
-                  <ZoneUnlockPanel
-                    zoneLockReason={job.zoneLockReason}
-                    jobId={job.id}
+                  <div className="space-y-4">
+                    <ZoneUnlockPanel
+                      zoneLockReason={job.zoneLockReason}
+                      jobId={job.id}
+                      prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                      onUnlocked={handleJobUnlocked}
+                    />
+                    {/* Show quota panel too if both zone locked AND quota exhausted */}
+                    {isQuotaExhausted && job.quotaLockReason && (
+                      <QuotaUnlockPanel
+                        quotaLockReason={job.quotaLockReason}
+                        prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
+                        onUnlocked={handleJobUnlocked}
+                      />
+                    )}
+                  </div>
+                ) : isQuotaExhausted && job.quotaLockReason ? (
+                  <QuotaUnlockPanel
+                    quotaLockReason={job.quotaLockReason}
                     prefill={user?.student ? { name: user.student.fullName, email: user.student.email } : undefined}
                     onUnlocked={handleJobUnlocked}
                   />
@@ -546,7 +584,9 @@ export default function PublicJobDetailPage() {
                     </div>
                     <p className="text-gray-900 font-medium mb-2">Application Withdrawn</p>
                     <p className="text-sm text-gray-500 mb-4">
-                      Your previous application was withdrawn. You can reapply if you'd like.
+                      {job.accessSource === 'applied'
+                        ? 'Your previous application was withdrawn. Your zone access was through that application—you may need to unlock this zone to reapply.'
+                        : 'Your previous application was withdrawn. You can reapply if you\'d like.'}
                     </p>
                     {!isDeadlinePassed && (
                       <button
@@ -621,19 +661,24 @@ export default function PublicJobDetailPage() {
                       </div>
                     )}
                     {isStudent && (() => {
-                      const accessMessage = getAccessMessage(job.accessSource ?? null, job.zoneName)
+                      const accessMessage = getAccessMessage(job.accessSource ?? null, job.zoneName, isWithdrawn)
                       if (accessMessage) {
                         const isSuccess = accessMessage.variant === 'success'
+                        const isWarning = accessMessage.variant === 'warning'
                         return (
                           <div className={`flex items-start gap-2 text-sm rounded-lg p-3 border ${
                             isSuccess
                               ? 'text-green-700 bg-green-50 border-green-200'
+                              : isWarning
+                              ? 'text-amber-700 bg-amber-50 border-amber-200'
                               : 'text-blue-700 bg-blue-50 border-blue-200'
                           }`}>
                             {job.accessSource === 'pay-per-job' && <Ticket className="w-4 h-4 flex-shrink-0 mt-0.5" />}
                             {job.accessSource === 'subscription' && <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />}
                             {job.accessSource === 'all-zones' && <Globe className="w-4 h-4 flex-shrink-0 mt-0.5" />}
-                            {(job.accessSource === 'applied' || job.accessSource === 'no-zone-restriction') && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'applied' && isWithdrawn && <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'applied' && !isWithdrawn && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                            {job.accessSource === 'no-zone-restriction' && <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />}
                             <span>{accessMessage.message}</span>
                           </div>
                         )
