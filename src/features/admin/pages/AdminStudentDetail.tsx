@@ -49,8 +49,10 @@ interface Experience {
 
 interface StudentProfile {
   id: string
+  studentId?: string
   fullName: string
   email: string
+  isDGShipping?: 'yes' | 'no'
   profileLink: string | null
   bio: string | null
   location: string | null
@@ -278,10 +280,26 @@ export default function AdminStudentDetail() {
                     <User className="w-5 h-5" />
                     Basic Information
                   </CardTitle>
-                  {student.isHired && <Badge variant="success">Hired</Badge>}
+                  <div className="flex items-center gap-2">
+                    {student.isDGShipping === 'yes' && (
+                      <Badge variant="success" className="bg-teal-100 text-teal-700 border border-teal-200">
+                        DGS Certified
+                      </Badge>
+                    )}
+                    {student.isHired && <Badge variant="success">Hired</Badge>}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {student.studentId && (
+                    <div className="flex items-center gap-3">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Student ID</p>
+                        <p className="text-sm font-medium text-gray-900">{student.studentId}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-gray-400" />
                     <div>

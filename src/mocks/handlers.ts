@@ -2089,8 +2089,10 @@ export const handlers = [
 
     return HttpResponse.json({
       id: student.id,
+      studentId: student.studentId,
       fullName: student.fullName,
       email: student.email,
+      isDGShipping: student.isDGShipping || 'no',
       profileLink: student.profileLink,
       bio: student.bio,
       location: student.location,
