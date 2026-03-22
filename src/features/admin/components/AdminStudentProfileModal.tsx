@@ -20,6 +20,7 @@ import {
 
 interface StudentProfile {
   id: string
+  studentId?: string
   fullName: string
   email: string
   isDGShipping?: 'yes' | 'no'
@@ -121,6 +122,14 @@ export default function AdminStudentProfileModal({
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-gray-900">{displayName}</h2>
+                {profile.studentId && (
+                  <div className="flex items-center gap-2 text-gray-500 mt-1">
+                    <User className="w-4 h-4" />
+                    <span className="text-sm">
+                      Student ID: <span className="font-medium text-gray-900">{profile.studentId}</span>
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-gray-500 mt-1">
                   <Mail className="w-4 h-4" />
                   <span className="text-sm">{profile.email}</span>

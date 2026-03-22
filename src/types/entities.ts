@@ -41,6 +41,7 @@ export interface StudentExperience {
 
 export interface Student {
   id: string
+  studentId?: string
   username: string
   fullName: string
   email: string

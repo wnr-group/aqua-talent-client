@@ -605,18 +605,49 @@ export const handlers = [
   http.post(`${API_URL}/auth/register/student`, async ({ request }) => {
     await delay(DELAY_MS)
     const body = (await request.json()) as {
+      studentId: string
       fullName: string
       username: string
       email: string
       password: string
       profileLink?: string
+      isDGShipping?: 'yes' | 'no'
+    }
+
+    // Check if studentId is unique
+    const existingStudentId = mockStudents.find((s) => s.studentId === body.studentId)
+    if (existingStudentId) {
+      return HttpResponse.json(
+        { message: 'Student ID already exists. Please use a unique Student ID.' },
+        { status: 400 }
+      )
+    }
+
+    // Check if username is unique
+    const existingUsername = mockStudents.find((s) => s.username === body.username)
+    if (existingUsername) {
+      return HttpResponse.json(
+        { message: 'Username already exists. Please choose a different username.' },
+        { status: 400 }
+      )
+    }
+
+    // Check if email is unique
+    const existingEmail = mockStudents.find((s) => s.email === body.email)
+    if (existingEmail) {
+      return HttpResponse.json(
+        { message: 'Email already registered. Please use a different email.' },
+        { status: 400 }
+      )
     }
 
     const newStudent: Student = {
       id: `student-${Date.now()}`,
+      studentId: body.studentId,
       username: body.username,
       fullName: body.fullName,
       email: body.email,
+      isDGShipping: body.isDGShipping || 'no',
       profileLink: body.profileLink || null,
       isHired: false,
       createdAt: new Date().toISOString(),
