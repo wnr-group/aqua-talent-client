@@ -32,6 +32,7 @@ import type {
 interface StudentProfileApiResponse {
   fullName: string
   email: string
+  isDGShipping?: 'yes' | 'no'
   profileLink?: string | null
   bio?: string | null
   location?: string | null
@@ -115,6 +116,7 @@ const experienceSchema = z
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
+  isDGShipping: z.enum(['yes', 'no']), 
   profileLink: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
   bio: z.string().max(600, 'Bio must be under 600 characters').optional(),
   location: z.string().max(120, 'Location must be under 120 characters').optional(),
@@ -128,6 +130,7 @@ const profileSchema = z.object({
 const DEFAULT_FORM_VALUES: StudentProfileFormValues = {
   fullName: '',
   email: '',
+  isDGShipping: 'no',
   profileLink: '',
   bio: '',
   location: '',
@@ -174,6 +177,7 @@ function mapApiToFormValues(data: StudentProfileApiResponse): StudentProfileForm
   return {
     fullName: data.fullName ?? '',
     email: data.email ?? '',
+    isDGShipping: data.isDGShipping ?? 'no',
     profileLink: data.profileLink ?? '',
     bio: data.bio ?? '',
     location: data.location ?? '',
@@ -203,6 +207,7 @@ function mapFormValuesToPayload(values: StudentProfileFormValues) {
   return {
     fullName: values.fullName.trim(),
     email: values.email.trim(),
+    isDGShipping: values.isDGShipping,
     profileLink: values.profileLink?.trim() || null,
     bio: values.bio?.trim() || null,
     location: values.location?.trim() || null,
@@ -562,6 +567,40 @@ export default function StudentProfile() {
                     Share your LinkedIn, portfolio, or Notion resume.
                   </p>
                 </div>
+
+                 <div>
+  <label className="block text-sm font-medium text-gray-900 mb-3">
+    Are you a Directorate General of Shipping?
+  </label>
+
+  <div className="flex items-center gap-6">
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="yes"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      Yes
+    </label>
+
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="no"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      No
+    </label>
+  </div>
+
+  {errors.isDGShipping && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.isDGShipping.message}
+    </p>
+  )}
+</div>
               </div>
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">

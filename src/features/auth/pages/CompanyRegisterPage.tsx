@@ -168,6 +168,31 @@ export default function CompanyRegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
+                Company Domain
+              </label>
+
+  <div className="relative">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      <Building2 className="w-5 h-5" />
+    </div>
+
+    <input
+      {...register("companyDomain")}
+      type="text"
+      placeholder="example.com"
+      className={inputClasses(!!errors.companyDomain)}
+    />
+  </div>
+
+  {errors.companyDomain && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.companyDomain.message}
+    </p>
+  )}
+</div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Password
               </label>
               <div className="relative">

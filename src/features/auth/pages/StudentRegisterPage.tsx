@@ -29,9 +29,13 @@ export default function StudentRegisterPage() {
     formState: { errors },
   } = useForm<StudentRegisterFormData>({
     resolver: zodResolver(studentRegisterSchema),
+    defaultValues: {
+    isDGShipping: 'no',
+  },
   })
 
   const onSubmit = async (data: StudentRegisterFormData) => {
+    console.log("FORM DATA:", data);
     setIsLoading(true)
     try {
       await api.post('/auth/register/student', data)
@@ -101,6 +105,31 @@ export default function StudentRegisterPage() {
                 <p className="mt-1.5 text-sm text-red-600">{errors.fullName.message}</p>
               )}
             </div>
+
+            <div>
+  <label className="block text-sm font-medium text-gray-900 mb-2">
+    Student ID
+  </label>
+
+  <div className="relative">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      <User className="w-5 h-5" />
+    </div>
+
+    <input
+      {...register('studentId')}
+      type="text"
+      placeholder="Enter your student ID"
+      className={inputClasses(!!errors.studentId)}
+    />
+  </div>
+
+  {errors.studentId && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.studentId.message}
+    </p>
+  )}
+</div>
 
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -204,6 +233,39 @@ export default function StudentRegisterPage() {
                 <p className="mt-1.5 text-sm text-red-600">{errors.profileLink.message}</p>
               )}
             </div>
+             <div>
+  <label className="block text-sm font-medium text-gray-900 mb-3">
+    Are you a Directorate General of Shipping?
+  </label>
+
+  <div className="flex items-center gap-6">
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="yes"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      Yes
+    </label>
+
+    <label className="flex items-center gap-2 text-gray-700">
+      <input
+        {...register('isDGShipping')}
+        type="radio"
+        value="no"
+        className="text-blue-600 focus:ring-blue-500"
+      />
+      No
+    </label>
+  </div>
+
+  {errors.isDGShipping && (
+    <p className="mt-1.5 text-sm text-red-600">
+      {errors.isDGShipping.message}
+    </p>
+  )}
+</div>
 
             <button
               type="submit"

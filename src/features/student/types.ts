@@ -17,6 +17,7 @@ export interface ExperienceFormValue {
 export interface StudentProfileFormValues {
   fullName: string
   email: string
+  isDGShipping: 'yes' | 'no' 
   profileLink?: string
   bio?: string
   location?: string
