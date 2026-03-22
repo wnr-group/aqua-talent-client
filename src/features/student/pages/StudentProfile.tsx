@@ -30,6 +30,7 @@ import type {
 } from '@/features/student/types'
 
 interface StudentProfileApiResponse {
+  studentId?: string
   fullName: string
   email: string
   isDGShipping?: 'yes' | 'no'
@@ -245,6 +246,8 @@ export default function StudentProfile() {
   const [dragActive, setDragActive] = useState(false)
   const [completeness, setCompleteness] = useState<ProfileCompletenessData | null>(null)
   const [isCompletenessLoading, setIsCompletenessLoading] = useState(true)
+  const [studentId, setStudentId] = useState<string | null>(null)
+  const [isDGShippingDisplay, setIsDGShippingDisplay] = useState<'yes' | 'no'>('no')
 
   const {
     register,
@@ -290,6 +293,8 @@ export default function StudentProfile() {
       }
       reset(formValues)
       setResumeUrl(resolvedResumeUrl)
+      setStudentId(data.studentId ?? null)
+      setIsDGShippingDisplay(data.isDGShipping ?? 'no')
     } catch (error) {
       if (user?.student) {
         reset({
@@ -483,10 +488,23 @@ export default function StudentProfile() {
               <p className="text-gray-500">
                 Showcase your background so companies can match with you faster.
               </p>
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <p className="text-sm font-medium text-gray-900">
                   {user?.student?.fullName || user?.username}
                 </p>
+                {studentId && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                    ID: {studentId}
+                  </span>
+                )}
+                {isDGShippingDisplay === 'yes' && (
+                  <Badge
+                    variant="success"
+                    className="bg-teal-100 text-teal-700 border border-teal-200"
+                  >
+                    DGS Certified
+                  </Badge>
+                )}
                 <Badge
                   variant={subscriptionTier === 'paid' ? 'primary' : 'secondary'}
                   className={
@@ -807,9 +825,25 @@ export default function StudentProfile() {
                   Account Details
                 </h2>
                 <div className="space-y-4 text-sm">
+                  {studentId && (
+                    <div>
+                      <p className="text-gray-500">Student ID</p>
+                      <p className="font-medium text-gray-900">{studentId}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-gray-500">Username</p>
                     <p className="font-medium text-gray-900">{user?.username}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">DG Shipping</p>
+                    {isDGShippingDisplay === 'yes' ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border bg-teal-100 text-teal-700 border-teal-200">
+                        DGS Certified
+                      </span>
+                    ) : (
+                      <p className="font-medium text-gray-900">No</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-gray-500">Member since</p>
