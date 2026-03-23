@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout'
 import Card from '@/components/common/Card'
@@ -20,7 +20,7 @@ interface ZoneWithCount extends ZoneInfo {
 }
 
 export default function StudentJobSearch() {
-  const [jobs, setJobs] = useState<JobPosting[]>([])
+  const [allJobs, setAllJobs] = useState<JobPosting[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
@@ -60,14 +60,7 @@ export default function StudentJobSearch() {
         const data = await api.get<{ jobs: JobPosting[] }>(
           `/student/jobs?${params.toString()}`
         )
-
-        // Apply zone filter locally
-        if (zoneFilter) {
-          setJobs(data.jobs.filter((job) => (job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId) === zoneFilter ||
-            (job.countryId && zones.find((z) => z.countries?.includes(job.countryName || ''))?.id === zoneFilter)))
-        } else {
-          setJobs(data.jobs)
-        }
+        setAllJobs(data.jobs)
       } catch {
         // Jobs will remain empty
       } finally {
@@ -77,7 +70,19 @@ export default function StudentJobSearch() {
 
     const debounce = setTimeout(fetchJobs, 300)
     return () => clearTimeout(debounce)
-  }, [searchTerm, locationFilter, zoneFilter, zones])
+  }, [searchTerm, locationFilter])
+
+  // Derive the displayed job list by applying the zone filter client-side.
+  // This avoids re-fetching from the API when zones or zoneFilter change.
+  const jobs = useMemo(() => {
+    if (!zoneFilter) return allJobs
+    return allJobs.filter(
+      (job) =>
+        (job.zoneLockReason?.zone?.id ?? job.zoneLockReason?.zoneId) === zoneFilter ||
+        (job.countryId &&
+          zones.find((z) => z.countries?.includes(job.countryName || ''))?.id === zoneFilter)
+    )
+  }, [allJobs, zoneFilter, zones])
 
   useEffect(() => {
     api
