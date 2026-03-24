@@ -523,6 +523,44 @@ export const mockZoneAddons: ZoneAddon[] = [
 // Tracks zone unlocks per student: addonZoneIds = zone IDs unlocked via addon, payPerJobIds = job IDs unlocked via pay-per-job
 export const mockStudentZoneAccess: Record<string, { addonZoneIds: string[]; payPerJobIds: string[] }> = {}
 
+// Tracks extra job application credits added via jobs-addon purchases
+export const mockStudentJobCredits: Record<string, number> = {}
+
+// Jobs-addon definition (top-up application credits without changing plan)
+export interface MockJobsAddon {
+  id: string
+  name: string
+  description: string
+  jobCredits: number
+  price: number
+  priceINR: number
+  priceUSD: number | null
+  currency: string
+}
+
+export const mockJobsAddons: MockJobsAddon[] = [
+  {
+    id: 'jobs-addon-5',
+    name: '5 Job Credits',
+    description: 'Add 5 more job application credits to your account.',
+    jobCredits: 5,
+    price: 149,
+    priceINR: 149,
+    priceUSD: 3,
+    currency: 'INR',
+  },
+  {
+    id: 'jobs-addon-10',
+    name: '10 Job Credits',
+    description: 'Add 10 more job application credits to your account.',
+    jobCredits: 10,
+    price: 249,
+    priceINR: 249,
+    priceUSD: 5,
+    currency: 'INR',
+  },
+]
+
 // Plans that include all zones
 export const PLANS_WITH_ALL_ZONES = ['plan-pro-monthly', 'plan-pro-yearly', 'plan-lifetime', 'service-pro-monthly']
 

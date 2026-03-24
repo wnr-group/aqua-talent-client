@@ -128,6 +128,7 @@ export default function StudentJobDetail() {
         hasApplied: true,
         applicationStatus: ApplicationStatus.PENDING,
         isDescriptionLocked: justReachedLimit || job.isDescriptionLocked === true,
+        isQuotaExhausted: justReachedLimit || job.isQuotaExhausted === true,
       })
       success('Application submitted successfully!')
     } catch (err) {
@@ -145,6 +146,13 @@ export default function StudentJobDetail() {
         message.toLowerCase().includes('application limit reached')
       ) {
         setShowLimitReachedPrompt(true)
+        // Propagate quotaLockReason from the API error so QuotaUnlockPanel can render inline
+        const errorQuotaLockReason = apiErr?.data?.quotaLockReason as import('@/types').QuotaLockReason | undefined
+        if (errorQuotaLockReason) {
+          setJob((prev) =>
+            prev ? { ...prev, isQuotaExhausted: true, quotaLockReason: errorQuotaLockReason } : prev
+          )
+        }
         // Re-fetch quota so blur/lock triggers immediately
         try {
           const subData = await api.get<{ applicationsUsed: number; applicationLimit: number | null }>('/student/subscription')

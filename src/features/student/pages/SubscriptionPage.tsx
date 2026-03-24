@@ -216,7 +216,7 @@ function isVisibleService(service: Pick<SubscriptionService, 'name'>): boolean {
 }
 
 export default function SubscriptionPage() {
-  const { user } = useAuthContext()
+  const { user, refreshUser } = useAuthContext()
   const [services, setServices] = useState<SubscriptionService[]>([])
   const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscriptionResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -684,6 +684,7 @@ export default function SubscriptionPage() {
                                 })
                                 setSelectedLockedZoneId(null)
                                 await loadData(false)
+                                await refreshUser()
                               } catch {
                                 // Payment cancelled or failed — no action needed
                               } finally {
@@ -790,7 +791,10 @@ export default function SubscriptionPage() {
                         currency={currency}
                         disabled={!canBuy}
                         prefill={paymentPrefill}
-                        onPaymentSuccess={() => loadData(false)}
+                        onPaymentSuccess={async () => {
+                          await loadData(false)
+                          await refreshUser()
+                        }}
                       />
                     ) : undefined
                   }
