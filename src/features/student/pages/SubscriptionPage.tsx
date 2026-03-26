@@ -280,14 +280,19 @@ export default function SubscriptionPage() {
   const isFree = currentTier === 'free'
 
   // Usage data from API
-  const applicationLimit = currentSubscription?.applicationLimit
-  const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
-  const hasLimitedApplications = hasPositiveApplicationLimit(applicationLimit)
+  const applicationLimit = currentSubscription?.applicationLimit ?? null
+const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
 
+const hasLimitedApplications =
+  typeof applicationLimit === 'number' && applicationLimit > 0
 
-  // Quota-based subscription (all plans are now quota-based, one-time purchase)
-  const applicationsRemaining = currentSubscription?.applicationsRemaining ?? 0
-  const isQuotaExhausted = hasLimitedApplications && applicationsRemaining <= 0
+const applicationsRemaining =
+  hasLimitedApplications
+    ? Math.max(0, applicationLimit - applicationsUsed)
+    : null
+
+const isQuotaExhausted =
+  hasLimitedApplications && applicationsRemaining === 0
   const paymentPrefill = {
     name: user?.student?.fullName || user?.username,
     email: user?.student?.email,
@@ -448,32 +453,36 @@ export default function SubscriptionPage() {
                     {/* Plan Details Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                       {/* Applications Quota */}
-                      {hasLimitedApplications && (
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-green-50 rounded-lg">
-                            <Users className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Applications</p>
-                            <p className="text-sm font-medium text-gray-900">
-                              {`${applicationsUsed} / ${applicationLimit}`}
-                            </p>
-                          </div>
-                        </div>
+                      {(
+                       <div className="flex items-start gap-3">
+  <div className="p-2 bg-green-50 rounded-lg">
+    <Users className="w-4 h-4 text-green-600" />
+  </div>
+  <div>
+    <p className="text-xs text-gray-500">Applications</p>
+    <p className="text-sm font-medium text-gray-900">
+      {hasLimitedApplications
+  ? `${applicationsUsed} / ${applicationLimit}`
+  : `${applicationsUsed} / Unlimited`}
+    </p>
+  </div>
+</div>
                       )}
 
                       {/* Remaining Applications */}
-                      {hasLimitedApplications && (
+                      {(
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-purple-50 rounded-lg">
                             <Clock className="w-4 h-4 text-purple-600" />
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Remaining</p>
-                            <p className={`text-sm font-medium ${applicationsRemaining > 0 ? 'text-gray-900' : 'text-yellow-600'}`}>
-                              {applicationsRemaining > 0
-                                ? `${applicationsRemaining} applications`
-                                : 'Quota exhausted'}
+                            <p className={`text-sm font-medium ${(applicationsRemaining ?? 0) > 0 ? 'text-gray-900' : 'text-yellow-600'}`}>
+                              {hasLimitedApplications
+  ? (applicationsRemaining ?? 0) > 0
+    ? `${applicationsRemaining} applications`
+    : 'Quota exhausted'
+  : 'Unlimited'}
                             </p>
                           </div>
                         </div>
@@ -518,58 +527,48 @@ export default function SubscriptionPage() {
 
                   {/* Usage Stats Sidebar */}
                   <div className="lg:border-l lg:border-gray-200 lg:pl-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-4">Your Usage</h4>
+  <h4 className="text-sm font-semibold text-gray-700 mb-4">
+    Your Usage
+  </h4>
 
-                    {/* Applications Usage */}
-                    {hasLimitedApplications && (
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Applications</span>
-                          <span className="font-medium text-gray-900">
-                            {`${applicationsUsed} / ${applicationLimit}`}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${
-                              isQuotaExhausted ? 'bg-yellow-500' : 'bg-blue-600'
-                            }`}
-                            style={{
-                              width: `${Math.min((applicationsUsed / applicationLimit) * 100, 100)}%`,
-                            }}
-                          />
-                        </div>
-                        {isQuotaExhausted && (
-                          <p className="text-xs text-yellow-600 mt-2">
-                            All applications used. Buy more to continue applying.
-                          </p>
-                        )}
-                      </div>
-                    )}
+  
+    <div className="mb-4">
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-600">Applications</span>
+       <span className="font-medium text-gray-900">
+  {hasLimitedApplications
+    ? `${applicationsUsed} / ${applicationLimit}`
+    : `${applicationsUsed} / Unlimited`}
+</span>
+      </div>
 
-                    {/* Additional Plan Benefits from API */}
-                    {/* Plan Benefits from API */}
-                    <div className="space-y-3 pt-4 border-t border-gray-100">
-                      {currentService.prioritySupport && (
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-amber-500" />
-                          <span className="text-sm text-gray-600">Priority support</span>
-                        </div>
-                      )}
-                      {currentService.profileBoost && (
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-purple-500" />
-                          <span className="text-sm text-gray-600">Profile boost</span>
-                        </div>
-                      )}
-                      {currentService.applicationHighlight && (
-                        <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4 text-amber-500" />
-                          <span className="text-sm text-gray-600">Application highlight</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+  <div
+    className={`h-2 rounded-full ${
+      isQuotaExhausted ? 'bg-yellow-500' : 'bg-blue-600'
+    }`}
+   style={{
+  width: hasLimitedApplications
+    ? `${Math.min(
+        (applicationsUsed / applicationLimit) * 100,
+        100
+      )}%`
+    : '100%',
+}}
+  />
+</div>
+
+      <p className="text-xs mt-2 text-yellow-600">
+        {hasLimitedApplications
+  ? (applicationsRemaining ?? 0) > 0
+    ? `${applicationsRemaining} applications remaining`
+    : 'All applications used. Buy more to continue applying.'
+  : `You have applied ${applicationsUsed} jobs (Unlimited plan)`}
+      </p>
+    </div>
+   
+  
+</div>
                 </div>
               </CardContent>
             </Card>
@@ -738,7 +737,7 @@ export default function SubscriptionPage() {
 
               // V2 Business Rules:
               // Rule 1: Same plan with remaining apps - BLOCKED
-              const isSamePlanWithRemainingApps = isCurrentPlan && applicationsRemaining > 0
+              const isSamePlanWithRemainingApps = isCurrentPlan && hasLimitedApplications && (applicationsRemaining ?? 0) > 0
               // Rule 5: Free to paid - ALWAYS ALLOWED
               const isUpgradeFromFree = isFree && service.tier === 'paid'
               // Allow buying if: quota exhausted OR upgrading from free OR switching to different plan
