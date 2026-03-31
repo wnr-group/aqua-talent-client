@@ -11,6 +11,8 @@ import {
   mockZones,
   mockZoneAddons,
   mockStudentZoneAccess,
+  mockStudentJobCredits,
+  mockJobsAddons,
   PLANS_WITH_ALL_ZONES,
   mockPlanZones,
   auth,
@@ -227,12 +229,14 @@ function buildStudentSubscriptionResponse(studentId: string) {
     (application) =>
       application.studentId === studentId && application.status !== ApplicationStatus.WITHDRAWN
   ).length
+  const extraCredits = mockStudentJobCredits[studentId] || 0
 
   if (current.subscriptionTier === 'paid' && current.serviceId) {
     const plan = findSubscriptionPlan(current.serviceId)
 
     if (plan) {
-      const applicationLimit = plan.maxApplications
+      const basePlanLimit = plan.maxApplications
+      const applicationLimit = basePlanLimit !== null ? basePlanLimit + extraCredits : null
 
       return {
         subscriptionTier: 'paid' as const,
@@ -271,7 +275,8 @@ function buildStudentSubscriptionResponse(studentId: string) {
     }
   }
 
-  const applicationLimit = freePlan?.maxApplications ?? 2
+  const basePlanLimit = freePlan?.maxApplications ?? 2
+  const applicationLimit = basePlanLimit + extraCredits
 
   return {
     subscriptionTier: 'free' as const,
@@ -320,18 +325,54 @@ function getStudentPlanUsage(studentId: string): {
     (a) => a.studentId === studentId && a.status !== ApplicationStatus.WITHDRAWN
   ).length
 
+  // Extra credits from jobs-addon purchases
+  const extraCredits = mockStudentJobCredits[studentId] || 0
+  const effectivePlanLimit = planLimit !== null ? planLimit + extraCredits : null
+
   // typeof guard: correctly handles null (unlimited) and any unexpected undefined state
-  const isLimitReached = typeof planLimit === 'number' && totalApplications >= planLimit
+  const isLimitReached = typeof effectivePlanLimit === 'number' && totalApplications >= effectivePlanLimit
 
   console.log({
     studentId,
     plan: planName,
     planLimit,
+    extraCredits,
+    effectivePlanLimit,
     totalApplications,
     isLimitReached,
   })
 
-  return { planName, planLimit, totalApplications, isLimitReached }
+  return { planName, planLimit: effectivePlanLimit, totalApplications, isLimitReached }
+}
+
+// ── Quota lock info helper ────────────────────────────────────────────────────
+// Builds unlock options for displaying inline jobs-addon purchase when quota exhausted
+function buildQuotaLockInfo(studentId: string) {
+  const { planLimit, totalApplications } = getStudentPlanUsage(studentId)
+
+  const unlockOptions = [
+    ...mockJobsAddons.map((addon) => ({
+      type: 'jobs-addon' as const,
+      label: addon.name,
+      description: addon.description,
+      addonId: addon.id,
+      priceINR: addon.priceINR,
+      priceUSD: addon.priceUSD ?? undefined,
+      jobCredits: addon.jobCredits,
+    })),
+    {
+      type: 'upgrade-plan' as const,
+      label: 'Upgrade Plan',
+      description: 'Get more applications with a higher-tier plan.',
+      url: '/subscription',
+    },
+  ]
+
+  return {
+    applicationsUsed: totalApplications,
+    applicationLimit: planLimit ?? 0,
+    unlockOptions,
+  }
 }
 
 // ── Zone access helper ───────────────────────────────────────────────────────
@@ -1215,6 +1256,8 @@ export const handlers = [
       ...job,
       description: isLimitReached || isZoneLocked ? null : job.description,
       isDescriptionLocked: isLimitReached,
+      isQuotaExhausted: isLimitReached,
+      quotaLockReason: isLimitReached && user ? buildQuotaLockInfo(user.id) : null,
       isZoneLocked,
       zoneLockReason,
       hasApplied,
@@ -1259,6 +1302,8 @@ export const handlers = [
           message: 'Application limit reached for your current plan.',
           applicationsUsed: totalApplications,
           applicationLimit: planLimit,
+          isZoneLocked: false,
+          quotaLockReason: buildQuotaLockInfo(user.id),
         },
         { status: 403 }
       )
@@ -2506,14 +2551,15 @@ export const handlers = [
   }),
 
   // Create pay-per-job payment order
-  http.post(`${API_URL}/payment/pay-per-job/:jobId`, async ({ params }) => {
+  http.post(`${API_URL}/payments/pay-per-job/create-order`, async ({ request }) => {
     await delay(DELAY_MS)
     const user = auth.getCurrentUser()
     if (!user || user.userType !== UserType.STUDENT) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
     }
 
-    const job = mockJobs.find((j) => j.id === params.jobId)
+    const body = (await request.json()) as { jobId: string }
+    const job = mockJobs.find((j) => j.id === body.jobId)
     if (!job) {
       return HttpResponse.json({ message: 'Job not found' }, { status: 404 })
     }
@@ -2521,7 +2567,7 @@ export const handlers = [
     const orderId = `order_ppj_${Date.now()}`
     const order: MockPaymentOrder = {
       id: orderId,
-      planId: `pay-per-job:${params.jobId}`,
+      planId: `pay-per-job:${body.jobId}`,
       amount: 250000, // ₹2500 in paise
       currency: 'INR',
       studentId: user.id,
@@ -2539,7 +2585,7 @@ export const handlers = [
   }),
 
   // Verify pay-per-job payment
-  http.post(`${API_URL}/payment/pay-per-job/:jobId/verify`, async ({ params, request }) => {
+  http.post(`${API_URL}/payments/pay-per-job/verify`, async ({ request }) => {
     await delay(DELAY_MS)
     const user = auth.getCurrentUser()
     if (!user || user.userType !== UserType.STUDENT) {
@@ -2561,11 +2607,13 @@ export const handlers = [
       return HttpResponse.json({ message: 'Order not found' }, { status: 404 })
     }
 
+    // Extract jobId from the stored order planId (format: pay-per-job:<jobId>)
+    const jobId = order.planId.replace('pay-per-job:', '')
+
     // Record pay-per-job unlock
     if (!mockStudentZoneAccess[user.id]) {
       mockStudentZoneAccess[user.id] = { addonZoneIds: [], payPerJobIds: [] }
     }
-    const jobId = params.jobId as string
     if (!mockStudentZoneAccess[user.id]!.payPerJobIds.includes(jobId)) {
       mockStudentZoneAccess[user.id]!.payPerJobIds.push(jobId)
     }
@@ -2576,7 +2624,7 @@ export const handlers = [
   }),
 
   // Create zone addon payment order
-  http.post(`${API_URL}/payment/zone-addon/purchase`, async ({ request }) => {
+  http.post(`${API_URL}/payments/zone-addon/create-order`, async ({ request }) => {
     await delay(DELAY_MS)
     const user = auth.getCurrentUser()
     if (!user || user.userType !== UserType.STUDENT) {
@@ -2620,7 +2668,7 @@ export const handlers = [
   }),
 
   // Verify zone addon payment
-  http.post(`${API_URL}/payment/zone-addon/verify`, async ({ request }) => {
+  http.post(`${API_URL}/payments/zone-addon/verify`, async ({ request }) => {
     await delay(DELAY_MS)
     const user = auth.getCurrentUser()
     if (!user || user.userType !== UserType.STUDENT) {
@@ -2676,6 +2724,90 @@ export const handlers = [
     mockPaymentOrders.delete(body.razorpay_order_id)
 
     return HttpResponse.json({ success: true })
+  }),
+
+  // ============ JOBS ADDON PAYMENTS ============
+
+  // Create jobs-addon payment order (buy extra application credits)
+  http.post(`${API_URL}/payments/jobs-addon/create-order`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as { addonId: string; currency?: string }
+    const addon = mockJobsAddons.find((a) => a.id === body.addonId)
+    if (!addon) {
+      return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    }
+
+    const currency = body.currency?.toUpperCase() === 'USD' ? 'USD' : 'INR'
+    const amount = currency === 'INR'
+      ? Math.round(addon.priceINR * 100)
+      : Math.round((addon.priceUSD ?? addon.priceINR) * 100)
+
+    const orderId = `order_ja_${Date.now()}`
+    const order: MockPaymentOrder = {
+      id: orderId,
+      planId: `jobs-addon:${body.addonId}`,
+      amount,
+      currency,
+      studentId: user.id,
+    }
+    mockPaymentOrders.set(orderId, order)
+
+    return HttpResponse.json({
+      orderId,
+      id: orderId,
+      amount: order.amount,
+      currency: order.currency,
+      key: 'rzp_test_aqua_talent',
+      addonName: addon.name,
+      jobCredits: addon.jobCredits,
+    })
+  }),
+
+  // Verify jobs-addon payment (credits are added to student's account)
+  http.post(`${API_URL}/payments/jobs-addon/verify`, async ({ request }) => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = (await request.json()) as {
+      razorpay_order_id?: string
+      razorpay_payment_id?: string
+      razorpay_signature?: string
+    }
+
+    if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+      return HttpResponse.json({ message: 'Invalid verification payload' }, { status: 400 })
+    }
+
+    const order = mockPaymentOrders.get(body.razorpay_order_id)
+    if (!order || order.studentId !== user.id) {
+      return HttpResponse.json({ message: 'Order not found' }, { status: 404 })
+    }
+
+    // Extract addonId from the stored order planId (format: jobs-addon:<addonId>)
+    const addonId = order.planId.replace('jobs-addon:', '')
+    const addon = mockJobsAddons.find((a) => a.id === addonId)
+    if (!addon) {
+      return HttpResponse.json({ message: 'Addon not found' }, { status: 404 })
+    }
+
+    // Add job credits to the student's account
+    mockStudentJobCredits[user.id] = (mockStudentJobCredits[user.id] || 0) + addon.jobCredits
+
+    mockPaymentOrders.delete(body.razorpay_order_id)
+
+    return HttpResponse.json({
+      success: true,
+      jobCredits: addon.jobCredits,
+      totalCredits: mockStudentJobCredits[user.id],
+    })
   }),
 
   // ============ ADMIN: ZONE MANAGEMENT ============
