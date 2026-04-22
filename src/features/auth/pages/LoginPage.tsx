@@ -151,10 +151,9 @@ export default function LoginPage() {
             onClick={() => setUserType(type as UserType)}
             className={`
               flex flex-col items-center gap-2 py-4 px-4 rounded-xl font-medium transition-all duration-300
-              ${
-                isSelected
-                  ? `${typeConfig.bgClass} text-white shadow-sm`
-                  : 'bg-gray-50 text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'
+              ${isSelected
+                ? `${typeConfig.bgClass} text-white shadow-sm`
+                : 'bg-gray-50 text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'
               }
             `}
           >
@@ -181,10 +180,9 @@ export default function LoginPage() {
               onClick={() => setUserType(type as UserType)}
               className={`
                 flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-xl font-medium transition-all duration-300
-                ${
-                  isSelected
-                    ? 'bg-white text-gray-900 shadow-lg'
-                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                ${isSelected
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
                 }
               `}
             >
@@ -234,15 +232,15 @@ export default function LoginPage() {
               {userType === UserType.STUDENT
                 ? 'Launch Your Career'
                 : userType === UserType.COMPANY
-                ? 'Find Top Talent'
-                : 'Manage Your Platform'}
+                  ? 'Find Top Talent'
+                  : 'Manage Your Platform'}
             </h2>
             <p className="text-white/80 text-lg leading-relaxed">
               {userType === UserType.STUDENT
                 ? 'Connect with top companies and discover opportunities that match your skills and aspirations.'
                 : userType === UserType.COMPANY
-                ? 'Access a pool of talented students ready to bring fresh perspectives to your team.'
-                : 'Full control over users, jobs, and applications on the platform.'}
+                  ? 'Access a pool of talented students ready to bring fresh perspectives to your team.'
+                  : 'Full control over users, jobs, and applications on the platform.'}
             </p>
           </div>
 
@@ -273,14 +271,19 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-4 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8 animate-fade-in-up">
-            <Link to="/" className="inline-flex items-center gap-3 mb-6">
-              <Logo size="lg" variant="light" />
+          <div className="flex justify-center mb-8">
+            <Link to="/">
+              <Logo
+                widthClass="w-40"   /* 160px wide */
+                showText={false}
+                variant="light"
+                className="hover:opacity-80 transition-opacity"
+              />
             </Link>
           </div>
 
           {/* Header */}
-          <div className="text-center lg:text-left mb-8 animate-fade-in-up">
+          <div className="text-center lg:text-center mb-8 animate-fade-in-up">
             <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">
               {isAdminLogin ? 'Admin Portal' : isCompanyLogin ? 'Company Portal' : 'Welcome Back'}
             </h1>
@@ -292,9 +295,8 @@ export default function LoginPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in-up stagger-1">
             {/* User type selector - Mobile only (or dedicated portal badge) */}
             {isDedicatedPortal ? (
-              <div className={`flex items-center justify-center gap-3 mb-8 py-4 px-4 rounded-xl ${
-                isAdminLogin ? 'bg-orange-500' : 'bg-teal-600'
-              }`}>
+              <div className={`flex items-center justify-center gap-3 mb-8 py-4 px-4 rounded-xl ${isAdminLogin ? 'bg-orange-500' : 'bg-teal-600'
+                }`}>
                 {isAdminLogin ? (
                   <Shield className="w-6 h-6 text-white" />
                 ) : (
