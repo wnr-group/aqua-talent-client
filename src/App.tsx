@@ -11,6 +11,7 @@ import { getPortalType } from '@/utils/subdomain'
 import LandingPage from '@/features/public/pages/LandingPage'
 import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
+import AboutPage from './features/public/pages/AboutPage'
 
 // Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'
@@ -52,6 +53,8 @@ import AdminAddons from '@/features/admin/pages/AdminAddons'
 import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
 import CompanyNotificationsPage from '@/features/notifications/pages/CompanyNotificationsPage'
 import AdminNotificationsPage from '@/features/notifications/pages/AdminNotificationsPage'
+import Footer from './components/layout/Footer'
+
 
 // Get portal type based on subdomain
 const portalType = getPortalType()
@@ -63,6 +66,7 @@ function PublicRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/jobs" element={<PublicJobsPage />} />
       <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+      <Route path="/about" element={<AboutPage />} /> 
 
       {/* Auth routes */}
       <Route path="/login" element={<LoginPage />} />
@@ -232,7 +236,9 @@ function CompanyPortalRoutes() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    
   )
+  
 }
 
 function AdminPortalRoutes() {
@@ -364,6 +370,7 @@ function App() {
           <InAppNotificationProvider>
             <div className="min-h-screen bg-background">
               <AppRoutes />
+              <Footer />
               <NotificationToast />
             </div>
           </InAppNotificationProvider>

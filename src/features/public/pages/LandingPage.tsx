@@ -385,47 +385,6 @@ export default function LandingPage() {
           </div>
         </section>
       )}
-
-      {/* Footer */}
-      <footer className="py-12 px-6 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Logo size="md" />
-
-            <div className="flex items-center gap-8 text-sm text-gray-500">
-              <Link to="/jobs" className="hover:text-gray-900 transition-colors">
-                Jobs
-              </Link>
-              {isStudent ? (
-                <>
-                  <Link to="/dashboard" className="hover:text-gray-900 transition-colors">
-                    Dashboard
-                  </Link>
-                  <Link to="/my-applications" className="hover:text-gray-900 transition-colors">
-                    My Applications
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="hover:text-gray-900 transition-colors">
-                    Sign In
-                  </Link>
-                  <Link to="/register/student" className="hover:text-gray-900 transition-colors">
-                    For Students
-                  </Link>
-                  <Link to="/register/company" className="hover:text-gray-900 transition-colors">
-                    For Companies
-                  </Link>
-                </>
-              )}
-            </div>
-
-            <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Aqua Talent. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
