@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PublicNavbar from '@/components/layout/PublicNavbar'
-import Logo from '@/components/common/Logo'
 
 interface PublicJobsResponse {
   jobs: JobPosting[]

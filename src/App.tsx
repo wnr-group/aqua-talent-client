@@ -12,6 +12,7 @@ import LandingPage from '@/features/public/pages/LandingPage'
 import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
 import AboutPage from './features/public/pages/AboutPage'
+import SecurityPage from './features/public/pages/SecurityPage'
 
 // Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'
@@ -55,7 +56,6 @@ import CompanyNotificationsPage from '@/features/notifications/pages/CompanyNoti
 import AdminNotificationsPage from '@/features/notifications/pages/AdminNotificationsPage'
 import Footer from './components/layout/Footer'
 
-
 // Get portal type based on subdomain
 const portalType = getPortalType()
 
@@ -67,6 +67,7 @@ function PublicRoutes() {
       <Route path="/jobs" element={<PublicJobsPage />} />
       <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
       <Route path="/about" element={<AboutPage />} /> 
+      <Route path='/security' element={<SecurityPage />} />
 
       {/* Auth routes */}
       <Route path="/login" element={<LoginPage />} />
