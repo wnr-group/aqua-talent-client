@@ -1,30 +1,8 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Input from '@/components/common/Input';
-import Button from '@/components/common/Button';
-import { Mail, Send } from 'lucide-react';
 import Logo from '../common/Logo';
 
 export default function Footer() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        message: ''
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const subject = encodeURIComponent(`Contact from ${formData.name}`);
-        const body = encodeURIComponent(
-            `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-        );
-        window.open(`mailto:support@aquatalentz.com?subject=${subject}&body=${body}`);
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
+   
     return (
         <footer className="bg-slate-900 border-t border-white/10 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
