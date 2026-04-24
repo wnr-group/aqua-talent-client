@@ -11,6 +11,7 @@ import { getPortalType } from '@/utils/subdomain'
 import LandingPage from '@/features/public/pages/LandingPage'
 import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
+import TermsPage from '@/features/public/pages/TermsPage'
 import AboutPage from './features/public/pages/AboutPage'
 
 // Auth pages
@@ -66,6 +67,8 @@ function PublicRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/jobs" element={<PublicJobsPage />} />
       <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+
       <Route path="/about" element={<AboutPage />} /> 
 
       {/* Auth routes */}
