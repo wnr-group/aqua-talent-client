@@ -5,6 +5,7 @@
 
 /* Design System Variables - Deep Ocean Bioluminescent Theme */
 :root {
+  --navbar-bg: #0a1628
   --font-display: 'Outfit', sans-serif;
   --font-body: 'DM Sans', sans-serif;
   --font-size: 16px;

@@ -96,7 +96,7 @@ export default function LandingPage() {
             <p className="text-base sm:text-xl text-gray-500 leading-relaxed mb-8 sm:mb-10 animate-fade-in-up stagger-2">
               {isStudent
                 ? 'Browse the latest opportunities and find the perfect match for your skills. Your next career move is just a click away.'
-                : 'Connect with top companies seeking fresh talent. Whether you\'re a student looking for opportunities or a company searching for rising stars, Aqua Talent makes it seamless.'}
+                : 'Connect with top companies seeking fresh talent. Whether you\'re a student looking for opportunities or a company searching for rising stars, Aquatalentz makes it seamless.'}
             </p>
 
             {/* Search Bar */}
@@ -370,7 +370,7 @@ export default function LandingPage() {
                   Find Your Next Star Employee
                 </h2>
                 <p className="text-gray-500 text-lg mb-8 max-w-2xl mx-auto">
-                  Post jobs, review applications, and hire talented students ready to make an impact. Join hundreds of companies already using Aqua Talent.
+                  Post jobs, review applications, and hire talented students ready to make an impact. Join hundreds of companies already using Aquatalentz.
                 </p>
 
                 <Link
@@ -385,6 +385,47 @@ export default function LandingPage() {
           </div>
         </section>
       )}
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <Logo size="md" />
+
+            <div className="flex items-center gap-8 text-sm text-gray-500">
+              <Link to="/jobs" className="hover:text-gray-900 transition-colors">
+                Jobs
+              </Link>
+              {isStudent ? (
+                <>
+                  <Link to="/dashboard" className="hover:text-gray-900 transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link to="/my-applications" className="hover:text-gray-900 transition-colors">
+                    My Applications
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="hover:text-gray-900 transition-colors">
+                    Sign In
+                  </Link>
+                  <Link to="/register/student" className="hover:text-gray-900 transition-colors">
+                    For Students
+                  </Link>
+                  <Link to="/register/company" className="hover:text-gray-900 transition-colors">
+                    For Companies
+                  </Link>
+                </>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} Aquatalentz. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

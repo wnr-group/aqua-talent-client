@@ -72,7 +72,7 @@ export default function StudentRegisterPage() {
             <Logo size="lg" variant="light" />
           </Link>
           <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">
-            Join Aqua Talent
+            Join Aquatalentz
           </h1>
           <p className="text-gray-500">Create your student account</p>
         </div>

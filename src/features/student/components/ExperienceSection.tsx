@@ -79,7 +79,7 @@ export default function ExperienceSection({ control, register, errors }: Experie
                   <input
                     className={inputClasses}
                     {...register(`experience.${index}.company` as const)}
-                    placeholder="Aqua Talent"
+                    placeholder="Aquatalentz"
                   />
                   {renderError(index, 'company')}
                 </div>
