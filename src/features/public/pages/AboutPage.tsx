@@ -20,9 +20,9 @@ export default function AboutPage() {
           <div className="p-3 bg-teal-50 rounded-full mb-4">
             <Globe className="w-8 h-8 text-teal-600" />
           </div>
-         <h1 className="text-4xl text-center font-bold text-gray-900 mb-6">
-   Our <span className="text-teal-600">Mission</span>
-</h1>
+          <h2 className="text-4xl text-center font-bold text-gray-900 mb-6">
+            Our <span className="text-teal-600">Mission</span>
+          </h2>
           <p className="max-w-2xl text-gray-500">
             To create a transparent ecosystem where skills meet demand, 
             ensuring that every student finds their right fit and every company finds its ideal talent.
@@ -77,7 +77,7 @@ export default function AboutPage() {
         <p className="text-gray-500 mb-6">We'd love to hear from you.</p>
         <a 
           href="mailto:info@aquatalentz.com" 
-          className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-teal-700 transition-colors"
+          className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
         >
           Reach us at info@aquatalentz.com
         </a>

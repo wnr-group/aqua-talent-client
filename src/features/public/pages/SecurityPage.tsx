@@ -120,8 +120,7 @@ export default function SecurityPage() {
                         Penetration Testing
                     </h3>
                     <p className="text-sm text-gray-500 italic leading-relaxed">
-                        [PLACEHOLDER] — Results of our latest security assessment will be published here.
-                        We conduct regular vulnerability scans to maintain platform integrity.
+                        Our security assessments are conducted regularly. Results are available upon request to verified enterprise partners.
                     </p>
                 </div>
 
