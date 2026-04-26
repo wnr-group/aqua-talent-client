@@ -3,9 +3,10 @@ interface LogoProps {
   showText?: boolean
   variant?: 'light' | 'dark'
   className?: string
+  widthClass?: string
 }
 
-export default function Logo({ size = 'md', showText = true, variant = 'dark', className = '' }: LogoProps) {
+export default function Logo({ size = 'md', showText = true, variant = 'dark', className = '',widthClass }: LogoProps) {
   const sizes = {
     sm: { icon: 'h-8', text: 'text-lg' },
     md: { icon: 'h-10', text: 'text-xl' },
@@ -23,7 +24,7 @@ export default function Logo({ size = 'md', showText = true, variant = 'dark', c
       <img
         src="/logo.png"
         alt="AquaTalentz"
-        className={`${icon} w-auto object-contain`}
+        className={`${widthClass ? widthClass : icon} ${widthClass ? '' : 'w-auto'} object-contain`}
       />
 
       {showText && (
