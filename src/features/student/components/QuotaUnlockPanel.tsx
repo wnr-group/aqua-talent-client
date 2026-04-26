@@ -101,7 +101,7 @@ export default function QuotaUnlockPanel({
                     )}
                   </div>
                 </div>
-                <Link to={option.url || '/subscription'}>
+                <Link to='/subscription'>
                   <Button
                     variant="outline"
                     size="sm"
