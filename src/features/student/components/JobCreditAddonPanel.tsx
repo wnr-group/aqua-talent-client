@@ -20,7 +20,7 @@ interface JobCreditAddonPanelProps {
   currency: 'INR' | 'USD'
   currentUsage: number
   currentLimit: number | null
-   isFreeTier: boolean
+  isFreeTier: boolean
   prefill?: { name?: string; email?: string }
   onPurchaseSuccess: () => void
 }
@@ -53,7 +53,7 @@ export default function JobCreditAddonPanel({
         currency: string
         key: string
         addonName: string
-      }>('/payments/job-credit-addon/create-order', {
+      }>('/payments/jobs-addon/create-order', {
         addonId: addon.id,
         currency,
       })
@@ -73,7 +73,7 @@ export default function JobCreditAddonPanel({
 
       // Verify payment
       const verifyResponse = await api.post<{ success: boolean; message?: string }>(
-        '/payments/job-credit-addon/verify',
+        '/payments/jobs-addon/verify',
         {
           orderId: orderResponse.orderId,
           paymentId: paymentResult.paymentId,
@@ -98,20 +98,20 @@ export default function JobCreditAddonPanel({
   }
 
   if (isFreeTier) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 text-center">
-      <h3 className="text-sm font-semibold text-gray-900 mb-2">
-        Upgrade Your Plan
-      </h3>
-      <p className="text-xs text-gray-500 mb-4">
-        Free plan users cannot purchase add-ons. Upgrade to unlock more applications.
-      </p>
-      <Button onClick={() => navigate('/subscription')}>
-        View Plans
-      </Button>
-    </div>
-  )
-}
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5 text-center">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">
+          Upgrade Your Plan
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          Free plan users cannot purchase add-ons. Upgrade to unlock more applications.
+        </p>
+        <Button onClick={() => navigate('/subscription')}>
+          View Plans
+        </Button>
+      </div>
+    )
+  }
 
   if (addons.length === 0) return null
 

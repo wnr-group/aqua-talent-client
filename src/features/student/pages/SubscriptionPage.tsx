@@ -17,6 +17,7 @@ import Alert from '@/components/common/Alert'
 import StudentNavbar from '@/components/layout/StudentNavbar'
 import PricingCard from '@/features/student/components/PricingCard'
 import SubscriptionPurchaseAction from '@/features/student/components/SubscriptionPurchaseAction'
+import JobCreditAddonPanel from '@/features/student/components/JobCreditAddonPanel'
 import Badge from '@/components/common/Badge'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { api } from '@/services/api/client'
@@ -24,6 +25,16 @@ import { SubscriptionTier, StudentSubscriptionZones, ZoneAddon } from '@/types'
 import { startZoneAddonPayment } from '@/services/payment/studentPayment'
 
 type SupportedCurrency = 'INR' | 'USD'
+
+// Job credit addon (top-up application credits)
+interface JobCreditAddon {
+  id: string
+  name: string
+  description: string
+  jobCreditCount: number
+  priceINR: number
+  priceUSD: number
+}
 
 // Zone info included in service response
 interface ServiceZoneInfo {
@@ -226,6 +237,7 @@ export default function SubscriptionPage() {
   const [zoneAddons, setZoneAddons] = useState<ZoneAddon[]>([])
   const [selectedLockedZoneId, setSelectedLockedZoneId] = useState<string | null>(null)
   const [isUnlockingZone, setIsUnlockingZone] = useState(false)
+  const [jobsAddons, setJobsAddons] = useState<JobCreditAddon[]>([])
 
   useEffect(() => {
     void loadData()
@@ -238,12 +250,13 @@ export default function SubscriptionPage() {
       }
 
       setErrorMessage(null)
-      const [servicesData, subscriptionData, geoLocation, zonesResponse, addonsResponse] = await Promise.all([
+      const [servicesData, subscriptionData, geoLocation, zonesResponse, addonsResponse, jobsAddonsResponse] = await Promise.all([
         api.get<ServicesResponse>('/services'),
         api.get<CurrentSubscriptionResponse>('/student/subscription'),
         api.get<GeoLocationResponse>('/geo-location').catch(() => null),
         api.get<StudentSubscriptionZones>('/student/subscription/zones').catch(() => null),
         api.get<{ addons: ZoneAddon[] }>('/student/zone-addons').catch(() => null),
+        api.get<{ addons: JobCreditAddon[] }>('/student/jobs-addons').catch(() => null),
       ])
 
       // Sort services by displayOrder
@@ -256,6 +269,7 @@ export default function SubscriptionPage() {
       setCurrency(resolveCurrency(geoLocation))
       if (zonesResponse) setZonesData(zonesResponse)
       if (addonsResponse) setZoneAddons(addonsResponse.addons)
+      if (jobsAddonsResponse) setJobsAddons(jobsAddonsResponse.addons)
       // Zone data is now included directly in the /services response - no need for additional API calls
     } catch {
       setErrorMessage('Unable to load subscription details. Please try again.')
@@ -281,18 +295,19 @@ export default function SubscriptionPage() {
 
   // Usage data from API
   const applicationLimit = currentSubscription?.applicationLimit ?? null
-const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
+  const applicationsUsed = currentSubscription?.applicationsUsed ?? 0
 
-const hasLimitedApplications =
-  typeof applicationLimit === 'number' && applicationLimit > 0
+  const hasLimitedApplications =
+    typeof applicationLimit === 'number' && applicationLimit > 0
 
-const applicationsRemaining =
-  hasLimitedApplications
-    ? Math.max(0, applicationLimit - applicationsUsed)
-    : null
+  const applicationsRemaining =
+    hasLimitedApplications
+      ? Math.max(0, applicationLimit - applicationsUsed)
+      : null
 
-const isQuotaExhausted =
-  hasLimitedApplications && applicationsRemaining === 0
+  const isQuotaExhausted =
+    hasLimitedApplications && applicationsRemaining === 0
+
   const paymentPrefill = {
     name: user?.student?.fullName || user?.username,
     email: user?.student?.email,
@@ -454,19 +469,19 @@ const isQuotaExhausted =
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                       {/* Applications Quota */}
                       {(
-                       <div className="flex items-start gap-3">
-  <div className="p-2 bg-green-50 rounded-lg">
-    <Users className="w-4 h-4 text-green-600" />
-  </div>
-  <div>
-    <p className="text-xs text-gray-500">Applications</p>
-    <p className="text-sm font-medium text-gray-900">
-      {hasLimitedApplications
-  ? `${applicationsUsed} / ${applicationLimit}`
-  : `${applicationsUsed} / Unlimited`}
-    </p>
-  </div>
-</div>
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-green-50 rounded-lg">
+                            <Users className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Applications</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {hasLimitedApplications
+                                ? `${applicationsUsed} / ${applicationLimit}`
+                                : `${applicationsUsed} / Unlimited`}
+                            </p>
+                          </div>
+                        </div>
                       )}
 
                       {/* Remaining Applications */}
@@ -479,10 +494,10 @@ const isQuotaExhausted =
                             <p className="text-xs text-gray-500">Remaining</p>
                             <p className={`text-sm font-medium ${(applicationsRemaining ?? 0) > 0 ? 'text-gray-900' : 'text-yellow-600'}`}>
                               {hasLimitedApplications
-  ? (applicationsRemaining ?? 0) > 0
-    ? `${applicationsRemaining} applications`
-    : 'Quota exhausted'
-  : 'Unlimited'}
+                                ? (applicationsRemaining ?? 0) > 0
+                                  ? `${applicationsRemaining} applications`
+                                  : 'Quota exhausted'
+                                : 'Unlimited'}
                             </p>
                           </div>
                         </div>
@@ -527,48 +542,45 @@ const isQuotaExhausted =
 
                   {/* Usage Stats Sidebar */}
                   <div className="lg:border-l lg:border-gray-200 lg:pl-6">
-  <h4 className="text-sm font-semibold text-gray-700 mb-4">
-    Your Usage
-  </h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-4">
+                      Your Usage
+                    </h4>
 
-  
-    <div className="mb-4">
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-600">Applications</span>
-       <span className="font-medium text-gray-900">
-  {hasLimitedApplications
-    ? `${applicationsUsed} / ${applicationLimit}`
-    : `${applicationsUsed} / Unlimited`}
-</span>
-      </div>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Applications</span>
+                        <span className="font-medium text-gray-900">
+                          {hasLimitedApplications
+                            ? `${applicationsUsed} / ${applicationLimit}`
+                            : `${applicationsUsed} / Unlimited`}
+                        </span>
+                      </div>
 
-      <div className="w-full bg-gray-200 rounded-full h-2">
-  <div
-    className={`h-2 rounded-full ${
-      isQuotaExhausted ? 'bg-yellow-500' : 'bg-blue-600'
-    }`}
-   style={{
-  width: hasLimitedApplications
-    ? `${Math.min(
-        (applicationsUsed / applicationLimit) * 100,
-        100
-      )}%`
-    : '100%',
-}}
-  />
-</div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            isQuotaExhausted ? 'bg-yellow-500' : 'bg-blue-600'
+                          }`}
+                          style={{
+                            width: hasLimitedApplications
+                              ? `${Math.min(
+                                  (applicationsUsed / applicationLimit) * 100,
+                                  100
+                                )}%`
+                              : '100%',
+                          }}
+                        />
+                      </div>
 
-      <p className="text-xs mt-2 text-yellow-600">
-        {hasLimitedApplications
-  ? (applicationsRemaining ?? 0) > 0
-    ? `${applicationsRemaining} applications remaining`
-    : 'All applications used. Buy more to continue applying.'
-  : `You have applied ${applicationsUsed} jobs (Unlimited plan)`}
-      </p>
-    </div>
-   
-  
-</div>
+                      <p className="text-xs mt-2 text-yellow-600">
+                        {hasLimitedApplications
+                          ? (applicationsRemaining ?? 0) > 0
+                            ? `${applicationsRemaining} applications remaining`
+                            : 'All applications used. Buy more to continue applying.'
+                          : `You have applied ${applicationsUsed} jobs (Unlimited plan)`}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -707,6 +719,28 @@ const isQuotaExhausted =
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Job Credit Add-ons Section */}
+        {(jobsAddons.length > 0 || isFree) && (
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-green-600" />
+              Buy More Applications
+            </h2>
+            <JobCreditAddonPanel
+              addons={jobsAddons}
+              currency={currency}
+              currentUsage={applicationsUsed}
+              currentLimit={applicationLimit}
+              isFreeTier={isFree}
+              prefill={paymentPrefill}
+              onPurchaseSuccess={async () => {
+                await loadData(false)
+                await refreshUser()
+              }}
+            />
           </div>
         )}
 
