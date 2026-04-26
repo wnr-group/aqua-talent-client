@@ -23,14 +23,12 @@ export default function Logo({ size = 'md', showText = true, variant = 'dark', c
     <div className={`flex items-center gap-3 ${className}`}>
       <img
         src="/logo.png"
-        alt="AquaTalentz"
+        alt="Aquatalentz"
         className={`${widthClass ? widthClass : icon} ${widthClass ? '' : 'w-auto'} object-contain`}
       />
 
       {showText && (
-        <span className={`font-display font-bold ${text} ${textColor}`}>
-          AquaTalentz
-        </span>
+        <span className={`font-display font-bold ${text} ${textColor}`}>Aquatalentz</span>
       )}
     </div>
   )

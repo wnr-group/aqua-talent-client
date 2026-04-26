@@ -96,7 +96,7 @@ export default function LandingPage() {
             <p className="text-base sm:text-xl text-gray-500 leading-relaxed mb-8 sm:mb-10 animate-fade-in-up stagger-2">
               {isStudent
                 ? 'Browse the latest opportunities and find the perfect match for your skills. Your next career move is just a click away.'
-                : 'Connect with top companies seeking fresh talent. Whether you\'re a student looking for opportunities or a company searching for rising stars, Aqua Talent makes it seamless.'}
+                : 'Connect with top companies seeking fresh talent. Whether you\'re a student looking for opportunities or a company searching for rising stars, Aquatalentz makes it seamless.'}
             </p>
 
             {/* Search Bar */}
@@ -370,7 +370,7 @@ export default function LandingPage() {
                   Find Your Next Star Employee
                 </h2>
                 <p className="text-gray-500 text-lg mb-8 max-w-2xl mx-auto">
-                  Post jobs, review applications, and hire talented students ready to make an impact. Join hundreds of companies already using Aqua Talent.
+                  Post jobs, review applications, and hire talented students ready to make an impact. Join hundreds of companies already using Aquatalentz.
                 </p>
 
                 <Link
@@ -421,7 +421,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Aqua Talent. All rights reserved.
+              &copy; {new Date().getFullYear()} Aquatalentz. All rights reserved.
             </p>
           </div>
         </div>
