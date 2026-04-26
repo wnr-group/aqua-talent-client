@@ -67,6 +67,34 @@ export default function AdminCompanies() {
   const [profileError, setProfileError] = useState<string | null>(null)
   const [companyProfile, setCompanyProfile] = useState<Company | null>(null)
 
+  // Account status modal state
+  const [showStatusModal, setShowStatusModal] = useState(false)
+  const [statusTargetCompany, setStatusTargetCompany] = useState<CompanyListItem | null>(null)
+
+  const openStatusModal = (company: CompanyListItem) => {
+    setStatusTargetCompany(company)
+    setShowStatusModal(true)
+  }
+
+  const handleToggleStatus = async () => {
+    if (!statusTargetCompany) return
+    const companyId = statusTargetCompany._id || statusTargetCompany.id
+    const newStatus = !(statusTargetCompany.isActive !== false)
+    try {
+      await api.patch(`/admin/companies/${companyId}/status`, { isActive: newStatus })
+      setCompanies((prev) =>
+        prev.map((c) =>
+          (c._id || c.id) === companyId ? { ...c, isActive: newStatus } : c
+        )
+      )
+      success(newStatus ? 'Account reactivated' : 'Account suspended')
+    } catch {
+      showError('Failed to update account status')
+    }
+    setShowStatusModal(false)
+    setStatusTargetCompany(null)
+  }
+
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -283,6 +311,7 @@ export default function AdminCompanies() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Company</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Account</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Registered</th>
                     <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                   </tr>
@@ -311,6 +340,11 @@ export default function AdminCompanies() {
                           </p>
                         )}
                       </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={company.isActive !== false ? 'success' : 'destructive'}>
+                          {company.isActive !== false ? 'Active' : 'Suspended'}
+                        </Badge>
+                      </td>
                       <td className="py-3 px-4 text-gray-600">
                         {format(new Date(company.createdAt), 'MMM d, yyyy')}
                       </td>
@@ -323,6 +357,13 @@ export default function AdminCompanies() {
                             leftIcon={<Eye className="w-3 h-3" />}
                           >
                             View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={company.isActive !== false ? 'destructive' : 'outline'}
+                            onClick={() => openStatusModal(company)}
+                          >
+                            {company.isActive !== false ? 'Suspend' : 'Reactivate'}
                           </Button>
                           {company.status === CompanyStatus.PENDING && (
                             <>
@@ -412,6 +453,34 @@ export default function AdminCompanies() {
             </div>
           )}
         </>
+      )}
+
+      {/* Account Status Modal */}
+      {showStatusModal && statusTargetCompany && (
+        <Modal
+          isOpen={showStatusModal}
+          onClose={() => { setShowStatusModal(false); setStatusTargetCompany(null) }}
+          title={statusTargetCompany.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
+        >
+          <div className="space-y-4">
+            <p className="text-gray-300">
+              {statusTargetCompany.isActive !== false
+                ? 'Are you sure you want to suspend this account? The company will be unable to log in.'
+                : 'Are you sure you want to reactivate this account?'}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => { setShowStatusModal(false); setStatusTargetCompany(null) }}>
+                Cancel
+              </Button>
+              <Button
+                variant={statusTargetCompany.isActive !== false ? 'destructive' : 'primary'}
+                onClick={handleToggleStatus}
+              >
+                {statusTargetCompany.isActive !== false ? 'Yes, Suspend' : 'Yes, Reactivate'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Reject Modal */}

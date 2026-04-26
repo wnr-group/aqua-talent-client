@@ -32,6 +32,7 @@ export const mockCompanies: Company[] = [
       twitter: 'https://twitter.com/infosys',
     },
     foundedYear: 1981,
+    isActive: true,
   },
   {
     id: 'company-2',
@@ -44,6 +45,7 @@ export const mockCompanies: Company[] = [
     website: 'https://tcs.com',
     industry: 'Information Technology',
     size: '1000+',
+    isActive: true,
   },
   {
     id: 'company-3',
@@ -55,6 +57,7 @@ export const mockCompanies: Company[] = [
     rejectionReason: 'Incomplete registration information',
     industry: 'Information Technology',
     size: '1000+',
+    isActive: true,
   },
 ]
 
@@ -68,6 +71,7 @@ export const mockStudents: Student[] = [
     isDGShipping: 'no',
     profileLink: 'https://linkedin.com/in/rahulsharma',
     isHired: false,
+    isActive: true,
     createdAt: '2024-01-10T00:00:00Z',
   },
   {
@@ -79,6 +83,7 @@ export const mockStudents: Student[] = [
     isDGShipping: 'yes',
     profileLink: 'https://linkedin.com/in/priyapatel',
     isHired: false,
+    isActive: true,
     createdAt: '2024-01-12T00:00:00Z',
   },
   {
@@ -90,6 +95,7 @@ export const mockStudents: Student[] = [
     isDGShipping: 'no',
     profileLink: null,
     isHired: true,
+    isActive: true,
     createdAt: '2024-01-08T00:00:00Z',
   },
 ]
