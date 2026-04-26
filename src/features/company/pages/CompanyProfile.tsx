@@ -691,7 +691,7 @@ setProfile(data);
       {/* Danger Zone */}
       <div className="mt-8 border border-red-500/30 rounded-xl p-6">
         <h3 className="text-red-400 font-semibold text-lg mb-2">Danger Zone</h3>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-gray-500 mb-4">
           Request permanent deletion of your account and all associated data. Your account will remain active until our support team processes the request.
         </p>
         <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>
@@ -707,7 +707,7 @@ setProfile(data);
           title="Delete Account"
         >
           <div className="space-y-4">
-            <p className="text-gray-300">
+            <p className="text-gray-600">
               Are you sure you want to request account deletion? This will open your email client with a pre-filled deletion request to our support team. Your account will remain active until we process the request.
             </p>
             <div className="flex gap-3 justify-end">

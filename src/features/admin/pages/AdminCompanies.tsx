@@ -463,7 +463,7 @@ export default function AdminCompanies() {
           title={statusTargetCompany.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
         >
           <div className="space-y-4">
-            <p className="text-gray-300">
+            <p className="text-gray-600">
               {statusTargetCompany.isActive !== false
                 ? 'Are you sure you want to suspend this account? The company will be unable to log in.'
                 : 'Are you sure you want to reactivate this account?'}

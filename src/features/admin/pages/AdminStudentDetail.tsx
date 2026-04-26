@@ -527,7 +527,7 @@ export default function AdminStudentDetail() {
                   <Badge variant={student.isActive !== false ? 'success' : 'destructive'}>
                     {student.isActive !== false ? 'Active' : 'Suspended'}
                   </Badge>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     {student.isActive !== false
                       ? 'This account is active and can log in.'
                       : 'This account is suspended and cannot log in.'}
@@ -815,7 +815,7 @@ export default function AdminStudentDetail() {
         <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)}
           title={student.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}>
           <div className="space-y-4">
-            <p className="text-gray-300">
+            <p className="text-gray-600">
               {student.isActive !== false
                 ? 'Are you sure you want to suspend this account? The user will be unable to log in.'
                 : 'Are you sure you want to reactivate this account?'}
