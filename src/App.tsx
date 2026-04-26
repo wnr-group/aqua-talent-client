@@ -11,6 +11,8 @@ import { getPortalType } from '@/utils/subdomain'
 import LandingPage from '@/features/public/pages/LandingPage'
 import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
+import AboutPage from './features/public/pages/AboutPage'
+import SecurityPage from './features/public/pages/SecurityPage'
 
 // Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'
@@ -52,94 +54,100 @@ import AdminAddons from '@/features/admin/pages/AdminAddons'
 import NotificationsPage from '@/features/notifications/pages/NotificationsPage'
 import CompanyNotificationsPage from '@/features/notifications/pages/CompanyNotificationsPage'
 import AdminNotificationsPage from '@/features/notifications/pages/AdminNotificationsPage'
+import Footer from './components/layout/Footer'
 
 // Get portal type based on subdomain
 const portalType = getPortalType()
 
 function PublicRoutes() {
   return (
-    <Routes>
-      {/* Public pages */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/jobs" element={<PublicJobsPage />} />
-      <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+    <>
+      <Routes>
+        {/* Public pages */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/jobs" element={<PublicJobsPage />} />
+        <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path='/security' element={<SecurityPage />} />
 
-      {/* Auth routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register/company" element={<CompanyRegisterPage />} />
-      <Route path="/register/student" element={<StudentRegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+        {/* Auth routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register/company" element={<CompanyRegisterPage />} />
+        <Route path="/register/student" element={<StudentRegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Student portal routes (on main domain) */}
-      <Route
-        path="/student/jobs"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <StudentJobSearch />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/student/jobs/:jobId"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <StudentJobDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <StudentDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/my-applications"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <StudentApplications />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <StudentProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/subscription"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <SubscriptionPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/subscription/success"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <PaymentSuccessPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/notifications"
-        element={
-          <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
-            <NotificationsPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Student portal routes (on main domain) */}
+        <Route
+          path="/student/jobs"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <StudentJobSearch />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/jobs/:jobId"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <StudentJobDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-applications"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <StudentApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <StudentProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/subscription"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <SubscriptionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/subscription/success"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <PaymentSuccessPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute allowedUserTypes={[UserType.STUDENT]}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer />
+    </>
   )
 }
 
@@ -232,7 +240,9 @@ function CompanyPortalRoutes() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    
   )
+  
 }
 
 function AdminPortalRoutes() {
