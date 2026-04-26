@@ -3018,4 +3018,24 @@ export const handlers = [
     mockZoneAddons.splice(idx, 1)
     return HttpResponse.json({ success: true })
   }),
+
+  // Toggle student account active/inactive status
+  http.patch(`${API_URL}/admin/students/:studentId/status`, async ({ request, params }) => {
+    await delay(DELAY_MS)
+    const body = await request.json() as { isActive: boolean }
+    const student = mockStudents.find(s => s.id === params.studentId || (s as { _id?: string })._id === params.studentId)
+    if (!student) return HttpResponse.json({ success: false, message: 'Student not found' }, { status: 404 })
+    student.isActive = body.isActive
+    return HttpResponse.json({ success: true, isActive: body.isActive })
+  }),
+
+  // Toggle company account active/inactive status
+  http.patch(`${API_URL}/admin/companies/:companyId/status`, async ({ request, params }) => {
+    await delay(DELAY_MS)
+    const body = await request.json() as { isActive: boolean }
+    const company = mockCompanies.find(c => c.id === params.companyId || (c as { _id?: string })._id === params.companyId)
+    if (!company) return HttpResponse.json({ success: false, message: 'Company not found' }, { status: 404 })
+    company.isActive = body.isActive
+    return HttpResponse.json({ success: true, isActive: body.isActive })
+  }),
 ]
