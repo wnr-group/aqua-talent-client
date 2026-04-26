@@ -1,30 +1,8 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Input from '@/components/common/Input';
-import Button from '@/components/common/Button';
-import { Mail, Send } from 'lucide-react';
 import Logo from '../common/Logo';
 
 export default function Footer() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        message: ''
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const subject = encodeURIComponent(`Contact from ${formData.name}`);
-        const body = encodeURIComponent(
-            `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-        );
-        window.open(`mailto:support@aquatalentz.com?subject=${subject}&body=${body}`);
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
+   
     return (
         <footer className="bg-slate-900 border-t border-white/10 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,51 +30,30 @@ export default function Footer() {
                         <ul className="space-y-3 text-sm">
                             <li><Link to="/" className="text-blue-100 hover:text-white transition-colors">Home</Link></li>
                             <li><Link to="/about" className="text-blue-100 hover:text-white transition-colors">About Us</Link></li>
-                            <li><Link to="/terms" className="text-blue-100 hover:text-white transition-colors">Terms</Link></li>
+                            <li><Link to="/terms" className="text-blue-100 hover:text-white transition-colors">Terms & Conditions</Link></li>
                             <li><Link to="/security" className="text-blue-100 hover:text-white transition-colors">Security</Link></li>
                         </ul>
                     </div>
 
-                    {/* Right Column: Contact Form */}
-                    <div className="bg-white p-6 rounded-xl border border-blue-400/20 shadow-lg">
-                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-blue-600" /> Contact Us
+{/* Right Column: Contact Form */}
+                    <div className="flex flex-col gap-2">
+                         <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
+                            Contact
                         </h3>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                required
-                                name="name"
-                                placeholder="Name"
-                                value={formData.name}
-                                onChange={handleChange}
-                            />
-                            <Input
-                                required
-                                type="email"
-                                name="email"
-                                placeholder="Email Address"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
-                            <textarea
-                                required
-                                name="message"
-                                rows={3}
-                                placeholder="Message"
-                                value={formData.message}
-                                onChange={handleChange}
-                                className="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-colors duration-150 resize-none"
-                            />
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                className="w-full bg-blue-600 hover:bg-blue-700"
-                                rightIcon={<Send className="w-4 h-4" />}
-                            >
-                                Send Message
-                            </Button>
-                        </form>
-                    </div>
+  <div className="flex gap-1">
+    <span className="text-sm text-white">General enquiries:</span>
+    <a href="mailto:info@aquatalentz.com" className="text-sm text-[--glow-teal] hover:underline">
+      info@aquatalentz.com
+    </a>
+  </div>
+  
+  <div className="flex gap-1">
+    <span className="text-sm text-white">Support:</span>
+    <a href="mailto:support@aquatalentz.com" className="text-sm text-[--glow-teal] hover:underline">
+      support@aquatalentz.com
+    </a>
+  </div>
+</div>
 
                 </div>
             </div>

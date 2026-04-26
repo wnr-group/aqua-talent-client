@@ -13,6 +13,7 @@ import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
 import AboutPage from './features/public/pages/AboutPage'
 import SecurityPage from './features/public/pages/SecurityPage'
+import TermsPage from './features/public/pages/TermsPage'
 
 // Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'
@@ -69,6 +70,7 @@ function PublicRoutes() {
         <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path='/security' element={<SecurityPage />} />
+        <Route path='/terms' element={<TermsPage />} />
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
