@@ -32,7 +32,7 @@ export default function Header() {
     <header className="bg-[#0a1628] border-b border-[rgba(0,240,255,0.15)]">
       <div className="flex items-center justify-between px-6 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
-          <Logo size="md" variant="light" />
+          <Logo size="md" variant="dark" />
           {user && (
             <span className={`hidden sm:inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${userTypeColors[user.userType]}`}>
               {userTypeLabels[user.userType]}
@@ -48,7 +48,7 @@ export default function Header() {
               </div>
               <span className="font-medium text-gray-900">{user.username}</span>
             </div>
-            <NotificationBell notificationsPath="/notifications" variant="light" />
+            <NotificationBell notificationsPath="/notifications" variant="dark" />
             <Button
               variant="ghost"
               size="sm"

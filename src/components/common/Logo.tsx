@@ -28,9 +28,7 @@ export default function Logo({ size = 'md', showText = true, variant = 'dark', c
       />
 
       {showText && (
-        <span className={`font-display font-bold ${text} ${textColor}`}>
-         Aquatalentz
-        </span>
+        <span className={`font-display font-bold ${text} ${textColor}`}>Aquatalentz</span>
       )}
     </div>
   )

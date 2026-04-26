@@ -19,7 +19,7 @@ export default function CompanyHeader() {
 
   return (
     <header className="bg-[#0a1628] border-b border-[rgba(0,240,255,0.15)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 text-white">
           <Logo size="md" variant="dark" />
        
