@@ -2550,6 +2550,26 @@ export const handlers = [
     return HttpResponse.json({ addons: mockZoneAddons })
   }),
 
+  // Get available jobs addons (extra application credit packs)
+  http.get(`${API_URL}/student/jobs-addons`, async () => {
+    await delay(DELAY_MS)
+    const user = auth.getCurrentUser()
+    if (!user || user.userType !== UserType.STUDENT) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 403 })
+    }
+
+    return HttpResponse.json({
+      addons: mockJobsAddons.map((addon) => ({
+        id: addon.id,
+        name: addon.name,
+        description: addon.description,
+        jobCreditCount: addon.jobCredits,
+        priceINR: addon.priceINR,
+        priceUSD: addon.priceUSD ?? 0,
+      })),
+    })
+  }),
+
   // Create pay-per-job payment order
   http.post(`${API_URL}/payments/pay-per-job/create-order`, async ({ request }) => {
     await delay(DELAY_MS)
