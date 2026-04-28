@@ -40,14 +40,14 @@ export default function Footer() {
                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
                             Contact
                         </h3>
-  <div className="flex flex gap-1">
+  <div className="flex gap-1">
     <span className="text-sm text-white">General enquiries:</span>
     <a href="mailto:info@aquatalentz.com" className="text-sm text-[--glow-teal] hover:underline">
       info@aquatalentz.com
     </a>
   </div>
   
-  <div className="flex flex gap-1">
+  <div className="flex gap-1">
     <span className="text-sm text-white">Support:</span>
     <a href="mailto:support@aquatalentz.com" className="text-sm text-[--glow-teal] hover:underline">
       support@aquatalentz.com

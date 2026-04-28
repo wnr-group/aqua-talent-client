@@ -70,7 +70,7 @@ function PublicRoutes() {
         <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path='/security' element={<SecurityPage />} />
-        <Route path="/terms" element={<TermsPage />} />
+        <Route path='/terms' element={<TermsPage />} />
 
       
 

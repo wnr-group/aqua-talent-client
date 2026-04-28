@@ -80,8 +80,6 @@ const TermsPage = () => {
                     <p className="text-gray-600 leading-relaxed">
                       {section.content}
                     </p>
-                    <p className="text-gray-600 leading-relaxed italic opacity-70">
-                    </p>
                   </div>
                 </section>
               ))}
@@ -96,3 +94,6 @@ const TermsPage = () => {
 }
 
 export default TermsPage
+
+
+
