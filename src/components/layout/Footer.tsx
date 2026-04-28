@@ -26,7 +26,7 @@ export default function Footer() {
     };
 
     return (
-        <footer className="bg-slate-900 border-t border-white/10 py-12">
+        <footer className="bg-slate-900 border-t border-white/10 pt-12 pb-4">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
 
@@ -99,7 +99,20 @@ export default function Footer() {
                     </div>
 
                 </div>
-            </div>
+        </div>
+        <div className="mt-6 pt-4 border-t border-white/10 text-center">
+  <p className="text-xs text-gray-400">
+    Powered by{' '}
+    <a
+      href="https://www.wnradvisory.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:underline hover:text-gray-300 transition-colors"
+    >
+      WnR Group
+    </a>
+  </p>
+</div>
         </footer>
     );
 }
