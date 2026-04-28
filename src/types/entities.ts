@@ -21,6 +21,7 @@ export interface Company {
   size?: string | null
   socialLinks?: CompanySocialLinks | null
   foundedYear?: number | null
+  isActive?: boolean
 }
 
 export interface StudentEducation {
@@ -56,6 +57,7 @@ export interface Student {
   location?: string | null
   availableFrom?: string | null
   isHired: boolean
+  isActive?: boolean
   createdAt: string
 }
 

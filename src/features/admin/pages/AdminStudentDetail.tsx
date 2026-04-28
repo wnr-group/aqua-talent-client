@@ -63,6 +63,7 @@ interface StudentProfile {
   resumeUrl: string | null
   introVideoUrl: string | null
   isHired: boolean
+  isActive?: boolean
   createdAt: string
 
   subscription: {
@@ -134,6 +135,21 @@ export default function AdminStudentDetail() {
   const [student, setStudent] = useState<StudentProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'payments' | 'applications'>('profile')
+
+  // Account status modal state
+  const [showStatusModal, setShowStatusModal] = useState(false)
+
+  const handleToggleStatus = async () => {
+    const newStatus = !(student?.isActive !== false)
+    try {
+      await api.patch(`/admin/students/${studentId}/status`, { isActive: newStatus })
+      setStudent(prev => prev ? { ...prev, isActive: newStatus } : prev)
+      success(newStatus ? 'Account reactivated' : 'Account suspended')
+    } catch {
+      showError('Failed to update account status')
+    }
+    setShowStatusModal(false)
+  }
 
   // Subscription modal state
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
@@ -502,6 +518,29 @@ export default function AdminStudentDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Account Status */}
+            <div className="border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Account Status</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Badge variant={student.isActive !== false ? 'success' : 'destructive'}>
+                    {student.isActive !== false ? 'Active' : 'Suspended'}
+                  </Badge>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {student.isActive !== false
+                      ? 'This account is active and can log in.'
+                      : 'This account is suspended and cannot log in.'}
+                  </p>
+                </div>
+                <Button
+                  variant={student.isActive !== false ? 'destructive' : 'outline'}
+                  onClick={() => setShowStatusModal(true)}
+                >
+                  {student.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -769,6 +808,29 @@ export default function AdminStudentDetail() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Account Status Modal */}
+      {showStatusModal && (
+        <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)}
+          title={student.isActive !== false ? 'Suspend Account' : 'Reactivate Account'}>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              {student.isActive !== false
+                ? 'Are you sure you want to suspend this account? The user will be unable to log in.'
+                : 'Are you sure you want to reactivate this account?'}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowStatusModal(false)}>Cancel</Button>
+              <Button
+                variant={student.isActive !== false ? 'destructive' : 'primary'}
+                onClick={handleToggleStatus}
+              >
+                {student.isActive !== false ? 'Yes, Suspend' : 'Yes, Reactivate'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Change Subscription Modal */}

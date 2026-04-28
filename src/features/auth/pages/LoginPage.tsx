@@ -274,7 +274,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-8">
             <Link to="/">
               <Logo
-                widthClass="w-40"   /* 160px wide */
+                widthClass="w-40"
                 showText={false}
                 variant="light"
                 className="hover:opacity-80 transition-opacity"
@@ -283,7 +283,7 @@ export default function LoginPage() {
           </div>
 
           {/* Header */}
-          <div className="text-center lg:text-center mb-8 animate-fade-in-up">
+          <div className="text-center mb-8 animate-fade-in-up">
             <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">
               {isAdminLogin ? 'Admin Portal' : isCompanyLogin ? 'Company Portal' : 'Welcome Back'}
             </h1>

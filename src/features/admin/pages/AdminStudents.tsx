@@ -24,6 +24,7 @@ interface StudentListItem {
   email: string
   subscriptionTier: 'free' | 'paid'
   isHired: boolean
+  isActive?: boolean
   hasResume: boolean
   hasVideo: boolean
   totalApplications: number
@@ -285,11 +286,16 @@ export default function AdminStudents() {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        {student.isHired ? (
-                          <Badge variant="success">Hired</Badge>
-                        ) : (
-                          <Badge variant="secondary">Active</Badge>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {student.isHired ? (
+                            <Badge variant="success">Hired</Badge>
+                          ) : (
+                            <Badge variant="secondary">Active</Badge>
+                          )}
+                          <Badge variant={student.isActive !== false ? 'success' : 'destructive'}>
+                            {student.isActive !== false ? 'Active' : 'Suspended'}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-gray-600">
                         {format(new Date(student.createdAt), 'MMM d, yyyy')}

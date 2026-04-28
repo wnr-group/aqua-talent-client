@@ -9,6 +9,7 @@ import {
 import Card, { CardContent, CardTitle } from "@/components/common/Card";
 import Input from "@/components/common/Input";
 import Button from "@/components/common/Button";
+import Modal from "@/components/common/Modal";
 import Alert from "@/components/common/Alert";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Badge from "@/components/common/Badge";
@@ -147,6 +148,18 @@ export default function CompanyProfile() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDeleteAccount = () => {
+    const email = user?.company?.email || profile?.email || '';
+    const name = user?.company?.name || profile?.name || '';
+    const subject = encodeURIComponent('Account Deletion Request');
+    const body = encodeURIComponent(
+      `Hi,\n\nI would like to request deletion of my Aquatalentz account.\n\nName: ${name}\nEmail: ${email}\n\nPlease confirm once my account and data have been removed.\n\nThank you.`
+    );
+    window.open(`mailto:support@aquatalentz.com?subject=${subject}&body=${body}`);
+    setShowDeleteModal(false);
+  };
 
   const {
     register,
@@ -673,6 +686,40 @@ setProfile(data);
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Danger Zone */}
+      <div className="mt-8 border border-red-500/30 rounded-xl p-6">
+        <h3 className="text-red-400 font-semibold text-lg mb-2">Danger Zone</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Request permanent deletion of your account and all associated data. Your account will remain active until our support team processes the request.
+        </p>
+        <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>
+          Delete My Account
+        </Button>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Delete Account"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to request account deletion? This will open your email client with a pre-filled deletion request to our support team. Your account will remain active until we process the request.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteAccount}>
+                Yes, Request Deletion
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </CompanyPageContainer>
   );
