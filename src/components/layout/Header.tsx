@@ -12,9 +12,9 @@ const userTypeLabels: Record<UserType, string> = {
 }
 
 const userTypeColors: Record<UserType, string> = {
-  [UserType.COMPANY]: 'bg-blue-50 text-blue-700 border border-blue-100',
-  [UserType.STUDENT]: 'bg-blue-100 text-blue-700',
-  [UserType.ADMIN]: 'bg-blue-50 text-blue-700 border border-blue-100',
+  [UserType.COMPANY]: 'bg-white/10 text-white border border-white/20',
+  [UserType.STUDENT]: 'bg-white/10 text-white border border-white/20',
+  [UserType.ADMIN]: 'bg-white/10 text-white border border-white/20',
 }
 
 export default function Header() {
@@ -42,11 +42,11 @@ export default function Header() {
 
         {isAuthenticated && user && (
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-500" />
+            <div className="flex items-center gap-2 text-sm text-white/80">
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-white/70" />
               </div>
-              <span className="font-medium text-gray-900">{user.username}</span>
+              <span className="font-medium text-white">{user.username}</span>
             </div>
             <NotificationBell notificationsPath="/notifications" variant="light" />
             <Button
@@ -54,6 +54,7 @@ export default function Header() {
               size="sm"
               onClick={handleLogout}
               leftIcon={<LogOut className="w-4 h-4" />}
+              className="text-white/80 hover:text-white hover:bg-white/10"
             >
               Logout
             </Button>
