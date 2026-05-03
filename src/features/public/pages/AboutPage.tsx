@@ -75,12 +75,20 @@ export default function AboutPage() {
       <section className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Have questions?</h2>
         <p className="text-gray-500 mb-6">We'd love to hear from you.</p>
-        <a 
-          href="mailto:info@aquatalentz.com" 
-          className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          Reach us at info@aquatalentz.com
-        </a>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <a
+            href="mailto:info@aquatalentz.com"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          >
+            info@aquatalentz.com
+          </a>
+          <a
+            href="mailto:support@aquatalentz.com"
+            className="inline-flex items-center justify-center px-6 py-3 border border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
+          >
+            support@aquatalentz.com
+          </a>
+        </div>
       </section>
     </PageContainer>
   );
