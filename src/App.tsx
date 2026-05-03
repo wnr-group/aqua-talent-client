@@ -11,9 +11,9 @@ import { getPortalType } from '@/utils/subdomain'
 import LandingPage from '@/features/public/pages/LandingPage'
 import PublicJobsPage from '@/features/public/pages/PublicJobsPage'
 import PublicJobDetailPage from '@/features/public/pages/PublicJobDetailPage'
-import AboutPage from './features/public/pages/AboutPage'
-import SecurityPage from './features/public/pages/SecurityPage'
-import TermsPage from './features/public/pages/TermsPage'
+import AboutPage from '@/features/public/pages/AboutPage'
+import SecurityPage from '@/features/public/pages/SecurityPage'
+import TermsPage from '@/features/public/pages/TermsPage'
 
 // Auth pages
 import LoginPage from '@/features/auth/pages/LoginPage'

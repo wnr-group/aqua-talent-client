@@ -6,7 +6,7 @@ export default function TermsPage() {
     <PageContainer showSidebar={false}>
       {/* Hero */}
       <section className="mb-16 text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold text-blue-600 mb-4">Terms &amp; Conditions</h1>
+        <h1 className="text-4xl font-bold text-blue-600 mb-6">Terms &amp; Conditions</h1>
         <p className="text-gray-500 text-sm">Last updated: May 2026</p>
         <p className="text-xl text-gray-600 leading-relaxed mt-4">
           By using AquaTalentz you agree to these terms. Please read them carefully before
