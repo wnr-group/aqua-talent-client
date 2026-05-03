@@ -62,6 +62,9 @@ export default function Footer() {
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Mail className="w-4 h-4 text-blue-600" /> Contact Us
                         </h3>
+                        <p className="text-xs text-gray-500 mb-2">
+                            <a href="mailto:support@aquatalentz.com" className="text-blue-600 hover:underline">support@aquatalentz.com</a>
+                        </p>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
                                 required
