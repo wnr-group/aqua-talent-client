@@ -16,8 +16,8 @@ export default function PublicNavbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-blue-600 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a1628] border-b border-[rgba(0,240,255,0.15)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
@@ -64,7 +64,7 @@ export default function PublicNavbar() {
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
           <div className="sm:hidden border-t border-blue-500/30">
-            <div className="px-4 py-4 space-y-2 bg-blue-600">
+            <div className="px-4 py-4 space-y-2 bg-[#0a1628]">
               <NavLink
                 to="/jobs"
                 className={({ isActive }) =>

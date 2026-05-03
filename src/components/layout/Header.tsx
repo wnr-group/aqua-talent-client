@@ -29,8 +29,8 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+    <header className="bg-[#0a1628] border-b border-[rgba(0,240,255,0.15)]">
+      <div className="flex items-center justify-between px-6 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <Logo size="md" variant="light" />
           {user && (
