@@ -691,8 +691,11 @@ setProfile(data);
       {/* Danger Zone */}
       <div className="mt-8 border border-red-500/30 rounded-xl p-6">
         <h3 className="text-red-400 font-semibold text-lg mb-2">Danger Zone</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-gray-500 mb-1">
           Request permanent deletion of your account and all associated data. Your account will remain active until our support team processes the request.
+        </p>
+        <p className="text-sm text-gray-400 mb-4">
+          Deletion requests are processed by our support team within 7 business days.
         </p>
         <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>
           Delete My Account

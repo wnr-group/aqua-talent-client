@@ -17,7 +17,7 @@ export default function Logo({ size = 'md', showText = true, variant = 'dark', c
 
   // dark variant = white text (for colored navbar backgrounds)
   // light variant = colored text (for light page backgrounds)
-  const textColor = variant === 'dark' ? 'text-white' : 'text-gray-900'
+  const textColor = variant === 'dark' ? 'text-white' : 'text-blue-600'
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>

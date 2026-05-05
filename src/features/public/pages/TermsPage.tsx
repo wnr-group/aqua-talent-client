@@ -81,8 +81,7 @@ export default function TermsPage() {
           </div>
           <p className="text-gray-600 leading-relaxed">
             We may update these Terms from time to time. Continued use of the Platform after
-            changes are posted constitutes acceptance of the revised Terms. We will notify
-            registered users of material changes via email.
+            changes are posted constitutes acceptance of the revised Terms.
           </p>
         </section>
 

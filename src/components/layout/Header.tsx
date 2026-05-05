@@ -12,9 +12,9 @@ const userTypeLabels: Record<UserType, string> = {
 }
 
 const userTypeColors: Record<UserType, string> = {
-  [UserType.COMPANY]: 'bg-white/10 text-white border border-white/20',
-  [UserType.STUDENT]: 'bg-white/10 text-white border border-white/20',
-  [UserType.ADMIN]: 'bg-white/10 text-white border border-white/20',
+  [UserType.COMPANY]: 'bg-gray-100 text-gray-700 border border-gray-200',
+  [UserType.STUDENT]: 'bg-gray-100 text-gray-700 border border-gray-200',
+  [UserType.ADMIN]: 'bg-gray-100 text-gray-700 border border-gray-200',
 }
 
 export default function Header() {
@@ -29,10 +29,10 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-[#0a1628] border-b border-[rgba(0,240,255,0.15)]">
+    <header className="bg-white border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
-          <Logo size="md" variant="dark" />
+          <Logo size="md" variant="light" />
           {user && (
             <span className={`hidden sm:inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${userTypeColors[user.userType]}`}>
               {userTypeLabels[user.userType]}
@@ -42,19 +42,19 @@ export default function Header() {
 
         {isAuthenticated && user && (
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-white/80">
-              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white/70" />
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-500" />
               </div>
-              <span className="font-medium text-white">{user.username}</span>
+              <span className="font-medium text-gray-800">{user.username}</span>
             </div>
-            <NotificationBell notificationsPath="/notifications" variant="light" />
+            <NotificationBell notificationsPath="/notifications" variant="dark" />
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
               leftIcon={<LogOut className="w-4 h-4" />}
-              className="text-white/80 hover:text-white hover:bg-white/10"
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
             >
               Logout
             </Button>

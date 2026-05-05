@@ -84,7 +84,7 @@ export default function CompanyRegisterPage() {
             <Logo size="lg" variant="light" />
           </Link>
           <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">
-            Partner with Aqua Talent
+            Partner with AquaTalentz
           </h1>
           <p className="text-gray-500">Register your company</p>
         </div>
