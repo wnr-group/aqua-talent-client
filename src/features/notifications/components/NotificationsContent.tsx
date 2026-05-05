@@ -12,7 +12,7 @@ interface NotificationsContentProps {
 
 const LIMIT = 20
 
-export default function NotificationsContent({ theme = 'ocean' }: NotificationsContentProps) {
+export default function NotificationsContent({ theme = 'light' }: NotificationsContentProps) {
   const { markRead, markAllRead, unreadCount } = useInAppNotifications()
   const [allNotifications, setAllNotifications] = useState<InAppNotification[]>([])
   const [isLoading, setIsLoading] = useState(true)

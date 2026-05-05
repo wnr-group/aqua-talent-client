@@ -3,19 +3,19 @@
 /* Import distinctive fonts */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
-/* Design System Variables - Deep Ocean Bioluminescent Theme */
+/* Design System Variables */
 :root {
   --font-display: 'Outfit', sans-serif;
   --font-body: 'DM Sans', sans-serif;
   --font-size: 16px;
 
-  /* Deep Ocean Colors */
+  /* Deep Ocean Colors (kept for reference / legacy utilities) */
   --ocean-deep: #07101a;
   --ocean-dark: #0a1628;
   --ocean-mid: #0f2035;
   --ocean-surface: #1a3a5c;
 
-  /* Bioluminescent Accents */
+  /* Accent palette */
   --glow-cyan: #00f0ff;
   --glow-teal: #00d4aa;
   --glow-blue: #4d9fff;
@@ -26,54 +26,20 @@
   --coral-soft: #ff8f8f;
   --sand: #ffd699;
 
-  /* Semantic Colors */
-  --background: var(--ocean-deep);
-  --foreground: #e8f4fc;
-  --card: rgba(15, 32, 53, 0.8);
-  --card-foreground: #e8f4fc;
-  --popover: var(--ocean-dark);
-  --popover-foreground: #e8f4fc;
-  --primary: var(--glow-teal);
-  --primary-foreground: var(--ocean-deep);
-  --secondary: var(--ocean-surface);
-  --secondary-foreground: #e8f4fc;
-  --muted: var(--ocean-mid);
-  --muted-foreground: #7eb8d8;
-  --accent: var(--glow-cyan);
-  --accent-foreground: var(--ocean-deep);
-  --destructive: var(--coral);
-  --destructive-foreground: #ffffff;
-  --success: var(--glow-teal);
-  --success-foreground: var(--ocean-deep);
-  --warning: var(--sand);
-  --warning-foreground: var(--ocean-deep);
-  --border: rgba(0, 240, 255, 0.15);
-  --input: rgba(0, 240, 255, 0.1);
-  --input-background: rgba(10, 22, 40, 0.6);
-  --ring: var(--glow-cyan);
-  --radius: 0.75rem;
-
-  /* Glow Effects */
-  --glow-sm: 0 0 10px rgba(0, 240, 255, 0.3);
-  --glow-md: 0 0 20px rgba(0, 240, 255, 0.4);
-  --glow-lg: 0 0 40px rgba(0, 240, 255, 0.5);
-}
-
-/* Light theme for authenticated portals */
-[data-theme="light"] {
+  /* Semantic Colors — light theme */
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #0d9488;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #0d9488;
+  --accent: #2563eb;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
@@ -84,7 +50,13 @@
   --border: #e2e8f0;
   --input: #e2e8f0;
   --input-background: #ffffff;
-  --ring: #0d9488;
+  --ring: #2563eb;
+  --radius: 0.75rem;
+
+  /* Glow Effects (legacy — only used where ocean theme is intentional) */
+  --glow-sm: 0 0 10px rgba(0, 240, 255, 0.3);
+  --glow-md: 0 0 20px rgba(0, 240, 255, 0.4);
+  --glow-lg: 0 0 40px rgba(0, 240, 255, 0.5);
 }
 
 /* Theme Colors for Tailwind */
@@ -228,9 +200,9 @@
 
   /* Glass morphism */
   .glass {
-    background: rgba(15, 32, 53, 0.6);
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   .glass-light {
@@ -395,16 +367,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--ocean-dark);
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--ocean-surface);
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--glow-teal);
+  background: #94a3b8;
 }
 
 /* Selection styling */

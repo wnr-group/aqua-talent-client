@@ -520,8 +520,8 @@ export default function AdminStudentDetail() {
             </Card>
 
             {/* Account Status */}
-            <div className="border border-white/10 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Account Status</h3>
+            <div className="border border-gray-200 rounded-xl p-6 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
               <div className="flex items-center justify-between">
                 <div>
                   <Badge variant={student.isActive !== false ? 'success' : 'destructive'}>

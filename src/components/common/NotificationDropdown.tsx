@@ -15,7 +15,7 @@ interface NotificationDropdownProps {
 export default function NotificationDropdown({
   onClose,
   notificationsPath = '/notifications',
-  theme = 'ocean',
+  theme = 'light',
 }: NotificationDropdownProps) {
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useInAppNotifications()
 
