@@ -18,7 +18,7 @@ export default defineConfig({
       'localhost',
       'aquatalent.local',
       'company.aquatalent.local',
-      'admin.aquatalent.local',
+      'core.aquatalent.local',
     ],
   },
 })

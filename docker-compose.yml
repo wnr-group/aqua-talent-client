@@ -24,7 +24,7 @@ services:
 # 1. Add to /etc/hosts:
 #    127.0.0.1 aquatalent.local
 #    127.0.0.1 company.aquatalent.local
-#    127.0.0.1 admin.aquatalent.local
+#    127.0.0.1 core.aquatalent.local
 #
 # 2. Start dev server:
 #    docker-compose up
@@ -32,4 +32,4 @@ services:
 # 3. Access the portals:
 #    - Student Portal: http://aquatalent.local
 #    - Company Portal: http://company.aquatalent.local
-#    - Admin Portal:   http://admin.aquatalent.local
+#    - Admin Portal:   http://core.aquatalent.local

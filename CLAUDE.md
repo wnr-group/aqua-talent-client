@@ -46,7 +46,7 @@ docker-compose up
 ### Portal URLs
 - Student: http://aquatalent.local
 - Company: http://company.aquatalent.local
-- Admin: http://admin.aquatalent.local
+- Admin: http://core.aquatalent.local
 
 ### Docker Files
 - `Dockerfile` - Vite dev server container

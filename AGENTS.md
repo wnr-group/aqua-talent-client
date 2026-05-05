@@ -502,7 +502,7 @@ The app uses subdomains to separate portals:
 |--------|--------|-----------|
 | Student/Public | `aquatalent.local` | No subdomain |
 | Company | `company.aquatalent.local` | `company` subdomain |
-| Admin | `admin.aquatalent.local` | `admin` subdomain |
+| Admin | `core.aquatalent.local` | `core` subdomain |
 
 Subdomain detection is handled by `src/utils/subdomain.ts`.
 

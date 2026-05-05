@@ -8,14 +8,14 @@ export function getSubdomain(): string | null {
   const hostname = window.location.hostname
 
   // Extract subdomain from hostname
-  // Works for both production (admin.aquatalent.com) and local (admin.aquatalent.local)
+  // Works for both production (core.aquatalent.com) and local (core.aquatalent.local)
   const parts = hostname.split('.')
 
-  // Need at least 3 parts for a subdomain (e.g., admin.aquatalent.local or admin.aquatalent.com)
+  // Need at least 3 parts for a subdomain (e.g., core.aquatalent.local or core.aquatalent.com)
   if (parts.length >= 3) {
     const subdomain = parts[0] || ''
-    // Only company and admin use subdomains
-    if (['company', 'admin'].includes(subdomain)) {
+    // Only company and core (admin) use subdomains
+    if (['company', 'core'].includes(subdomain)) {
       return subdomain
     }
   }
@@ -36,7 +36,7 @@ export function getPortalType(): PortalType {
   switch (subdomain) {
     case 'company':
       return 'company'
-    case 'admin':
+    case 'core':
       return 'admin'
     default:
       return 'public'
@@ -65,7 +65,7 @@ export function getPortalBaseUrl(portal: PortalType | 'student'): string {
   const parts = hostname.split('.')
   let baseDomain: string
 
-  if (parts.length >= 3 && ['company', 'admin'].includes(parts[0] || '')) {
+  if (parts.length >= 3 && ['company', 'core'].includes(parts[0] || '')) {
     // Has a portal subdomain, get the base domain
     baseDomain = parts.slice(1).join('.')
   } else {
@@ -80,7 +80,7 @@ export function getPortalBaseUrl(portal: PortalType | 'student'): string {
     case 'company':
       return `${protocol}//company.${baseDomain}${portSuffix}`
     case 'admin':
-      return `${protocol}//admin.${baseDomain}${portSuffix}`
+      return `${protocol}//core.${baseDomain}${portSuffix}`
     case 'student':
     default:
       // Students and public use main domain

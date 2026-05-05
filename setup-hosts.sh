@@ -7,7 +7,7 @@ HOSTS_FILE="/etc/hosts"
 DOMAINS=(
     "127.0.0.1 aquatalent.local"
     "127.0.0.1 company.aquatalent.local"
-    "127.0.0.1 admin.aquatalent.local"
+    "127.0.0.1 core.aquatalent.local"
 )
 
 echo "AquaTalentz Domain Setup"
@@ -36,7 +36,7 @@ echo ""
 echo "Setup complete! You can now access:"
 echo "  - Student Portal: http://aquatalent.local"
 echo "  - Company Portal: http://company.aquatalent.local"
-echo "  - Admin Portal:   http://admin.aquatalent.local"
+echo "  - Admin Portal:   http://core.aquatalent.local"
 echo ""
 echo "To start the application, run:"
 echo "  docker-compose up -d --build"
