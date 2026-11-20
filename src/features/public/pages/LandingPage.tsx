@@ -153,7 +153,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">New Opportunity</div>
-                    <div className="text-sm text-gray-500">Software Engineer</div>
+                    <div className="text-sm text-gray-500">Marine Technical Officer</div>
                   </div>
                 </div>
                 <div className="h-px bg-gray-200" />
